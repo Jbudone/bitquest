@@ -71,6 +71,17 @@ p1.y = 440;
 p2.x = 1168;
 p2.y = 440;
 
+// Ensure clean state
+world.db.setFlag('duo_vault_unlocked', false);
+const leverLInit = world.entities.get('lever_duo_left')!;
+leverLInit.state.solved = false;
+leverLInit.state.activated = false;
+const leverRInit = world.entities.get('lever_duo_right')!;
+leverRInit.state.solved = false;
+leverRInit.state.activated = false;
+const chestInit = world.entities.get('chest_duo_vault')!;
+chestInit.state.locked = true;
+
 let vaultUnlocked = false;
 world.onWorldFlagChanged = (key, val) => {
   if (key === 'duo_vault_unlocked' && val) {

@@ -1442,6 +1442,66 @@ export class TextureGenerator {
       ctx.fillRect(6, 6, 4, 4);
       scene.textures.addCanvas('particle_sparkle_gold', canvas);
     }
+    {
+      // Dandelion Seed (12x12) - Drifts in Whispering Meadow
+      const [canvas, ctx] = this.createCanvas(12, 12);
+      // Feathery white plume
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(6, 6);
+      ctx.lineTo(2, 2);
+      ctx.moveTo(6, 6);
+      ctx.lineTo(6, 1);
+      ctx.moveTo(6, 6);
+      ctx.lineTo(10, 2);
+      ctx.moveTo(6, 6);
+      ctx.lineTo(6, 9);
+      ctx.stroke();
+      // Fluff dots
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.fillRect(2, 1, 2, 2);
+      ctx.fillRect(5, 0, 2, 2);
+      ctx.fillRect(9, 1, 2, 2);
+      // Tiny brown seed pod
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(5, 9, 2, 3);
+      scene.textures.addCanvas('particle_dandelion', canvas);
+    }
+    {
+      // Glowing Spore Mote (10x10) - Drifts in Fungal Hollow
+      const [canvas, ctx] = this.createCanvas(10, 10);
+      const gradient = ctx.createRadialGradient(5, 5, 1, 5, 5, 5);
+      gradient.addColorStop(0, '#ffffff');
+      gradient.addColorStop(0.3, '#38bdf8');
+      gradient.addColorStop(0.7, '#a855f7');
+      gradient.addColorStop(1, 'rgba(168, 85, 247, 0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 10, 10);
+      scene.textures.addCanvas('particle_spore_mote', canvas);
+    }
+    {
+      // Golden Pollen Mote (6x6) - Drifts in Town & Gardens
+      const [canvas, ctx] = this.createCanvas(6, 6);
+      const gradient = ctx.createRadialGradient(3, 3, 0.5, 3, 3, 3);
+      gradient.addColorStop(0, '#ffffff');
+      gradient.addColorStop(0.5, '#fde047');
+      gradient.addColorStop(1, 'rgba(253, 224, 71, 0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 6, 6);
+      scene.textures.addCanvas('particle_pollen', canvas);
+    }
+    {
+      // Ancient Ruins Mote (8x8) - Drifts in Ruins Sanctuary
+      const [canvas, ctx] = this.createCanvas(8, 8);
+      const gradient = ctx.createRadialGradient(4, 4, 1, 4, 4, 4);
+      gradient.addColorStop(0, '#ffffff');
+      gradient.addColorStop(0.4, '#c084fc');
+      gradient.addColorStop(1, 'rgba(129, 140, 248, 0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 8, 8);
+      scene.textures.addCanvas('particle_ruins_mote', canvas);
+    }
 
     // 6. Light Glow (128x128)
     {

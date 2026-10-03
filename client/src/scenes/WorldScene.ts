@@ -5,6 +5,7 @@ import { network } from '../network/NetworkClient';
 import { sounds } from '../audio/SoundManager';
 import { saveManager } from '../storage/SaveManager';
 import { chronicles } from '../storage/ChroniclesManager';
+import { ParticlePipeline } from '../vfx/ParticlePipeline';
 import type { EntityData, PlayerData, Direction, EmoteType, ItemDropData } from '../../../shared/src/types';
 
 export class WorldScene extends Phaser.Scene {
@@ -14,6 +15,7 @@ export class WorldScene extends Phaser.Scene {
   public entityShadows = new Map<string, Phaser.GameObjects.Sprite>();
   public itemObjects = new Map<string, { sprite: Phaser.GameObjects.Sprite; shapeText?: Phaser.GameObjects.Text; data: ItemDropData }>();
   public playerGlow?: Phaser.GameObjects.Image;
+  public particles!: ParticlePipeline;
 
   private obstacles!: Phaser.Physics.Arcade.StaticGroup;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -97,6 +99,9 @@ export class WorldScene extends Phaser.Scene {
     this.ambientOverlay = this.add.rectangle(1024, 896, 2048, 1792, 0xf59e0b);
     this.ambientOverlay.setDepth(1500);
     this.ambientOverlay.setAlpha(0.06);
+
+    // 1e. Centralized Zero-Allocation VFX & Ambient Particle Pipeline
+    this.particles = new ParticlePipeline(this);
 
     // 2. Setup Input
     if (this.input.keyboard) {
@@ -1143,40 +1148,17 @@ export class WorldScene extends Phaser.Scene {
   private emitLeafBurst(x: number, y: number) {
     this.triggerCameraShake(70, 0.003);
     chronicles.recordStat('bushesCut', 1);
-    for (let i = 0; i < 8; i++) {
-      const leaf = this.add.sprite(x, y, 'particle_leaf');
-      const angle = Math.random() * Math.PI * 2;
-      const dist = 14 + Math.random() * 20;
-      this.tweens.add({
-        targets: leaf,
-        x: x + Math.cos(angle) * dist,
-        y: y + Math.sin(angle) * dist - 8,
-        rotation: (Math.random() - 0.5) * 8,
-        alpha: 0,
-        scale: 0.3,
-        duration: 350 + Math.random() * 150,
-        onComplete: () => leaf.destroy()
-      });
-    }
+    this.particles?.emitLeaves(x, y, 8);
   }
 
   private emitPotShards(x: number, y: number) {
     sounds.playPotShatter();
     chronicles.recordStat('potsSmashed', 1);
-    for (let i = 0; i < 6; i++) {
-      const shard = this.add.sprite(x, y, 'particle_shard');
-      const angle = Math.random() * Math.PI * 2;
-      const dist = 16 + Math.random() * 20;
-      this.tweens.add({
-        targets: shard,
-        x: x + Math.cos(angle) * dist,
-        y: y + Math.sin(angle) * dist,
-        rotation: Math.random() * 6,
-        alpha: 0,
-        duration: 300,
-        onComplete: () => shard.destroy()
-      });
-    }
+    this.particles?.emitPotShards(x, y, 8);
+  }
+
+  private emitSparkleBurst(x: number, y: number) {
+    this.particles?.emitSparkles(x, y, 8);
   }
 
   private emitHeartBurst(x: number, y: number) {
@@ -2083,6 +2065,9 @@ export class WorldScene extends Phaser.Scene {
 
       // 4. Overhead Action Prompt & Reticle
       this.updateInteractionPrompt(time);
+
+      // 5. Zero-Allocation Ambient Biome Particles & VFX Pipeline
+      this.particles?.update(delta, this.cameras.main, this.currentBiome);
     }
 
     for (const other of this.otherPlayers.values()) {

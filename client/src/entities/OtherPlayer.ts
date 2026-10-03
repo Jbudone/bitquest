@@ -90,6 +90,14 @@ export class OtherPlayer extends Phaser.GameObjects.Container {
     const lerpFactor = Math.min(1, (delta / 1000) * 15);
     this.x = Phaser.Math.Linear(this.x, this.targetX, lerpFactor);
     this.y = Phaser.Math.Linear(this.y, this.targetY, lerpFactor);
+
+    // Organic idle breathing micro-motion
+    if (this.animState === 'idle') {
+      const breath = Math.sin(this.scene.time.now * 0.0035 + this.x) * 0.03;
+      this.sprite.setScale(1.0 - breath * 0.5, 1.0 + breath);
+    } else {
+      this.sprite.setScale(1.0, 1.0);
+    }
   }
 
   public showEmote(emote: string) {

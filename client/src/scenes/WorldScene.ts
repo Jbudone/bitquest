@@ -91,6 +91,7 @@ export class WorldScene extends Phaser.Scene {
   }> = [];
 
   private lastDuckRippleTime = 0;
+  private lastBusterZzzTime = 0;
 
   constructor() {
     super({ key: 'WorldScene' });
@@ -814,8 +815,14 @@ export class WorldScene extends Phaser.Scene {
       const isOpened = !!ent.state.opened;
       obj.setTexture(isOpened ? 'gate_opened' : 'gate_closed');
     } else if (ent.type === 'wildlife' && ent.subtype === 'dog') {
-      if (ent.state.petCount) {
+      if (ent.state.petCount && ent.state.petCount !== (obj as any).lastPetCount) {
+        (obj as any).lastPetCount = ent.state.petCount;
         this.emitHeartBurst(ent.x, ent.y);
+      }
+      const b = ent.state.behavior || 'idle';
+      const targetTex = b === 'sniff' ? 'wildlife_dog_sniff' : b === 'nap' ? 'wildlife_dog_nap' : 'wildlife_dog_idle';
+      if (obj.texture?.key !== targetTex) {
+        obj.setTexture(targetTex);
       }
     } else if (ent.type === 'enemy') {
       obj.setVisible(!ent.state.destroyed);
@@ -2147,6 +2154,9 @@ export class WorldScene extends Phaser.Scene {
 
       // 6. Secondary Foliage Motion, Wind Simulation & Water Wake Ripples
       this.updateWindAndFoliage(time, delta);
+
+      // 7. Living World Ambient AI, Gaze Tracking & Micro-Behaviors
+      this.updateAmbientMicroBehaviors(time, delta);
     }
 
     for (const other of this.otherPlayers.values()) {
@@ -2244,6 +2254,71 @@ export class WorldScene extends Phaser.Scene {
       duration: 1000,
       ease: 'Cubic.easeOut',
       onComplete: () => ripple.destroy()
+    });
+  }
+
+  private updateAmbientMicroBehaviors(time: number, delta: number) {
+    if (!this.localPlayer) return;
+
+    const px = this.localPlayer.x;
+    const py = this.localPlayer.y;
+
+    // 1. Organic NPC & Critter Gaze Tracking
+    const livingEntities = ['npc_barnaby', 'npc_grandma', 'npc_rooster', 'wildlife_buster'];
+    for (const entId of livingEntities) {
+      const obj = this.entityObjects.get(entId);
+      if (!obj || !(obj instanceof Phaser.GameObjects.Sprite)) continue;
+
+      const dx = px - obj.x;
+      const dy = py - obj.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist < 85) {
+        // Subtle gaze head-turn: flip towards player
+        if (Math.abs(dx) > 8) {
+          obj.setFlipX(dx < 0);
+        }
+        const angle = Math.atan2(dy, dx);
+        const targetRot = Math.sin(angle) * 0.08;
+        obj.rotation = Phaser.Math.Linear(obj.rotation, targetRot, 0.12);
+      } else {
+        // Return to resting idle
+        if (entId === 'npc_rooster') {
+          // Sir Reginald pecks the ground rhythmically when alone
+          const peck = Math.sin(time * 0.005) * 0.08;
+          obj.rotation = Phaser.Math.Linear(obj.rotation, peck, 0.1);
+        } else {
+          obj.rotation = Phaser.Math.Linear(obj.rotation, 0, 0.1);
+        }
+      }
+    }
+
+    // 2. Buster Napping Sleepy Zzz Emitter
+    const busterObj = this.entityObjects.get('wildlife_buster');
+    if (busterObj && busterObj instanceof Phaser.GameObjects.Sprite) {
+      if (busterObj.texture.key === 'wildlife_dog_nap') {
+        if (time - this.lastBusterZzzTime > 1800) {
+          this.lastBusterZzzTime = time;
+          this.emitSleepyZzz(busterObj.x + 6, busterObj.y - 12);
+        }
+      }
+    }
+  }
+
+  public emitSleepyZzz(x: number, y: number) {
+    const zzz = this.add.image(x + (Math.random() * 4 - 2), y, 'particle_zzz');
+    zzz.setDepth(y + 60);
+    zzz.setScale(0.7);
+    zzz.setAlpha(0.9);
+    this.tweens.add({
+      targets: zzz,
+      x: zzz.x + 8,
+      y: zzz.y - 20,
+      alpha: 0,
+      scale: 1.25,
+      duration: 1400,
+      ease: 'Sine.easeOut',
+      onComplete: () => zzz.destroy()
     });
   }
 

@@ -1558,6 +1558,17 @@ export class TextureGenerator {
       ctx.fillRect(0, 0, 8, 8);
       scene.textures.addCanvas('particle_ruins_mote', canvas);
     }
+    {
+      // Sleepy Zzz Particle (12x12)
+      const [canvas, ctx] = this.createCanvas(12, 12);
+      ctx.fillStyle = '#93c5fd';
+      // Draw crisp pixel Z
+      ctx.fillRect(3, 2, 6, 2);
+      ctx.fillRect(7, 4, 2, 2);
+      ctx.fillRect(5, 6, 2, 2);
+      ctx.fillRect(3, 8, 6, 2);
+      scene.textures.addCanvas('particle_zzz', canvas);
+    }
 
     // 6. Light Glow (128x128)
     {
@@ -1878,6 +1889,58 @@ export class TextureGenerator {
       ctx.fillRect(11, 12, 2, 2);
 
       scene.textures.addCanvas('wildlife_dog', canvas);
+      scene.textures.addCanvas('wildlife_dog_idle', canvas);
+    }
+    {
+      // Buster Sniffing the Ground (24x24)
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(12, 20, 7, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Body tilted forward
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(4, 11, 12, 8);
+      // Head lowered to ground sniffing
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(15, 12, 4, 6);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(14, 13, 7, 6);
+      // Black nose right against the ground
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(20, 17, 2, 2);
+      // Happy wagging tail pointed up
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(3, 7, 3, 5);
+
+      scene.textures.addCanvas('wildlife_dog_sniff', canvas);
+    }
+    {
+      // Buster Napping Curled Up (24x24)
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(12, 19, 8, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Curled round resting body
+      ctx.fillStyle = '#d97706';
+      ctx.beginPath();
+      ctx.ellipse(12, 14, 8, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Floppy ear folded over
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(7, 11, 4, 5);
+      // Peaceful closed eyes (^_^)
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(12, 13, 2, 1);
+      ctx.fillRect(15, 13, 2, 1);
+      // Curled tail tucked in
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(4, 13, 3, 3);
+
+      scene.textures.addCanvas('wildlife_dog_nap', canvas);
     }
 
     // 5. Duck (20x20)

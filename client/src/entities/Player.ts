@@ -36,6 +36,8 @@ export class Player extends Phaser.GameObjects.Container {
   private emoteSprite: Phaser.GameObjects.Sprite | null = null;
   private chatBubbleContainer: Phaser.GameObjects.Container | null = null;
   private chatTimer: Phaser.Time.TimerEvent | null = null;
+  private idleStartTime = 0;
+  private idleZzzTimer = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number, id: string, name: string, paletteIndex: number) {
     super(scene, x, y);
@@ -167,13 +169,54 @@ export class Player extends Phaser.GameObjects.Container {
       this.titleText.setY(-39);
     }
 
-    // Surface-Reactive Footstep Cadence
+    // Surface-Reactive Footstep Cadence & Organic Layered Idle Progression
     const isMoving = vx !== 0 || vy !== 0;
+    const now = this.scene.time.now;
+
     if (isMoving && !this.isRolling && !this.isAttacking) {
-      const now = this.scene.time.now;
       if (now - this.footstepTimer > 280) {
         this.footstepTimer = now;
         this.emitFootstep();
+      }
+    }
+
+    if (isMoving || this.isRolling || this.isAttacking || this.carryingPotId) {
+      this.idleStartTime = now;
+      this.sprite.setY(0);
+      this.sprite.setScale(1.0, 1.0);
+      this.sprite.setRotation(0);
+    } else {
+      // Layered Idle Progression for Player
+      const idleDuration = now - this.idleStartTime;
+
+      if (idleDuration > 14000) {
+        // Layer 3: Cozy Sitting / Napping Pose (> 14s)
+        this.sprite.setY(3);
+        const cozyBreath = Math.sin(now * 0.0022) * 0.025;
+        this.sprite.setScale(1.12, 0.84 + cozyBreath);
+        this.sprite.setRotation(0);
+
+        if (now - this.idleZzzTimer > 2400) {
+          this.idleZzzTimer = now;
+          (this.scene as any).emitSleepyZzz?.(this.x, this.y - 18);
+        }
+      } else if (idleDuration > 7000) {
+        // Layer 2: Looking Around & Periodic Wiping Brow (> 7s)
+        this.sprite.setY(0);
+        const lookAround = Math.sin(now * 0.0018) * 0.07;
+        this.sprite.setRotation(lookAround);
+        const breath = Math.sin(now * 0.0035) * 0.035;
+        this.sprite.setScale(1.0 - breath * 0.5, 1.0 + breath);
+      } else if (idleDuration > 2500) {
+        // Layer 1: Cozy Breathing & Micro-Stretch (> 2.5s)
+        this.sprite.setY(0);
+        this.sprite.setRotation(0);
+        const breath = Math.sin(now * 0.0035) * 0.035;
+        this.sprite.setScale(1.0 - breath * 0.5, 1.0 + breath);
+      } else {
+        this.sprite.setY(0);
+        this.sprite.setScale(1.0, 1.0);
+        this.sprite.setRotation(0);
       }
     }
 

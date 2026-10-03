@@ -215,7 +215,7 @@ export class WorldManager {
       x: 1080,
       y: 1180,
       interactable: true,
-      state: { dialogueKey: 'dog_buster', direction: 'down', petCount: 0 }
+      state: { dialogueKey: 'dog_buster', direction: 'down', petCount: 0, behavior: 'idle', behaviorTimer: 0 }
     });
 
     this.entities.set('wildlife_duck_1', {
@@ -569,6 +569,43 @@ export class WorldManager {
           entity.x = Math.max(760, Math.min(1300, entity.x + dx));
           entity.y = Math.max(1320, Math.min(1680, entity.y + dy));
           this.onEntityStateChanged?.(entity);
+        }
+
+        // 2c. Buster the Dog organic ambient micro-behaviors (sniffing, napping, idle wagging)
+        if (entity.id === 'wildlife_buster') {
+          let playerNear = false;
+          for (const player of this.players.values()) {
+            if (Math.hypot(player.x - entity.x, player.y - entity.y) < 64) {
+              playerNear = true;
+              break;
+            }
+          }
+
+          const now = Date.now();
+          if (playerNear) {
+            // Excited when player is near!
+            if (entity.state.behavior !== 'idle') {
+              entity.state.behavior = 'idle';
+              entity.state.behaviorTimer = now + 4000;
+              this.onEntityStateChanged?.(entity);
+            }
+          } else {
+            // When alone, naturally cycle between sniffing, napping, and idle looking around
+            if (!entity.state.behaviorTimer || now > entity.state.behaviorTimer) {
+              const roll = Math.random();
+              if (roll < 0.40) {
+                entity.state.behavior = 'sniff';
+                entity.state.behaviorTimer = now + 4000 + Math.random() * 2000;
+              } else if (roll < 0.75) {
+                entity.state.behavior = 'nap';
+                entity.state.behaviorTimer = now + 6000 + Math.random() * 4000;
+              } else {
+                entity.state.behavior = 'idle';
+                entity.state.behaviorTimer = now + 3500 + Math.random() * 2000;
+              }
+              this.onEntityStateChanged?.(entity);
+            }
+          }
         }
       }
 

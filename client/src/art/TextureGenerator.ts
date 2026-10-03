@@ -12,6 +12,7 @@ export class TextureGenerator {
     this.createEmoteTextures(scene);
     this.createPortraitTextures(scene);
     this.createDecalTextures(scene);
+    this.createSpellTextures(scene);
   }
 
   private static createCanvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -2467,6 +2468,135 @@ export class TextureGenerator {
       ctx.fillStyle = '#6ee7b7';
       ctx.fillRect(6, 6, 3, 2);
       scene.textures.addCanvas('decal_slime_splatter', canvas);
+    }
+  }
+
+  private static createSpellTextures(scene: Phaser.Scene) {
+    // 1. Fireball Projectile (16x16)
+    {
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      // Fiery outer glow
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath();
+      ctx.arc(8, 8, 7, 0, Math.PI * 2);
+      ctx.fill();
+      // Mid fire mantle
+      ctx.fillStyle = '#f97316';
+      ctx.beginPath();
+      ctx.arc(8, 8, 5, 0, Math.PI * 2);
+      ctx.fill();
+      // Hot yellow core
+      ctx.fillStyle = '#fef08a';
+      ctx.beginPath();
+      ctx.arc(7, 7, 3, 0, Math.PI * 2);
+      ctx.fill();
+      // Center white speck
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(6, 6, 2, 2);
+      scene.textures.addCanvas('proj_fireball', canvas);
+    }
+
+    // 2. Ice Lance Projectile (16x16, pointing right)
+    {
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      // Sharp crystalline diamond dart
+      ctx.fillStyle = '#0284c7'; // dark frost border
+      ctx.beginPath();
+      ctx.moveTo(15, 8);
+      ctx.lineTo(6, 3);
+      ctx.lineTo(1, 8);
+      ctx.lineTo(6, 13);
+      ctx.closePath();
+      ctx.fill();
+
+      // Gleaming cyan body
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.moveTo(14, 8);
+      ctx.lineTo(7, 4);
+      ctx.lineTo(3, 8);
+      ctx.lineTo(7, 12);
+      ctx.closePath();
+      ctx.fill();
+
+      // Sharp white highlight ridge
+      ctx.fillStyle = '#f0f9ff';
+      ctx.beginPath();
+      ctx.moveTo(13, 8);
+      ctx.lineTo(7, 6);
+      ctx.lineTo(5, 8);
+      ctx.closePath();
+      ctx.fill();
+      scene.textures.addCanvas('proj_ice_lance', canvas);
+    }
+
+    // 3. Gale Ward Vortex VFX (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      ctx.lineWidth = 2.5;
+      // Outer wind arc
+      ctx.strokeStyle = 'rgba(52, 211, 153, 0.7)';
+      ctx.beginPath();
+      ctx.arc(16, 16, 13, 0.2, Math.PI * 1.3);
+      ctx.stroke();
+
+      // Inner wind arc
+      ctx.strokeStyle = 'rgba(167, 243, 208, 0.85)';
+      ctx.beginPath();
+      ctx.arc(16, 16, 8, Math.PI * 0.9, Math.PI * 2.1);
+      ctx.stroke();
+
+      // Autumn leaf swirl motes
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(8, 6, 3, 2);
+      ctx.fillRect(23, 20, 2, 3);
+      ctx.fillStyle = '#10b981';
+      ctx.fillRect(22, 9, 3, 2);
+      ctx.fillRect(7, 22, 2, 3);
+      scene.textures.addCanvas('vfx_gale_ward', canvas);
+    }
+
+    // 4. Burning Flame Status Overlay (10x10)
+    {
+      const [canvas, ctx] = this.createCanvas(10, 10);
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(3, 4, 4, 5);
+      ctx.fillRect(4, 2, 2, 3);
+      ctx.fillStyle = '#f97316';
+      ctx.fillRect(3, 5, 4, 3);
+      ctx.fillRect(4, 3, 2, 2);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(4, 6, 2, 2);
+      scene.textures.addCanvas('vfx_burn_flame', canvas);
+    }
+
+    // 5. Ice Shard Freeze Status Overlay (10x10)
+    {
+      const [canvas, ctx] = this.createCanvas(10, 10);
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(4, 1, 2, 8);
+      ctx.fillRect(1, 4, 8, 2);
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillRect(3, 3, 4, 4);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(4, 4, 2, 2);
+      scene.textures.addCanvas('vfx_ice_shard', canvas);
+    }
+
+    // 6. Stun Dizzy Star Overlay (12x12)
+    {
+      const [canvas, ctx] = this.createCanvas(12, 12);
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(5, 0, 2, 12);
+      ctx.fillRect(0, 5, 12, 2);
+      ctx.fillRect(3, 3, 6, 6);
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(5, 1, 2, 10);
+      ctx.fillRect(1, 5, 10, 2);
+      ctx.fillRect(4, 4, 4, 4);
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(5, 5, 2, 2);
+      scene.textures.addCanvas('vfx_stun_star', canvas);
     }
   }
 }

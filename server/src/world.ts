@@ -1,9 +1,10 @@
-import { PlayerData, EntityData, Direction, PlayerAnimState, EmoteType, ChatMessage, EmoteEvent, ItemDropData, ServerPacket } from '../../shared/src/types';
+import { PlayerData, EntityData, Direction, PlayerAnimState, EmoteType, ChatMessage, EmoteEvent, ItemDropData, ServerPacket, SpellId, StatusEffectType } from '../../shared/src/types';
 import { WorldDatabase } from './db';
 import { STARTER_DIALOGUES } from '../../content/dialogues';
 import { NavigationEngine, NavAgent } from '../../shared/src/navigation';
 import { SpatialGrid } from '../../shared/src/spatialGrid';
 import { BehaviorRegistry } from '../../shared/src/behaviors/registry';
+import { SPELL_DEFINITIONS, StatusEffectManager } from '../../shared/src/magic';
 
 export class WorldManager {
   public db: WorldDatabase;
@@ -24,6 +25,7 @@ export class WorldManager {
   public onSocialResonance?: (player1Id: string, player2Id: string, emote: EmoteType, x: number, y: number) => void;
   public onPotThrown?: (potId: string, throwerId: string, startX: number, startY: number, targetX: number, targetY: number, duration: number) => void;
   public onPotCaught?: (potId: string, catcherId: string, x: number, y: number) => void;
+  public onSpellCast?: (casterId: string, spellId: SpellId, x: number, y: number, direction: Direction) => void;
 
   public flyingPots = new Map<string, {
     potId: string;
@@ -575,10 +577,20 @@ export class WorldManager {
           enemy.state.isDormant = false;
         }
 
+        // Process elemental status effects (burn tick damage, freeze slow, stun)
+        const status = StatusEffectManager.updateEffects(enemy.state, now, (dmg) => {
+          this.handleInteract('system', enemy.id, 'hit_enemy', undefined, undefined, dmg);
+        });
+
+        if (status.isStunned) {
+          // Stunned: cannot steer or move
+          continue;
+        }
+
         const isSproutling = enemy.subtype === 'sproutling';
         const aggroRadius = isSproutling ? 110 : 140;
         const leashRadius = isSproutling ? 180 : 230;
-        const speed = isSproutling ? 16 : 20;
+        const speed = (isSproutling ? 16 : 20) * status.speedMultiplier;
 
         const agent: NavAgent = {
           id: enemy.id,
@@ -733,7 +745,58 @@ export class WorldManager {
           }
         }
       }
+
+      // Natural Player Mana Regeneration (5 MP per tick)
+      for (const p of this.players.values()) {
+        if (p.mana === undefined) p.mana = 50;
+        if (p.maxMana === undefined) p.maxMana = 50;
+        if (p.mana < p.maxMana) {
+          p.mana = Math.min(p.maxMana, p.mana + 5);
+          this.onPlayerStatsUpdated?.(p);
+        }
+      }
     }, 1400);
+  }
+
+  public handleCastSpell(playerId: string, spellId: SpellId, x: number, y: number, direction: Direction) {
+    const player = this.players.get(playerId);
+    if (!player) return;
+
+    const spell = SPELL_DEFINITIONS[spellId];
+    if (!spell) return;
+
+    if (player.mana === undefined) player.mana = 50;
+    if (player.maxMana === undefined) player.maxMana = 50;
+
+    if (player.mana < spell.manaCost) return;
+
+    // Deduct mana
+    player.mana -= spell.manaCost;
+    this.onPlayerStatsUpdated?.(player);
+    this.onSpellCast?.(playerId, spellId, x, y, direction);
+
+    // If instant AOE (Gale Ward), apply radial hit & stun immediately
+    if (spell.id === 'gale_ward') {
+      const now = Date.now();
+      for (const entity of this.entities.values()) {
+        if ((entity.type === 'enemy' || entity.type === 'boss') && !entity.state.destroyed) {
+          const dist = Math.hypot(entity.x - x, entity.y - y);
+          if (dist <= spell.aoeRadius) {
+            // Apply Stun
+            StatusEffectManager.applyEffect(entity.state, 'stun', 1200, now);
+            // Pushback
+            const angle = Math.atan2(entity.y - y, entity.x - x);
+            entity.x += Math.cos(angle) * spell.pushForce;
+            entity.y += Math.sin(angle) * spell.pushForce;
+            this.spatialGrid.update(entity);
+            this.onEntityStateChanged?.(entity);
+
+            // Deal damage
+            this.handleInteract(playerId, entity.id, 'hit_enemy', undefined, undefined, spell.baseDamage);
+          }
+        }
+      }
+    }
   }
 
   public addPlayer(id: string, name: string, color: string, paletteIndex: number): PlayerData {
@@ -749,6 +812,8 @@ export class WorldManager {
       carryingItem: null,
       health: 3,
       maxHealth: 3,
+      mana: 50,
+      maxMana: 50,
       coins: 0,
       acorns: 0
     };

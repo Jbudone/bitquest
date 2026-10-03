@@ -172,6 +172,19 @@ export class UIManager {
   }
 
   private setupChatAndEmotes() {
+    // Spell hotbar buttons
+    const spellBtns = document.querySelectorAll('.spell-slot-btn');
+    spellBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        sounds.ensureContext();
+        const spell = (e.currentTarget as HTMLElement).dataset.spell;
+        if (spell) {
+          const worldScene = (window as any).BitQuestGame?.scene?.getScene('WorldScene');
+          worldScene?.castSpell(spell);
+        }
+      });
+    });
+
     // Emote buttons
     const emoteBtns = document.querySelectorAll('.emote-btn');
     emoteBtns.forEach(btn => {
@@ -452,6 +465,30 @@ export class UIManager {
       }
     }
     container.innerHTML = html;
+  }
+
+  public updateMana(mana: number, maxMana: number) {
+    const fill = document.getElementById('mana-bar-fill');
+    const counter = document.getElementById('mana-counter');
+    const container = document.getElementById('mana-bar-container');
+    if (fill) {
+      const pct = Math.max(0, Math.min(100, Math.round((mana / maxMana) * 100)));
+      fill.style.width = `${pct}%`;
+    }
+    if (counter) {
+      counter.innerText = `${mana} / ${maxMana}`;
+    }
+    if (container) {
+      container.title = `Player Mana (${mana}/${maxMana} MP)`;
+    }
+
+    // Update spell hotbar affordability state
+    const fireballBtn = document.getElementById('spell-btn-fireball');
+    const iceBtn = document.getElementById('spell-btn-ice-lance');
+    const galeBtn = document.getElementById('spell-btn-gale-ward');
+    if (fireballBtn) fireballBtn.classList.toggle('on-cooldown', mana < 15);
+    if (iceBtn) iceBtn.classList.toggle('on-cooldown', mana < 12);
+    if (galeBtn) galeBtn.classList.toggle('on-cooldown', mana < 20);
   }
 
   public updateCurrency(coins: number, acorns: number) {

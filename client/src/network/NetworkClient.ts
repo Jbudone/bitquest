@@ -8,7 +8,8 @@ import type {
   Direction,
   PlayerAnimState,
   EmoteType,
-  ItemDropData
+  ItemDropData,
+  SpellId
 } from '../../../shared/src/types';
 
 export class NetworkClient {
@@ -23,7 +24,8 @@ export class NetworkClient {
   public onEntityUpdated?: (entity: EntityData) => void;
   public onItemSpawned?: (item: ItemDropData) => void;
   public onItemCollected?: (data: { itemId: string; collectorId: string; itemType: string; value: number }) => void;
-  public onPlayerStatsUpdated?: (data: { id: string; health: number; maxHealth: number; coins: number; acorns: number }) => void;
+  public onPlayerStatsUpdated?: (data: { id: string; health: number; maxHealth: number; mana: number; maxMana: number; coins: number; acorns: number }) => void;
+  public onSpellCast?: (data: { casterId: string; spellId: SpellId; x: number; y: number; direction: Direction }) => void;
   public onChatBroadcast?: (chat: ChatMessage) => void;
   public onEmoteBroadcast?: (emote: EmoteEvent) => void;
   public onWorldFlagUpdated?: (key: string, value: boolean) => void;
@@ -133,6 +135,9 @@ export class NetworkClient {
       case 'pot_caught':
         this.onPotCaught?.(packet);
         break;
+      case 'spell_cast':
+        this.onSpellCast?.(packet);
+        break;
       case 'reconcile':
         this.onReconcile?.(packet.ackSeq, packet.x, packet.y);
         break;
@@ -150,6 +155,10 @@ export class NetworkClient {
 
   public sendMove(x: number, y: number, direction: Direction, anim: PlayerAnimState, carryingItem: string | null, seq?: number) {
     this.send({ type: 'move', x, y, direction, anim, carryingItem, seq });
+  }
+
+  public sendCastSpell(spellId: SpellId, x: number, y: number, direction: Direction) {
+    this.send({ type: 'cast_spell', spellId, x, y, direction });
   }
 
   public sendInteract(targetId: string, action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever', x?: number, y?: number, damage?: number) {

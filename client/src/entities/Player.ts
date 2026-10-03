@@ -4,6 +4,7 @@ import { sounds } from '../audio/SoundManager';
 import { network } from '../network/NetworkClient';
 import { chronicles } from '../storage/ChroniclesManager';
 import { ClientPredictionManager } from '../../../shared/src/netcode/prediction';
+import { ManaPool, SPELL_DEFINITIONS, type SpellDefinition, type SpellId } from '../../../shared/src/magic';
 
 export class Player extends Phaser.GameObjects.Container {
   public id: string;
@@ -20,9 +21,16 @@ export class Player extends Phaser.GameObjects.Container {
   public carryingPotId: string | null = null;
   public speed = 150;
   public speedMultiplier = 1;
+  public speedBuffMultiplier = 1;
+  public speedBuffExpiresAt = 0;
   public godMode = false;
   public health = 3;
   public maxHealth = 3;
+  public mana = 50;
+  public maxMana = 50;
+  public manaPool = new ManaPool(50, 50, 5);
+  public isCasting = false;
+  public spellCooldowns: Record<SpellId, number> = { fireball: 0, ice_lance: 0, gale_ward: 0 };
   public coins = 0;
   public acorns = 0;
 
@@ -112,8 +120,22 @@ export class Player extends Phaser.GameObjects.Container {
     this.titleText.setText(title);
   }
 
-  public updateMovement(cursors: Phaser.Types.Input.Keyboard.CursorKeys, keys: Record<string, Phaser.Input.Keyboard.Key>) {
-    if (this.isAttacking || this.isRolling || this.isJumpingLedge) return;
+  public updateMovement(cursors: Phaser.Types.Input.Keyboard.CursorKeys, keys: Record<string, Phaser.Input.Keyboard.Key>, delta = 16.67) {
+    const now = this.scene.time.now;
+
+    // Natural Mana Regeneration
+    const regen = this.manaPool.updateRegen(delta, now);
+    if (regen.changed) {
+      this.mana = regen.current;
+      (window as any).BitQuestUI?.updateMana(this.mana, this.maxMana);
+    }
+
+    // Check Gale Ward speed buff
+    if (now >= this.speedBuffExpiresAt) {
+      this.speedBuffMultiplier = 1;
+    }
+
+    if (this.isAttacking || this.isRolling || this.isJumpingLedge || this.isCasting) return;
 
     const body = this.body as Phaser.Physics.Arcade.Body;
     let vx = 0;
@@ -135,7 +157,7 @@ export class Player extends Phaser.GameObjects.Container {
       vy *= 0.7071;
     }
 
-    const currentSpeed = this.speed * this.speedMultiplier;
+    const currentSpeed = this.speed * this.speedMultiplier * this.speedBuffMultiplier;
     body.setVelocity(vx * currentSpeed, vy * currentSpeed);
 
     // Update Facing Direction & Animation
@@ -178,7 +200,6 @@ export class Player extends Phaser.GameObjects.Container {
 
     // Surface-Reactive Footstep Cadence & Organic Layered Idle Progression
     const isMoving = vx !== 0 || vy !== 0;
-    const now = this.scene.time.now;
 
     if (isMoving && !this.isRolling && !this.isAttacking) {
       if (now - this.footstepTimer > 280) {
@@ -244,6 +265,63 @@ export class Player extends Phaser.GameObjects.Container {
       this.lastX = result.x;
       this.lastY = result.y;
     }
+  }
+
+  public castSpell(spellId: SpellId, onSpawnProjectile: (spell: SpellDefinition, x: number, y: number, dir: Direction) => void) {
+    if (this.isAttacking || this.isRolling || this.isJumpingLedge || this.isCasting) return;
+    if (this.carryingPotId) return;
+
+    const now = this.scene.time.now;
+    const spell = SPELL_DEFINITIONS[spellId];
+    if (!spell) return;
+
+    if (now < (this.spellCooldowns[spellId] || 0)) {
+      return;
+    }
+
+    if (!this.manaPool.canCast(spellId)) {
+      sounds.playOutOfMana();
+      (this.scene as any).showFloatingText?.(this.x, this.y - 20, "Out of Mana!", "#60a5fa");
+      return;
+    }
+
+    this.manaPool.consumeMana(spell.manaCost, now);
+    this.mana = this.manaPool.current;
+    (window as any).BitQuestUI?.updateMana(this.mana, this.maxMana);
+    this.spellCooldowns[spellId] = now + spell.cooldownMs;
+
+    this.isCasting = true;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setVelocity(0, 0);
+
+    // Cast windup pose
+    this.sprite.setTexture(`player_${this.paletteIndex}_${this.direction}_slash`);
+    this.sprite.setScale(1.15, 0.9);
+
+    if (spellId === 'fireball') {
+      sounds.playFireballCast();
+      (this.scene as any).particlePipeline?.emitFireBurst(this.x, this.y, 6);
+    } else if (spellId === 'ice_lance') {
+      sounds.playIceCast();
+      (this.scene as any).particlePipeline?.emitIceShatter(this.x, this.y, 6);
+    } else if (spellId === 'gale_ward') {
+      sounds.playGaleWard();
+      (this.scene as any).particlePipeline?.emitGaleVortex(this.x, this.y, 16);
+      if (spell.selfBuff) {
+        this.speedBuffMultiplier = spell.selfBuff.speedMultiplier;
+        this.speedBuffExpiresAt = now + spell.selfBuff.durationMs;
+        (this.scene as any).showFloatingText?.(this.x, this.y - 24, "⚡ GALE BOOST!", "#34d399");
+      }
+    }
+
+    network.sendCastSpell(spellId, this.x, this.y, this.direction);
+
+    this.scene.time.delayedCall(120, () => {
+      this.isCasting = false;
+      this.sprite.setScale(1.0, 1.0);
+      this.sprite.setTexture(`player_${this.paletteIndex}_${this.direction}_idle`);
+      onSpawnProjectile(spell, this.x, this.y, this.direction);
+    });
   }
 
   public enterPushStance(dir: Direction) {

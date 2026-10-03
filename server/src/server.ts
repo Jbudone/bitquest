@@ -68,9 +68,22 @@ world.onPlayerStatsUpdated = (player) => {
     id: player.id,
     health: player.health,
     maxHealth: player.maxHealth,
+    mana: player.mana ?? 50,
+    maxMana: player.maxMana ?? 50,
     coins: player.coins || 0,
     acorns: player.acorns || 0
   });
+};
+
+world.onSpellCast = (casterId, spellId, x, y, direction) => {
+  broadcast({
+    type: 'spell_cast',
+    casterId,
+    spellId,
+    x,
+    y,
+    direction
+  }, casterId);
 };
 
 world.onBossEvent = (event) => {
@@ -348,6 +361,11 @@ const server = Bun.serve<SocketData>({
 
               world.updatePlayerMove(id, validation.correctedX, validation.correctedY, msg.direction, msg.anim, msg.carryingItem);
             }
+            break;
+          }
+
+          case 'cast_spell': {
+            world.handleCastSpell(id, msg.spellId, msg.x, msg.y, msg.direction);
             break;
           }
 

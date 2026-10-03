@@ -9,6 +9,7 @@ import { ParticlePipeline } from '../vfx/ParticlePipeline';
 import type { EntityData, PlayerData, Direction, EmoteType, ItemDropData } from '../../../shared/src/types';
 import { SpatialGrid } from '../../../shared/src/spatialGrid';
 import { BehaviorRegistry } from '../../../shared/src/behaviors/registry';
+import { SPELL_DEFINITIONS, type SpellDefinition, type SpellId, StatusEffectManager } from '../../../shared/src/magic';
 
 export class WorldScene extends Phaser.Scene {
   public localPlayer: Player | null = null;
@@ -26,6 +27,17 @@ export class WorldScene extends Phaser.Scene {
   private gateBody?: Phaser.Physics.Arcade.Image;
   private playerInvulnerable = false;
   private sporeProjectiles: Array<{ sprite: Phaser.GameObjects.Sprite; vx: number; vy: number; life: number }> = [];
+  private spellProjectiles: Array<{
+    sprite: Phaser.GameObjects.Sprite;
+    spell: SpellDefinition;
+    dir: Direction;
+    vx: number;
+    vy: number;
+    rangeRemaining: number;
+    trailTimer: number;
+    active: boolean;
+  }> = [];
+  private lastStatusEffectTickTime = 0;
   private coinCombo = 0;
   private lastCoinPickupTime = 0;
 
@@ -169,6 +181,8 @@ export class WorldScene extends Phaser.Scene {
         K: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.K),
         SHIFT: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT),
         L: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.L),
+        Q: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
+        R: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R),
         TILDE: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.BACKTICK),
         ONE: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE),
         TWO: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO),
@@ -193,13 +207,17 @@ export class WorldScene extends Phaser.Scene {
       this.keys.E.on('down', () => this.handleActionInteract());
       this.keys.K.on('down', () => this.handleActionInteract());
 
+      // Magic Spells: 1 / Q (Fireball), 2 (Ice Lance), 3 / R (Gale Ward)
+      this.keys.ONE.on('down', () => this.castSpell('fireball'));
+      this.keys.Q.on('down', () => this.castSpell('fireball'));
+      this.keys.TWO.on('down', () => this.castSpell('ice_lance'));
+      this.keys.THREE.on('down', () => this.castSpell('gale_ward'));
+      this.keys.R.on('down', () => this.castSpell('gale_ward'));
+
       // Emote shortcuts
-      this.keys.ONE.on('down', () => this.triggerEmote('heart'));
-      this.keys.TWO.on('down', () => this.triggerEmote('wave'));
-      this.keys.THREE.on('down', () => this.triggerEmote('laugh'));
-      this.keys.FOUR.on('down', () => this.triggerEmote('music'));
-      this.keys.FIVE.on('down', () => this.triggerEmote('exclamation'));
-      this.keys.SIX.on('down', () => this.triggerEmote('question'));
+      this.keys.FOUR.on('down', () => this.triggerEmote('heart'));
+      this.keys.FIVE.on('down', () => this.triggerEmote('wave'));
+      this.keys.SIX.on('down', () => this.triggerEmote('music'));
     }
 
     // 3. Connect to Multiplayer Network
@@ -673,10 +691,31 @@ export class WorldScene extends Phaser.Scene {
       if (stats.id === network.yourId && this.localPlayer) {
         this.localPlayer.health = stats.health;
         this.localPlayer.maxHealth = stats.maxHealth;
+        this.localPlayer.mana = stats.mana ?? 50;
+        this.localPlayer.maxMana = stats.maxMana ?? 50;
+        this.localPlayer.manaPool.current = this.localPlayer.mana;
+        this.localPlayer.manaPool.max = this.localPlayer.maxMana;
         this.localPlayer.coins = stats.coins;
         this.localPlayer.acorns = stats.acorns;
         (window as any).BitQuestUI?.updateHearts(stats.health, stats.maxHealth);
+        (window as any).BitQuestUI?.updateMana(this.localPlayer.mana, this.localPlayer.maxMana);
         (window as any).BitQuestUI?.updateCurrency(stats.coins, stats.acorns);
+      }
+    };
+
+    network.onSpellCast = (data) => {
+      if (data.casterId !== network.yourId) {
+        const other = this.otherPlayers.get(data.casterId);
+        if (other) {
+          other.sprite.setTexture(`player_${other.paletteIndex}_${data.direction}_slash`);
+          this.time.delayedCall(140, () => {
+            other.sprite.setTexture(`player_${other.paletteIndex}_${data.direction}_idle`);
+          });
+        }
+        const spell = SPELL_DEFINITIONS[data.spellId];
+        if (spell) {
+          this.spawnSpellProjectile(spell, data.x, data.y, data.direction);
+        }
       }
     };
 
@@ -1855,6 +1894,131 @@ export class WorldScene extends Phaser.Scene {
     network.sendEmote(emote);
   }
 
+  public castSpell(spellId: string) {
+    if (!this.localPlayer) return;
+    this.localPlayer.castSpell(spellId as SpellId, (spell, x, y, dir) => {
+      this.spawnSpellProjectile(spell, x, y, dir);
+    });
+  }
+
+  public spawnSpellProjectile(spell: SpellDefinition, x: number, y: number, dir: Direction) {
+    if (spell.id === 'gale_ward') {
+      this.particles?.emitGaleVortex(x, y, 20);
+      sounds.playGaleWard();
+      this.cameras.main.shake(120, 0.004);
+
+      // Radial pushback & stun on nearby enemies
+      for (const [id, obj] of this.entityObjects.entries()) {
+        if ((id.startsWith('enemy_') || id.startsWith('boss_')) && (obj as Phaser.GameObjects.Sprite).visible) {
+          const sprite = obj as Phaser.GameObjects.Sprite;
+          const dist = Math.hypot(sprite.x - x, sprite.y - y);
+          if (dist <= spell.aoeRadius) {
+            const angle = Math.atan2(sprite.y - y, sprite.x - x);
+            sprite.x += Math.cos(angle) * spell.pushForce;
+            sprite.y += Math.sin(angle) * spell.pushForce;
+
+            const ent = this.worldEntities.get(id);
+            if (ent) {
+              StatusEffectManager.applyEffect(ent.state, 'stun', 1200, this.time.now);
+            }
+            this.particles?.emitStunStars(sprite.x, sprite.y, 4);
+            sounds.playStunBonk();
+            this.showFloatingText(sprite.x, sprite.y - 20, "💫 STUNNED!", "#facc15");
+            network.sendInteract(id, 'hit_enemy', undefined, undefined, spell.baseDamage);
+          }
+        }
+      }
+      return;
+    }
+
+    // Directional linear projectile (Fireball or Ice Lance)
+    const textureKey = spell.id === 'fireball' ? 'proj_fireball' : 'proj_ice_lance';
+    const projSprite = this.add.sprite(x, y, textureKey);
+    projSprite.setDepth(1400);
+
+    let vx = 0;
+    let vy = 0;
+    if (dir === 'left') {
+      vx = -spell.projectileSpeed;
+      projSprite.setAngle(180);
+    } else if (dir === 'right') {
+      vx = spell.projectileSpeed;
+      projSprite.setAngle(0);
+    } else if (dir === 'up') {
+      vy = -spell.projectileSpeed;
+      projSprite.setAngle(-90);
+    } else {
+      vy = spell.projectileSpeed;
+      projSprite.setAngle(90);
+    }
+
+    this.spellProjectiles.push({
+      sprite: projSprite,
+      spell,
+      dir,
+      vx,
+      vy,
+      rangeRemaining: spell.range,
+      trailTimer: 0,
+      active: true
+    });
+  }
+
+  private handleSpellHit(p: any, targetId: string, targetSprite: Phaser.GameObjects.Sprite) {
+    p.active = false;
+    p.sprite.destroy();
+
+    const ent = this.worldEntities.get(targetId);
+
+    if (p.spell.id === 'fireball') {
+      sounds.playFireballExplosion();
+      this.particles?.emitFireBurst(targetSprite.x, targetSprite.y, 14);
+      this.cameras.main.shake(120, 0.004);
+
+      // AOE explosion hitting all nearby enemies
+      for (const [id, obj] of this.entityObjects.entries()) {
+        if (id.startsWith('enemy_') || id.startsWith('boss_')) {
+          const otherSpr = obj as Phaser.GameObjects.Sprite;
+          const d = Math.hypot(otherSpr.x - targetSprite.x, otherSpr.y - targetSprite.y);
+          if (d <= p.spell.aoeRadius) {
+            const otherEnt = this.worldEntities.get(id);
+            if (otherEnt) {
+              StatusEffectManager.applyEffect(otherEnt.state, 'burn', p.spell.statusEffect.durationMs, this.time.now, {
+                tickIntervalMs: 800,
+                damagePerTick: 1
+              });
+            }
+            network.sendInteract(id, 'hit_enemy', undefined, undefined, p.spell.baseDamage);
+            this.showFloatingText(otherSpr.x, otherSpr.y - 18, `-${p.spell.baseDamage} 🔥`, "#f97316");
+          }
+        }
+      }
+    } else if (p.spell.id === 'ice_lance') {
+      sounds.playIceShatter();
+      this.particles?.emitIceShatter(targetSprite.x, targetSprite.y, 14);
+
+      if (ent) {
+        StatusEffectManager.applyEffect(ent.state, 'freeze', p.spell.statusEffect.durationMs, this.time.now, {
+          speedMultiplier: 0.4
+        });
+      }
+      network.sendInteract(targetId, 'hit_enemy', undefined, undefined, p.spell.baseDamage);
+      this.showFloatingText(targetSprite.x, targetSprite.y - 18, `-${p.spell.baseDamage} ❄️ CHILL`, "#38bdf8");
+    }
+  }
+
+  private explodeSpellProjectile(p: any) {
+    p.active = false;
+    if (p.spell.id === 'fireball') {
+      sounds.playFireballExplosion();
+      this.particles?.emitFireBurst(p.sprite.x, p.sprite.y, 10);
+    } else {
+      sounds.playIceShatter();
+      this.particles?.emitIceShatter(p.sprite.x, p.sprite.y, 10);
+    }
+    p.sprite.destroy();
+  }
+
   public renderItem(item: ItemDropData) {
     if (this.itemObjects.has(item.id)) return;
 
@@ -2023,7 +2187,90 @@ export class WorldScene extends Phaser.Scene {
 
   update(time: number, delta: number) {
     if (this.localPlayer) {
-      this.localPlayer.updateMovement(this.cursors, this.keys);
+      this.localPlayer.updateMovement(this.cursors, this.keys, delta);
+
+      // Update active spell projectiles
+      for (let i = this.spellProjectiles.length - 1; i >= 0; i--) {
+        const p = this.spellProjectiles[i]!;
+        if (!p.active) {
+          this.spellProjectiles.splice(i, 1);
+          continue;
+        }
+        const dt = delta / 1000;
+        p.sprite.x += p.vx * dt;
+        p.sprite.y += p.vy * dt;
+        p.rangeRemaining -= Math.hypot(p.vx * dt, p.vy * dt);
+
+        p.trailTimer += delta;
+        if (p.trailTimer > 35) {
+          p.trailTimer = 0;
+          if (p.spell.id === 'fireball') {
+            this.particles?.emitBurnFlames(p.sprite.x, p.sprite.y, 1);
+          } else {
+            this.particles?.emitFrostGleam(p.sprite.x, p.sprite.y, 1);
+          }
+        }
+
+        // Check map boundary
+        if (p.sprite.x < 32 || p.sprite.x > 2016 || p.sprite.y < 32 || p.sprite.y > 1760) {
+          this.explodeSpellProjectile(p);
+          this.spellProjectiles.splice(i, 1);
+          continue;
+        }
+
+        // Check collision with enemies / bosses
+        let hit = false;
+        for (const [id, obj] of this.entityObjects.entries()) {
+          if ((id.startsWith('enemy_') || id.startsWith('boss_')) && (obj as Phaser.GameObjects.Sprite).visible) {
+            const targetSprite = obj as Phaser.GameObjects.Sprite;
+            const hitRadius = id.startsWith('boss_') ? 34 : 18;
+            if (Math.hypot(targetSprite.x - p.sprite.x, targetSprite.y - p.sprite.y) < hitRadius) {
+              this.handleSpellHit(p, id, targetSprite);
+              hit = true;
+              break;
+            }
+          }
+        }
+
+        if (hit || p.rangeRemaining <= 0) {
+          if (!hit) this.explodeSpellProjectile(p);
+          this.spellProjectiles.splice(i, 1);
+        }
+      }
+
+      // Tick elemental status effects on enemies & render visual indicators
+      if (time - this.lastStatusEffectTickTime > 120) {
+        this.lastStatusEffectTickTime = time;
+        for (const [id, obj] of this.entityObjects.entries()) {
+          if (id.startsWith('enemy_') || id.startsWith('boss_')) {
+            const sprite = obj as Phaser.GameObjects.Sprite;
+            if (!sprite.visible) continue;
+            const ent = this.worldEntities.get(id);
+            if (ent && ent.state) {
+              const statusRes = StatusEffectManager.updateEffects(ent.state, time, (dmg, effectType) => {
+                if (effectType === 'burn') {
+                  this.particles?.emitBurnFlames(sprite.x, sprite.y, 3);
+                  this.showFloatingText(sprite.x, sprite.y - 14, `-${dmg}`, "#f97316");
+                  sounds.playEnemyHit();
+                }
+              });
+
+              if (statusRes.isStunned) {
+                this.particles?.emitStunStars(sprite.x, sprite.y, 1);
+                sprite.setTint(0xfde047);
+              } else if (StatusEffectManager.hasEffect(ent.state, 'freeze', time)) {
+                this.particles?.emitFrostGleam(sprite.x, sprite.y, 1);
+                sprite.setTint(0x7dd3fc);
+              } else if (StatusEffectManager.hasEffect(ent.state, 'burn', time)) {
+                this.particles?.emitBurnFlames(sprite.x, sprite.y, 1);
+                sprite.setTint(0xf97316);
+              } else {
+                sprite.clearTint();
+              }
+            }
+          }
+        }
+      }
 
       if (this.playerGlow) {
         this.playerGlow.setPosition(this.localPlayer.x, this.localPlayer.y);

@@ -13,7 +13,11 @@ export enum ParticleKind {
   RUINS_MOTE = 4,
   SHARD = 5,
   LEAF = 6,
-  SPARKLE = 7
+  SPARKLE = 7,
+  FLAME = 8,
+  ICE = 9,
+  WIND = 10,
+  STUN = 11
 }
 
 export class ParticlePipeline {
@@ -360,6 +364,118 @@ export class ParticlePipeline {
         randInt(320, 520),
         randFloat(0.6, 1.0),
         0.95
+      );
+    }
+  }
+
+  // Spell & Elemental Status Emitters
+  public emitFireBurst(x: number, y: number, count = 12) {
+    for (let i = 0; i < count; i++) {
+      const ang = (i / count) * Math.PI * 2 + randFloat(-0.2, 0.2);
+      const spd = randFloat(40, 120);
+      this.spawn(
+        ParticleKind.FLAME,
+        'vfx_burn_flame',
+        x,
+        y,
+        Math.cos(ang) * spd,
+        Math.sin(ang) * spd - 15,
+        randInt(250, 480),
+        randFloat(0.8, 1.4),
+        1.0,
+        randFloat(-4, 4)
+      );
+    }
+  }
+
+  public emitIceShatter(x: number, y: number, count = 12) {
+    for (let i = 0; i < count; i++) {
+      const ang = (i / count) * Math.PI * 2 + randFloat(-0.15, 0.15);
+      const spd = randFloat(50, 130);
+      this.spawn(
+        ParticleKind.ICE,
+        'vfx_ice_shard',
+        x,
+        y,
+        Math.cos(ang) * spd,
+        Math.sin(ang) * spd,
+        randInt(280, 500),
+        randFloat(0.7, 1.2),
+        0.95,
+        randFloat(-5, 5)
+      );
+    }
+  }
+
+  public emitGaleVortex(x: number, y: number, count = 16) {
+    for (let i = 0; i < count; i++) {
+      const ang = (i / count) * Math.PI * 2;
+      const dist = randFloat(12, 38);
+      const spd = randFloat(60, 100);
+      // Tangential velocity around center
+      const vx = -Math.sin(ang) * spd + Math.cos(ang) * 20;
+      const vy = Math.cos(ang) * spd + Math.sin(ang) * 20;
+      this.spawn(
+        ParticleKind.WIND,
+        i % 2 === 0 ? 'particle_leaf' : 'particle_leaf_autumn',
+        x + Math.cos(ang) * dist,
+        y + Math.sin(ang) * dist,
+        vx,
+        vy,
+        randInt(350, 600),
+        randFloat(0.7, 1.1),
+        0.9,
+        randFloat(-8, 8)
+      );
+    }
+  }
+
+  public emitBurnFlames(x: number, y: number, count = 2) {
+    for (let i = 0; i < count; i++) {
+      this.spawn(
+        ParticleKind.FLAME,
+        'vfx_burn_flame',
+        x + randFloat(-6, 6),
+        y + randFloat(-4, 4),
+        randFloat(-8, 8),
+        randFloat(-24, -40), // float upwards
+        randInt(240, 380),
+        randFloat(0.7, 1.0),
+        0.9
+      );
+    }
+  }
+
+  public emitFrostGleam(x: number, y: number, count = 2) {
+    for (let i = 0; i < count; i++) {
+      this.spawn(
+        ParticleKind.ICE,
+        'vfx_ice_shard',
+        x + randFloat(-8, 8),
+        y + randFloat(-8, 8),
+        randFloat(-6, 6),
+        randFloat(-6, 6),
+        randInt(300, 450),
+        randFloat(0.6, 0.9),
+        0.85
+      );
+    }
+  }
+
+  public emitStunStars(x: number, y: number, count = 2) {
+    for (let i = 0; i < count; i++) {
+      const ang = (i / count) * Math.PI * 2 + Date.now() * 0.005;
+      this.spawn(
+        ParticleKind.STUN,
+        'vfx_stun_star',
+        x + Math.cos(ang) * 12,
+        y - 14 + Math.sin(ang) * 4,
+        Math.cos(ang + Math.PI / 2) * 20,
+        Math.sin(ang + Math.PI / 2) * 10,
+        randInt(200, 350),
+        randFloat(0.7, 1.0),
+        0.95,
+        randFloat(4, 8)
       );
     }
   }

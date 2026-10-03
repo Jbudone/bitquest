@@ -17,9 +17,29 @@ export const PlayerAnimStateSchema = z.enum([
   'toss',
   'sit',
   'hurt',
-  'stun'
+  'stun',
+  'cast'
 ]);
 export type PlayerAnimState = z.infer<typeof PlayerAnimStateSchema>;
+
+// ==========================================
+// 1b. Spell & Magic Schemas
+// ==========================================
+export const SpellIdSchema = z.enum(['fireball', 'ice_lance', 'gale_ward']);
+export type SpellId = z.infer<typeof SpellIdSchema>;
+
+export const StatusEffectTypeSchema = z.enum(['burn', 'freeze', 'stun']);
+export type StatusEffectType = z.infer<typeof StatusEffectTypeSchema>;
+
+export const StatusEffectDataSchema = z.object({
+  type: StatusEffectTypeSchema,
+  expiresAt: z.number(),
+  tickInterval: z.number().optional(),
+  nextTickAt: z.number().optional(),
+  damagePerTick: z.number().optional(),
+  speedMultiplier: z.number().optional()
+});
+export type StatusEffectData = z.infer<typeof StatusEffectDataSchema>;
 
 // ==========================================
 // 2. Player Data Schema
@@ -36,6 +56,8 @@ export const PlayerDataSchema = z.object({
   carryingItem: z.string().nullable().default(null),
   health: z.number().int().default(6),
   maxHealth: z.number().int().default(6),
+  mana: z.number().int().default(50),
+  maxMana: z.number().int().default(50),
   coins: z.number().int().nonnegative().default(0),
   acorns: z.number().int().nonnegative().default(0),
   activeEmote: z.string().nullable().optional(),

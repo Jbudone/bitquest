@@ -22,12 +22,19 @@
         </div>
       </div>
 
-      <!-- Player Stats HUD (Hearts + Coins + Acorns) -->
+      <!-- Player Stats HUD (Hearts + Mana + Coins + Acorns) -->
       <div class="player-stats-badge">
         <div id="hearts-container" class="hearts-container" title="Player Health">
           <span class="heart-icon full">❤️</span>
           <span class="heart-icon full">❤️</span>
           <span class="heart-icon full">❤️</span>
+        </div>
+        <div id="mana-bar-container" class="mana-bar-container" title="Player Mana (MP)">
+          <span class="mana-icon">✨</span>
+          <div class="mana-bar-track">
+            <div id="mana-bar-fill" class="mana-bar-fill" style="width: 100%;"></div>
+          </div>
+          <span id="mana-counter" class="mana-counter">50 / 50</span>
         </div>
         <div class="currency-pills">
           <div class="stat-pill" title="Silver Coins"><span class="coin-icon">🪙</span> <span id="coin-counter">0</span></div>
@@ -42,12 +49,12 @@
 
       <div class="controls-hint">
         <span><span class="key-badge">WASD</span> Move</span>
+        <span><span class="key-badge">1-3</span> Magic Spells</span>
         <span><span class="key-badge">SPACE</span> Slash</span>
         <span><span class="key-badge">SHIFT</span> Roll</span>
-        <span><span class="key-badge">E</span> Lift/Talk</span>
+        <span><span class="key-badge">E</span> Interact</span>
         <span><span class="key-badge">J</span> Quests</span>
         <span><span class="key-badge">M</span> Map</span>
-        <span><span class="key-badge">1-6</span> Emotes</span>
       </div>
 
       <div style="display: flex; gap: 6px; align-items: center;">
@@ -146,8 +153,29 @@
       </div>
     </div>
 
-    <!-- Bottom HUD (Emotes + Chat Bar) -->
+    <!-- Bottom HUD (Spell Hotbar + Emotes + Chat Bar) -->
     <footer class="bottom-hud">
+      <div id="spell-hotbar" class="spell-hotbar">
+        <button class="spell-slot-btn" id="spell-btn-fireball" data-spell="fireball" title="Cast Fireball [1 or Q] (15 MP)">
+          <span class="spell-key-badge">1</span>
+          <span class="spell-icon-hud">🔥</span>
+          <span class="spell-name-hud">Fireball</span>
+          <span class="spell-cost-hud">15 MP</span>
+        </button>
+        <button class="spell-slot-btn" id="spell-btn-ice-lance" data-spell="ice_lance" title="Cast Ice Lance [2 or E] (12 MP)">
+          <span class="spell-key-badge">2</span>
+          <span class="spell-icon-hud">❄️</span>
+          <span class="spell-name-hud">Ice Lance</span>
+          <span class="spell-cost-hud">12 MP</span>
+        </button>
+        <button class="spell-slot-btn" id="spell-btn-gale-ward" data-spell="gale_ward" title="Cast Gale Ward [3 or R] (20 MP)">
+          <span class="spell-key-badge">3</span>
+          <span class="spell-icon-hud">🌪️</span>
+          <span class="spell-name-hud">Gale Ward</span>
+          <span class="spell-cost-hud">20 MP</span>
+        </button>
+      </div>
+
       <div class="action-bar">
         <button class="emote-btn" data-emote="heart" title="Heart [1]">❤️</button>
         <button class="emote-btn" data-emote="wave" title="Wave [2]">👋</button>

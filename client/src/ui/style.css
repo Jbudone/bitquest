@@ -147,14 +147,88 @@ canvas {
   border-bottom: 2px solid #1e293b;
 }
 
-/* Bottom HUD (Emotes + Chat) */
+/* Bottom HUD (Spell Hotbar + Emotes + Chat) */
 .bottom-hud {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   pointer-events: auto;
   margin-bottom: 8px;
+}
+
+.spell-hotbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel-bg);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid #334155;
+  border-radius: 10px;
+  padding: 4px 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.spell-slot-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: #1e293b;
+  border: 1.5px solid #475569;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 62px;
+}
+
+.spell-slot-btn:hover {
+  background: #334155;
+  border-color: #60a5fa;
+  transform: translateY(-2px);
+}
+
+.spell-slot-btn:active {
+  transform: translateY(0);
+}
+
+.spell-slot-btn.on-cooldown {
+  opacity: 0.5;
+  filter: grayscale(0.5);
+  pointer-events: none;
+}
+
+.spell-key-badge {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  font-family: var(--font-retro);
+  font-size: 8px;
+  background: #0f172a;
+  color: #94a3b8;
+  padding: 0 3px;
+  border-radius: 3px;
+  border: 1px solid #334155;
+}
+
+.spell-icon-hud {
+  font-size: 16px;
+  margin-top: 2px;
+}
+
+.spell-name-hud {
+  font-family: var(--font-retro);
+  font-size: 9px;
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+.spell-cost-hud {
+  font-family: var(--font-retro);
+  font-size: 8px;
+  color: #60a5fa;
 }
 
 .action-bar {
@@ -619,6 +693,47 @@ canvas {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.mana-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid #1e3a8a;
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+.mana-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.mana-bar-track {
+  width: 64px;
+  height: 8px;
+  background: #0f172a;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #1e293b;
+}
+
+.mana-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+  border-radius: 3px;
+  transition: width 0.2s ease;
+  box-shadow: 0 0 6px rgba(96, 165, 250, 0.5);
+}
+
+.mana-counter {
+  font-family: var(--font-retro);
+  font-size: 10px;
+  color: #93c5fd;
+  min-width: 38px;
+  text-align: right;
+  letter-spacing: 0.5px;
 }
 
 .heart-icon {

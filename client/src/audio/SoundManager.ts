@@ -1224,6 +1224,66 @@ export class SoundManager {
         break;
     }
   }
+
+  public playFireballCast() {
+    this.playCustom({
+      frequency: 220,
+      targetFrequency: 520,
+      duration: 0.22,
+      type: 'sawtooth',
+      volume: 0.22
+    });
+  }
+
+  public playFireballExplosion() {
+    this.playCustom({
+      frequency: 260,
+      targetFrequency: 45,
+      duration: 0.38,
+      type: 'noise',
+      volume: 0.38
+    });
+  }
+
+  public playIceCast() {
+    this.playCustom({
+      frequency: 740,
+      targetFrequency: 1480,
+      duration: 0.18,
+      type: 'sine',
+      volume: 0.2
+    });
+  }
+
+  public playIceShatter() {
+    this.playCustom({
+      frequency: 1800,
+      targetFrequency: 2400,
+      duration: 0.15,
+      type: 'triangle',
+      volume: 0.25
+    });
+  }
+
+  public playGaleWard() {
+    this.playCustom({
+      frequency: 440,
+      targetFrequency: 280,
+      duration: 0.45,
+      type: 'sine',
+      volume: 0.3
+    });
+  }
+
+  public playOutOfMana() {
+    this.playCustom({
+      frequency: 160,
+      targetFrequency: 110,
+      duration: 0.12,
+      type: 'square',
+      volume: 0.18
+    });
+  }
 }
 
 export const sounds = new SoundManager();

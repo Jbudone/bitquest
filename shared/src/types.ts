@@ -8,7 +8,9 @@ import type {
   ChatMessage, 
   EmoteType, 
   EmoteEvent,
-  DialogueNode 
+  DialogueNode,
+  SpellId,
+  StatusEffectType
 } from './schemas';
 
 // Network protocol packets
@@ -16,6 +18,7 @@ export type ClientPacket =
   | { type: 'join'; name: string; color: string; paletteIndex: number }
   | { type: 'move'; x: number; y: number; direction: Direction; anim: PlayerAnimState; carryingItem: string | null; seq?: number }
   | { type: 'interact'; targetId: string; action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever'; x?: number; y?: number; damage?: number }
+  | { type: 'cast_spell'; spellId: SpellId; x: number; y: number; direction: Direction }
   | { type: 'pot_throw'; potId: string; startX: number; startY: number; targetX: number; targetY: number }
   | { type: 'pot_catch'; potId: string }
   | { type: 'chat'; text: string }
@@ -40,5 +43,6 @@ export type ServerPacket =
   | { type: 'pot_caught'; potId: string; catcherId: string; x: number; y: number }
   | { type: 'world_flag_updated'; key: string; value: boolean }
   | { type: 'dialogue_event'; npcId: string; speaker: string; portrait: string; text: string; responses?: { text: string; nextKey?: string; action?: string }[] }
-  | { type: 'player_stats_updated'; id: string; health: number; maxHealth: number; coins: number; acorns: number }
+  | { type: 'spell_cast'; casterId: string; spellId: SpellId; x: number; y: number; direction: Direction }
+  | { type: 'player_stats_updated'; id: string; health: number; maxHealth: number; mana: number; maxMana: number; coins: number; acorns: number }
   | { type: 'boss_event'; action: 'spawn' | 'stomp' | 'spore' | 'charge' | 'crash_stun' | 'defeated'; x?: number; y?: number; targetX?: number; targetY?: number };

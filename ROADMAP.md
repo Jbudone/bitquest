@@ -1,6 +1,6 @@
 # 🗺️ BitQuest Master Evolution Roadmap: Phased Task Plan
 
-This roadmap organizes the entire backlog of game feel improvements, engine architecture, AI-driven developer tooling, and gameplay expansions into **7 logical, dependency-ordered phases**.
+This roadmap organizes the entire backlog of game feel improvements, engine architecture, AI-driven developer tooling, and gameplay expansions into **logical, dependency-ordered phases**, synchronized with our **[GitHub Issues](https://github.com/Jbudone/bitquest/issues)**.
 
 ---
 
@@ -17,24 +17,19 @@ flowchart TD
 
 ---
 
-## 📦 Phase 1: Data Standardization & Procedural Placeholders
-> **Objective**: Establish unified data schemas and dynamic placeholder generators so the game and editors never stall waiting for final assets.
-
+## 📦 Phase 1: Data Standardization & Procedural Placeholders *(Completed)*
 * [x] **Task 1.1: Unified Zod Schemas & Data Models**
-  * Define strict TypeScript/Zod schemas in `shared/src/schemas.ts` for: `MapData`, `EntityData`, `ItemDefinition`, `DialogueTree`, `QuestDefinition`, and `LootTable`.
-  * Guarantees zero schema mismatches between client, server, and web editors.
+  * Strict schemas in `shared/src/schemas.ts` for: `MapData`, `EntityData`, `ItemDefinition`, `DialogueTree`, `QuestDefinition`, `LootTable`.
 * [x] **Task 1.2: Programmatic Pixel Art Placeholder Generator**
-  * Canvas-based procedural sprite builder in `client/src/utils/placeholderArt.ts` generating color-coded 16×16 retro character silhouettes, direction indicators, and walking bob animations.
+  * Canvas-based procedural sprite builder in `client/src/utils/placeholderArt.ts` generating color-coded 16×16 retro character silhouettes, items, and fallback textures.
 * [x] **Task 1.3: Procedural Chiptune Audio Synthesizer (ZzFX / Web Audio)**
-  * Lightweight micro-synthesizer generating instant sound effects (sword slash, hit, coin pickup, door creak, fanfares) on the fly without external audio files.
+  * Micro-synthesizer in `client/src/audio/SoundManager.ts` generating instant sound effects (`playCustom`, preset triggers) on the fly without external audio files.
 * [x] **Task 1.4: Hot-Reloading Data Bus & DataRegistry**
-  * Centralized `DataRegistry` and JSON data files (`shared/data/*.json`) loaded and validated at runtime.
+  * Centralized `DataRegistry` in `shared/src/dataRegistry.ts` and JSON data files (`shared/data/*.json`) loaded and validated at runtime.
 
 ---
 
-## 🧪 Phase 2: Automated Verification Harnesses & Headless AI Linters
-> **Objective**: Build the autonomous safety nets *before* scaling content, ensuring any bug, broken collider, or regression is caught in milliseconds.
-
+## 🧪 Phase 2: Automated Verification Harnesses & Headless AI Linters *(Completed)*
 * [x] **Task 2.1: Headless Map Geometry & Walkability Linter (`bun run check:map`)**
   * Flood-fill and Dijkstra pathfinding sweeps detecting unreachable chests, missing perimeter bounds, and 1-tile player traps.
 * [x] **Task 2.2: Quest Dependency & Dialogue Flow Linter (`bun run check:quests`)**
@@ -50,9 +45,7 @@ flowchart TD
 
 ---
 
-## ⚔️ Phase 3: Core Game Feel, Combat Physics & Depth Engine
-> **Objective**: Transform core movement and combat from flat, floaty mechanics into tight, responsive, tactile ARPG interactions.
-
+## ⚔️ Phase 3: Core Game Feel, Combat Physics & Depth Engine *(Completed)*
 * [x] **Task 3.1: Hierarchical Finite State Machine (HFSM) & Action Buffering**
   * Strict state transitions (`Idle` $\rightarrow$ `Run` $\rightarrow$ `SkidTurn` $\rightarrow$ `Roll` $\rightarrow$ `Attack` $\rightarrow$ `Recovery` $\rightarrow$ `Hurt`).
   * 180ms input buffer and root-motion step during attacks to eliminate ice-skating.
@@ -70,8 +63,6 @@ flowchart TD
 ---
 
 ## 🛠️ Phase 4: AI-First Web Developer Suite & In-Editor Copilots
-> **Objective**: Give the human user the visual canvas tools equipped with context-aware AI chat copilots to design maps, quests, and enemies effortlessly.
-
 * [x] **Task 4.1: Unified Web Tools Host & Command Undo/Redo Engine (`/tools.html`)**
   * Multi-page Vite tool router with shared command history pattern (<kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd>) and <kbd>Ctrl+K</kbd> AI floating prompt bar.
 * [x] **Task 4.2: Level Editor with "Generative Spatial Brush" (`tools.html#tab-map`)**
@@ -85,76 +76,67 @@ flowchart TD
 * [x] **Task 4.6: External Asset Ingestion & Typings Watcher (`bun run ingest:assets`)**
   * Watches `assets/raw/`, auto-generates strongly-typed TypeScript keys in `shared/src/assetKeys.ts`.
 
+### 🧰 Advanced Tooling Suite (Upcoming Tools)
+* [ ] **[#29]** [Tool: Visual Keyframe, Hitbox & Hurtbox Timeline Editor (/tools/animator)](https://github.com/Jbudone/bitquest/issues/29)
+* [ ] **[#30]** [Tool: Live Particle & Spell VFX Studio (/tools/vfx)](https://github.com/Jbudone/bitquest/issues/30)
+* [ ] **[#31]** [Tool: Save-State Inspector & World State "Time Machine" Debugger (/tools/save-state)](https://github.com/Jbudone/bitquest/issues/31)
+* [ ] **[#32]** [Tool: Sprite Alpha Contour & Hitbox Auto-Generator (bun run generate:hitboxes)](https://github.com/Jbudone/bitquest/issues/32)
+* [ ] **[#33]** [Tool: Headless Visual Regression & Golden Image Test Suite](https://github.com/Jbudone/bitquest/issues/33)
+* [ ] **[#34]** [Tool: Headless Multiplayer Desync & Network Chaos Simulator (bun run test:netcode)](https://github.com/Jbudone/bitquest/issues/34)
+* [ ] **[#35]** [Tool: Tile Bleed, Seam & UV Artifact Detector (bun run check:tiles)](https://github.com/Jbudone/bitquest/issues/35)
+* [ ] **[#36]** [Tool: Palette Harmonizer & Contrast Accessibility Auditor (bun run check:palette)](https://github.com/Jbudone/bitquest/issues/36)
+* [ ] **[#37]** [Tool: In-Engine Telemetry, Profiler & Physics Inspector (F3 / Dev Panel)](https://github.com/Jbudone/bitquest/issues/37)
+
 ---
 
 ## 🧭 Phase 5: Player UX, Navigation, Audio Architecture & Persistence
-> **Objective**: Provide critical navigation clarity, save persistence, rich spatial audio, and universal accessibility.
-
-* [ ] **Task 5.1: In-Game Mini-Map, Compass Radar & Exploration Fog**
-  * Corner radar showing POI landmarks, live player/co-op pins, active quest beacon pings, and soft discovery fog.
-* [ ] **Task 5.2: Multi-Quest Journal & HUD Objective Tracker**
-  * Collapsible <kbd>J</kbd> journal, step-by-step quest markers, and audio-visual completion banners.
-* [ ] **Task 5.3: Context-Sensitive Overhead Action Prompts & Reticle**
-  * Dynamic pill indicators (`[E] Talk`, `[E] Lift`, `[E] Open`) prioritizing the nearest interactable entity.
-* [ ] **Task 5.4: Local-First Auto-Save & Seamless Session Recovery**
-  * LocalStorage + server sync saving player position, inventory, and world flags; instant resume without re-entering name.
-* [ ] **Task 5.5: In-Game Settings Menu (<kbd>ESC</kbd>) & Rebindable Keymaps**
-  * Volume sliders, camera shake toggles, fully rebindable keyboard keys with dynamic in-game glyph updates.
-* [ ] **Task 5.6: Spatial 2D Audio Bus & Procedural DSP Filters**
-  * Web Audio distance attenuation, cavern low-pass muffling, sidechain audio ducking during combat/dialogue, and low-health heartbeat pulse.
-* [ ] **Task 5.7: Universal Accessibility & High-Contrast Suite**
-  * Retro vs. clean vector font toggle, high-contrast text backdrops, and shape-coded loot indicators for colorblind accessibility.
-* [ ] **Task 5.8: Pixel-Perfect Integer Scaling & Viewport Engine**
-  * Sharp nearest-neighbor scaling with ornamental letterbox borders and adaptive HUD anchoring.
+* [ ] **[#1]** [Task 5.1: In-Game Mini-Map, Compass Radar & Exploration Fog](https://github.com/Jbudone/bitquest/issues/1)
+* [ ] **[#2]** [Task 5.2: Multi-Quest Journal & HUD Objective Tracker](https://github.com/Jbudone/bitquest/issues/2)
+* [ ] **[#3]** [Task 5.3: Context-Sensitive Overhead Action Prompts & Reticle](https://github.com/Jbudone/bitquest/issues/3)
+* [ ] **[#4]** [Task 5.4: Local-First Auto-Save & Seamless Session Recovery](https://github.com/Jbudone/bitquest/issues/4)
+* [ ] **[#5]** [Task 5.5: In-Game Settings Menu (ESC) & Rebindable Keymaps](https://github.com/Jbudone/bitquest/issues/5)
+* [ ] **[#6]** [Task 5.6: Spatial 2D Audio Bus & Procedural DSP Filters](https://github.com/Jbudone/bitquest/issues/6)
+* [ ] **[#7]** [Task 5.7: Universal Accessibility & High-Contrast Suite](https://github.com/Jbudone/bitquest/issues/7)
+* [ ] **[#8]** [Task 5.8: Pixel-Perfect Integer Scaling & Viewport Engine](https://github.com/Jbudone/bitquest/issues/8)
+* [ ] **[#41]** [System: World Memory, Player Chronicles & Lifetime Stats Tracking](https://github.com/Jbudone/bitquest/issues/41)
 
 ---
 
-## 🍃 Phase 6: World Ecology, Dynamic Systems & Secondary Polish (Medium Priority)
-> **Objective**: Bring the world to life with organic secondary motion, shadows, environmental persistence, and dynamic puzzle mechanics.
-
-* [ ] **Task 6.1: Dynamic Directional Pixel Shadows & Grounding Occlusion**
-  * Directional skewed drop shadows for entities and structures; elevation detachment when jumping or rolling.
-* [ ] **Task 6.2: Occlusion Silhouettes & X-Ray Vision Engine**
-  * Colored glowing silhouettes when entities or chests are obscured behind high walls or tree canopies.
-* [ ] **Task 6.3: Elevation Ledge Mechanics & Z-Axis Jump Physics**
-  * One-way cliff hops, vertical combat advantage, and pitfall recovery.
-* [ ] **Task 6.4: Smart Enemy Pathfinding & Flocking Steering**
-  * Sparse grid A* navigation avoiding obstacles, combined with boids flocking separation so mobs encircle the player naturally.
-* [ ] **Task 6.5: Environmental Decals & Persistent World Scars**
-  * Stamped decal layer: ceramic pot shards, sliced grass clippings, muddy footprints, and slime puddles that fade over time.
-* [ ] **Task 6.6: Tactile Block Manipulation & Mechanical Switches**
-  * Push/pull heavy stone blocks with grinding friction audio and satisfying mechanical pressure plates.
-* [ ] **Task 6.7: Secondary Foliage Motion & Wind Simulation**
-  * Global wind waves rustling tree canopies; grass bending and parting as characters walk through.
-* [ ] **Task 6.8: Living World Ambient AI & Organic Idle Micro-Behaviors**
-  * Idle stretches, looking around, critters flocking, and NPC gaze tracking nearby players.
-* [ ] **Task 6.9: Radial Emote Wheel & Overhead Chat Bubbles**
-  * Quick-select gesture wheel (<kbd>Q</kbd>) with bouncy pixel thought bubbles and spatial multiplayer broadcast.
-* [ ] **Task 6.10: Spatial Partitioning & Viewport Culling Engine**
-  * 16×16 spatial hash grid culling offscreen draw calls and offloading faraway entity update ticks.
+## 🍃 Phase 6: World Ecology, Dynamic Systems & Secondary Polish
+* [ ] **[#9]** [Task 6.1: Dynamic Directional Pixel Shadows & Grounding Occlusion](https://github.com/Jbudone/bitquest/issues/9)
+* [ ] **[#10]** [Task 6.2: Occlusion Silhouettes & X-Ray Vision Engine](https://github.com/Jbudone/bitquest/issues/10)
+* [ ] **[#11]** [Task 6.3: Elevation Ledge Mechanics & Z-Axis Jump Physics](https://github.com/Jbudone/bitquest/issues/11)
+* [ ] **[#12]** [Task 6.4: Smart Enemy Pathfinding & Flocking Steering](https://github.com/Jbudone/bitquest/issues/12)
+* [ ] **[#13]** [Task 6.5: Environmental Decals & Persistent World Scars](https://github.com/Jbudone/bitquest/issues/13)
+* [ ] **[#14]** [Task 6.6: Tactile Block Manipulation & Mechanical Switches](https://github.com/Jbudone/bitquest/issues/14)
+* [ ] **[#15]** [Task 6.7: Secondary Foliage Motion & Wind Simulation](https://github.com/Jbudone/bitquest/issues/15)
+* [ ] **[#16]** [Task 6.8: Living World Ambient AI & Organic Idle Micro-Behaviors](https://github.com/Jbudone/bitquest/issues/16)
+* [ ] **[#17]** [Task 6.9: Radial Emote Wheel & Overhead Chat Bubbles](https://github.com/Jbudone/bitquest/issues/17)
+* [ ] **[#18]** [Task 6.10: Spatial Partitioning & Viewport Culling Engine](https://github.com/Jbudone/bitquest/issues/18)
+* [ ] **[#38]** [System: Scene Staging, Biome Title Cards & Cozy Defeat/Respawn Flow](https://github.com/Jbudone/bitquest/issues/38)
+* [ ] **[#39]** [System: Dynamic Camera Director & Cinematic Framing](https://github.com/Jbudone/bitquest/issues/39)
+* [ ] **[#40]** [System: Surface-Reactive Footstep Audio & Tile Particle Physics](https://github.com/Jbudone/bitquest/issues/40)
+* [ ] **[#42]** [System: Biome Color Grading & Atmospheric Ambient Lighting](https://github.com/Jbudone/bitquest/issues/42)
+* [ ] **[#43]** [System: Expressive Dialogue & Typography Engine](https://github.com/Jbudone/bitquest/issues/43)
+* [ ] **[#44]** [System: Adaptive Chiptune Music Director & Ambient Soundscape](https://github.com/Jbudone/bitquest/issues/44)
+* [ ] **[#45]** [System: Deep Combat Feel & Kinetic Juice](https://github.com/Jbudone/bitquest/issues/45)
+* [ ] **[#46]** [System: Enemy Threat Telegraphing & Combat Choreography](https://github.com/Jbudone/bitquest/issues/46)
+* [ ] **[#47]** [System: Seamless Building Interiors & Roof-Lift Architecture](https://github.com/Jbudone/bitquest/issues/47)
+* [ ] **[#48]** [System: Multiplayer Social Synergy & Co-Op Interactivity](https://github.com/Jbudone/bitquest/issues/48)
+* [ ] **[#49]** [System: Centralized Zero-Allocation VFX & Ambient Particle Pipeline](https://github.com/Jbudone/bitquest/issues/49)
+* [ ] **[#50]** [System: Modular Entity-Behavior Architecture](https://github.com/Jbudone/bitquest/issues/50)
+* [ ] **[#51]** [System: Authoritative Multiplayer Netcode & Prediction Smoothing](https://github.com/Jbudone/bitquest/issues/51)
 
 ---
 
 ## 🔮 Phase 7: Major Gameplay & RPG Systems (Ideas Backlog)
-> **Objective**: Substantial gameplay loops and character progression systems to explore after the foundation and tools are mature.
-
-* [ ] **Task 7.1: Skills & Active Magic System**
-  * Mana pool, elemental spells (fireball, ice lance, gale ward), casting windups, and status effects.
-* [ ] **Task 7.2: Equipment, Relics & Vanity Gear System**
-  * Weapon archetypes (Daggers, Broadswords, Staves, Bows), wearable armor, and passive trinkets.
-* [ ] **Task 7.3: Class Archetypes**
-  * Distinct playstyle kits: Warrior, Mage, Bard, Necromancer, Archer.
-* [ ] **Task 7.4: The Sunken Catacombs Puzzle Dungeon**
-  * Multi-floor subterranean dungeon with light/dark mechanics, moving platform puzzles, and multi-phase boss encounter.
-* [ ] **Task 7.5: Cozy Bobber Fishing & River Secrets**
-  * Mini-game with tension-meter bobbing, water ripples, rare fish species, and river treasure chests.
-* [ ] **Task 7.6: Dynamic Day/Night Cycle, Weather & Campfires**
-  * Circadian lighting clock, rain showers with puddle reflections, fireflies, and restful campfires.
-* [ ] **Task 7.7: Pip's Oddities Shop & Wandering Traders**
-  * Interactive shop interface with rotating wares, rare vanity items, and buy/sell economy.
-* [ ] **Task 7.8: Companion Pets & Mountable Wildlife**
-  * Loyal animal followers (Buster sniffing hidden secrets, mountable giant frogs).
-* [ ] **Task 7.9: Chiptune Ocarina & Jam Sessions**
-  * Interactive musical instrument playing magical song melodies that unlock secrets and trigger world events.
-* [ ] **Task 7.10: Mobile Touch Controls & Responsive Viewport (Low Priority / Testing)**
-  * Virtual floating D-pad / thumbstick for movement, responsive on-screen action buttons (Attack, Roll, Interact), touch-friendly modal UI, and dynamic mobile canvas scaling.
+* [ ] **[#19]** [Task 7.1: Skills & Active Magic System](https://github.com/Jbudone/bitquest/issues/19)
+* [ ] **[#20]** [Task 7.2: Equipment, Relics & Vanity Gear System](https://github.com/Jbudone/bitquest/issues/20)
+* [ ] **[#21]** [Task 7.3: Class Archetypes](https://github.com/Jbudone/bitquest/issues/21)
+* [ ] **[#22]** [Task 7.4: The Sunken Catacombs Puzzle Dungeon](https://github.com/Jbudone/bitquest/issues/22)
+* [ ] **[#23]** [Task 7.5: Cozy Bobber Fishing & River Secrets](https://github.com/Jbudone/bitquest/issues/23)
+* [ ] **[#24]** [Task 7.6: Dynamic Day/Night Cycle, Weather & Campfires](https://github.com/Jbudone/bitquest/issues/24)
+* [ ] **[#25]** [Task 7.7: Pip's Oddities Shop & Wandering Traders](https://github.com/Jbudone/bitquest/issues/25)
+* [ ] **[#26]** [Task 7.8: Companion Pets & Mountable Wildlife](https://github.com/Jbudone/bitquest/issues/26)
+* [ ] **[#27]** [Task 7.9: Chiptune Ocarina & Jam Sessions](https://github.com/Jbudone/bitquest/issues/27)
+* [ ] **[#28]** [Task 7.10: Mobile Touch Controls & Responsive Viewport (Low Priority / Testing)](https://github.com/Jbudone/bitquest/issues/28)

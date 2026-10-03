@@ -10,7 +10,8 @@ export class OtherPlayer extends Phaser.GameObjects.Container {
   public direction: Direction = 'down';
   public animState: PlayerAnimState = 'idle';
 
-  private sprite: Phaser.GameObjects.Sprite;
+  public sprite: Phaser.GameObjects.Sprite;
+  public shadowSprite: Phaser.GameObjects.Sprite;
   private carriedPotSprite: Phaser.GameObjects.Sprite;
   private nameText: Phaser.GameObjects.Text;
   private emoteSprite: Phaser.GameObjects.Sprite | null = null;
@@ -24,6 +25,12 @@ export class OtherPlayer extends Phaser.GameObjects.Container {
     this.paletteIndex = paletteIndex;
     this.targetX = x;
     this.targetY = y;
+
+    // Grounding Directional Drop Shadow (45 deg southeast skew)
+    this.shadowSprite = scene.add.sprite(2, 4, 'shadow_directional_45');
+    this.shadowSprite.setOrigin(0.5, 0.5);
+    this.shadowSprite.setAlpha(0.65);
+    this.add(this.shadowSprite);
 
     // Sprite
     this.sprite = scene.add.sprite(0, 0, `player_${paletteIndex}_down_idle`);
@@ -59,16 +66,22 @@ export class OtherPlayer extends Phaser.GameObjects.Container {
     this.carriedPotSprite.setVisible(isCarrying);
     this.nameText.setY(isCarrying ? -38 : -28);
 
-    if (anim === 'walk') {
-      this.sprite.play(`player_${this.paletteIndex}_walk_${direction}`, true);
-    } else if (anim === 'carry_walk' || anim === 'carry_idle') {
-      this.sprite.setTexture(`player_${this.paletteIndex}_${direction}_carry`);
-    } else if (anim === 'slash') {
-      this.sprite.setTexture(`player_${this.paletteIndex}_${direction}_slash`);
-    } else if (anim === 'roll') {
+    if (anim === 'roll') {
       this.sprite.setTexture(`player_${this.paletteIndex}_roll`);
+      this.sprite.setY(-10);
+      this.shadowSprite.setScale(0.65).setAlpha(0.35);
     } else {
-      this.sprite.setTexture(`player_${this.paletteIndex}_${direction}_idle`);
+      this.sprite.setY(0);
+      this.shadowSprite.setScale(1.0).setAlpha(0.65);
+      if (anim === 'walk') {
+        this.sprite.play(`player_${this.paletteIndex}_walk_${direction}`, true);
+      } else if (anim === 'carry_walk' || anim === 'carry_idle') {
+        this.sprite.setTexture(`player_${this.paletteIndex}_${direction}_carry`);
+      } else if (anim === 'slash') {
+        this.sprite.setTexture(`player_${this.paletteIndex}_${direction}_slash`);
+      } else {
+        this.sprite.setTexture(`player_${this.paletteIndex}_${direction}_idle`);
+      }
     }
   }
 

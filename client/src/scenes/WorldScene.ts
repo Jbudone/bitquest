@@ -11,6 +11,7 @@ export class WorldScene extends Phaser.Scene {
   public localPlayer: Player | null = null;
   public otherPlayers = new Map<string, OtherPlayer>();
   public entityObjects = new Map<string, Phaser.GameObjects.GameObject>();
+  public entityShadows = new Map<string, Phaser.GameObjects.Sprite>();
   public itemObjects = new Map<string, { sprite: Phaser.GameObjects.Sprite; shapeText?: Phaser.GameObjects.Text; data: ItemDropData }>();
   public playerGlow?: Phaser.GameObjects.Image;
 
@@ -22,6 +23,12 @@ export class WorldScene extends Phaser.Scene {
   private sporeProjectiles: Array<{ sprite: Phaser.GameObjects.Sprite; vx: number; vy: number; life: number }> = [];
   private coinCombo = 0;
   private lastCoinPickupTime = 0;
+
+  // X-Ray Occlusion Silhouettes & Punch-Hole
+  private playerSilhouette!: Phaser.GameObjects.Sprite;
+  private enemySilhouettes = new Map<string, Phaser.GameObjects.Sprite>();
+  private roofTiles: Array<{ image: Phaser.GameObjects.Image; x: number; y: number }> = [];
+  private pointLights: Array<{ x: number; y: number; glow: Phaser.GameObjects.Image }> = [];
 
   // Interaction prompt & target reticle
   private promptContainer!: Phaser.GameObjects.Container;
@@ -43,6 +50,12 @@ export class WorldScene extends Phaser.Scene {
 
     // 1b. Interaction Prompt & Reticle
     this.setupInteractionPrompt();
+
+    // 1c. Occlusion X-Ray Silhouette for player (depth 3500, bright cyan #38bdf8)
+    this.playerSilhouette = this.add.sprite(0, 0, 'player_0_down_idle');
+    this.playerSilhouette.setTintFill(0x38bdf8);
+    this.playerSilhouette.setAlpha(0);
+    this.playerSilhouette.setDepth(3500);
 
     // 2. Setup Input
     if (this.input.keyboard) {
@@ -218,13 +231,45 @@ export class WorldScene extends Phaser.Scene {
       this.obstacles.create(16, y * TILE + 16, 'tile_fungal_canopy').refreshBody();
       this.obstacles.create((MAP_W - 1) * TILE + 16, y * TILE + 16, 'tile_tree_canopy').refreshBody();
     }
+
+    // 8. Braziers & Point Lights (Sunken Gate, Cavern Sanctuary, Town Center)
+    const lightPositions = [
+      { x: 992, y: 512 },   // Left Gate Brazier
+      { x: 1056, y: 512 },  // Right Gate Brazier
+      { x: 800, y: 300 },   // West Sanctuary Torch
+      { x: 1248, y: 300 },  // East Sanctuary Torch
+      { x: 1024, y: 928 }   // Town Square Lantern
+    ];
+
+    for (const pos of lightPositions) {
+      const glow = this.add.image(pos.x, pos.y, 'light_glow');
+      glow.setDepth(pos.y - 2);
+      glow.setScale(1.2);
+      glow.setAlpha(0.45);
+
+      this.tweens.add({
+        targets: glow,
+        scaleX: 1.35,
+        scaleY: 1.35,
+        alpha: 0.60,
+        duration: 800 + Math.random() * 400,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+
+      this.pointLights.push({ x: pos.x, y: pos.y, glow });
+    }
   }
 
   private createCottage(tileX: number, tileY: number, w: number, h: number, label: string) {
     const TILE = 32;
     // Roof
     for (let x = 0; x < w; x++) {
-      this.add.image((tileX + x) * TILE + 16, (tileY - 1) * TILE + 16, 'tile_roof_red');
+      const rx = (tileX + x) * TILE + 16;
+      const ry = (tileY - 1) * TILE + 16;
+      const roof = this.add.image(rx, ry, 'tile_roof_red').setDepth(ry + 20);
+      this.roofTiles.push({ image: roof, x: rx, y: ry });
     }
     // Walls
     for (let y = 0; y < h; y++) {
@@ -422,7 +467,11 @@ export class WorldScene extends Phaser.Scene {
       obj = this.add.sprite(ent.x, ent.y, ent.state.destroyed ? 'ent_bush_cut' : 'ent_bush');
     } else if (ent.type === 'pot') {
       const sprite = this.add.sprite(ent.x, ent.y, 'ent_pot');
-      sprite.setVisible(!ent.state.destroyed && !ent.state.heldBy);
+      const isVisible = !ent.state.destroyed && !ent.state.heldBy;
+      sprite.setVisible(isVisible);
+      const shadow = this.add.sprite(ent.x + 1, ent.y + 6, 'shadow_small').setAlpha(0.55).setDepth(ent.y - 1);
+      shadow.setVisible(isVisible);
+      this.entityShadows.set(ent.id, shadow);
       obj = sprite;
     } else if (ent.type === 'switch') {
       if (ent.subtype === 'pillar') {
@@ -457,19 +506,31 @@ export class WorldScene extends Phaser.Scene {
         stroke: '#000000',
         strokeThickness: 2
       }).setOrigin(0.5, 1);
+
+      const shadow = this.add.sprite(ent.x + 2, ent.y + 8, 'shadow_directional_45').setAlpha(0.6).setDepth(ent.y - 1);
+      this.entityShadows.set(ent.id, shadow);
       obj = sprite;
     } else if (ent.type === 'wildlife') {
       let texture = 'wildlife_dog';
       if (ent.subtype === 'duck') texture = 'wildlife_duck';
-      obj = this.add.sprite(ent.x, ent.y, texture);
+      const sprite = this.add.sprite(ent.x, ent.y, texture);
+      const shadow = this.add.sprite(ent.x + 1, ent.y + 4, 'shadow_small').setAlpha(0.55).setDepth(ent.y - 1);
+      this.entityShadows.set(ent.id, shadow);
+      obj = sprite;
     } else if (ent.type === 'enemy') {
       const tex = ent.subtype === 'sproutling' ? 'enemy_sproutling' : 'enemy_grumble';
       const sprite = this.add.sprite(ent.x, ent.y, tex);
       sprite.setVisible(!ent.state.destroyed);
+      const shadow = this.add.sprite(ent.x + 2, ent.y + 8, 'shadow_directional_45').setAlpha(0.6).setDepth(ent.y - 1);
+      shadow.setVisible(!ent.state.destroyed);
+      this.entityShadows.set(ent.id, shadow);
       obj = sprite;
     } else if (ent.type === 'boss') {
       const sprite = this.add.sprite(ent.x, ent.y, 'boss_baron');
       sprite.setVisible(!ent.state.destroyed);
+      const shadow = this.add.sprite(ent.x + 4, ent.y + 16, 'shadow_boss').setAlpha(0.7).setDepth(ent.y - 1);
+      shadow.setVisible(!ent.state.destroyed);
+      this.entityShadows.set(ent.id, shadow);
       obj = sprite;
     } else {
       obj = this.add.rectangle(ent.x, ent.y, 20, 20, 0xffffff);
@@ -501,7 +562,13 @@ export class WorldScene extends Phaser.Scene {
       }
     } else if (ent.type === 'pot') {
       obj.setPosition(ent.x, ent.y);
-      obj.setVisible(!ent.state.heldBy && !ent.state.destroyed);
+      const isVisible = !ent.state.heldBy && !ent.state.destroyed;
+      obj.setVisible(isVisible);
+      const shadow = this.entityShadows.get(ent.id);
+      if (shadow) {
+        shadow.setPosition(ent.x + 1, ent.y + 6);
+        shadow.setVisible(isVisible);
+      }
     } else if (ent.type === 'switch' && !ent.subtype) {
       const isDown = !!ent.state.activated;
       obj.setTexture(isDown ? 'switch_down' : 'switch_up');
@@ -514,6 +581,8 @@ export class WorldScene extends Phaser.Scene {
       }
     } else if (ent.type === 'enemy') {
       obj.setVisible(!ent.state.destroyed);
+      const shadow = this.entityShadows.get(ent.id);
+      if (shadow) shadow.setVisible(!ent.state.destroyed);
       if (!ent.state.destroyed) {
         // Smooth lerp to new position
         this.tweens.add({
@@ -523,9 +592,20 @@ export class WorldScene extends Phaser.Scene {
           duration: 300,
           ease: 'Sine.easeOut'
         });
+        if (shadow) {
+          this.tweens.add({
+            targets: shadow,
+            x: ent.x + 2,
+            y: ent.y + 8,
+            duration: 300,
+            ease: 'Sine.easeOut'
+          });
+        }
       }
     } else if (ent.type === 'boss') {
       obj.setVisible(!ent.state.destroyed);
+      const shadow = this.entityShadows.get(ent.id);
+      if (shadow) shadow.setVisible(!ent.state.destroyed);
       if (!ent.state.destroyed) {
         this.tweens.add({
           targets: obj,
@@ -534,6 +614,15 @@ export class WorldScene extends Phaser.Scene {
           duration: 350,
           ease: 'Sine.easeOut'
         });
+        if (shadow) {
+          this.tweens.add({
+            targets: shadow,
+            x: ent.x + 4,
+            y: ent.y + 16,
+            duration: 350,
+            ease: 'Sine.easeOut'
+          });
+        }
         (window as any).BitQuestUI?.updateBossHp(ent.state.hp || 0, ent.state.maxHp || 12);
       } else {
         (window as any).BitQuestUI?.hideBossHp();
@@ -857,17 +946,36 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private animatePotThrow(startX: number, startY: number, targetX: number, targetY: number, potId: string) {
-    const pot = this.add.sprite(startX, startY - 16, 'ent_pot');
+    const shadow = this.add.sprite(startX, startY, 'shadow_small').setAlpha(0.6).setDepth(Math.max(startY, targetY) - 1);
+    const pot = this.add.sprite(startX, startY - 16, 'ent_pot').setDepth(Math.max(startY, targetY) + 5);
     sounds.playSlash();
 
+    // Ground shadow moves linearly along ground plane
     this.tweens.add({
-      targets: pot,
+      targets: shadow,
       x: targetX,
       y: targetY,
-      duration: 240,
-      ease: 'Quad.easeOut',
+      duration: 260,
+      ease: 'Linear'
+    });
+
+    this.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: 260,
+      onUpdate: (tw) => {
+        const p = tw.getValue();
+        pot.x = Phaser.Math.Linear(startX, targetX, p);
+        const groundY = Phaser.Math.Linear(startY, targetY, p);
+        const arcHeight = Math.sin(p * Math.PI) * 32;
+        pot.y = groundY - arcHeight;
+        pot.angle += 14;
+        shadow.setScale(1.0 - (arcHeight / 32) * 0.45);
+        shadow.setAlpha(0.6 - (arcHeight / 32) * 0.3);
+      },
       onComplete: () => {
         pot.destroy();
+        shadow.destroy();
         this.emitPotShards(targetX, targetY);
         network.sendInteract(potId, 'toss', targetX, targetY);
 
@@ -1086,6 +1194,97 @@ export class WorldScene extends Phaser.Scene {
         const sprite = obj as Phaser.GameObjects.Sprite;
         if (sprite && sprite.y !== undefined) {
           sprite.setDepth(sprite.y + (sprite.height ? sprite.height / 3 : 0));
+        }
+      }
+
+      // Sync Ground Shadows
+      for (const [id, shadow] of this.entityShadows.entries()) {
+        const obj = this.entityObjects.get(id) as Phaser.GameObjects.Sprite;
+        if (!obj || !obj.visible) {
+          shadow.setVisible(false);
+        } else {
+          shadow.setVisible(true);
+          shadow.setPosition(obj.x + 2, obj.y + (id.startsWith('boss_') ? 16 : 8));
+          shadow.setDepth(obj.y - 1);
+        }
+      }
+
+      // Point Light Radial Shadows (indoor braziers and lanterns)
+      let nearestLight: { x: number; y: number } | null = null;
+      let minLightDist = 140;
+      for (const lt of this.pointLights) {
+        const d = Math.hypot(px - lt.x, py - lt.y);
+        if (d < minLightDist) {
+          minLightDist = d;
+          nearestLight = lt;
+        }
+      }
+
+      if (nearestLight && this.localPlayer.shadowSprite) {
+        const angle = Math.atan2(py - nearestLight.y, px - nearestLight.x);
+        this.localPlayer.shadowSprite.setRotation(angle - Math.PI / 4);
+      } else if (this.localPlayer.shadowSprite) {
+        this.localPlayer.shadowSprite.setRotation(0);
+      }
+
+      // Dynamic Roof & Canopy Punch-Hole (soft transparency when player walks under structures)
+      for (const rf of this.roofTiles) {
+        const dist = Math.hypot(px - rf.x, py - rf.y);
+        if (dist < 52) {
+          rf.image.setAlpha(0.35 + (dist / 52) * 0.55);
+        } else {
+          if (rf.image.alpha < 1) rf.image.setAlpha(1);
+        }
+      }
+
+      // Player X-Ray Silhouette behind high structures (Electric Cyan #38bdf8 glow at depth 3500)
+      const behindCottage = (px >= 688 && px <= 848 && py >= 740 && py <= 800) ||
+                            (px >= 1200 && px <= 1360 && py >= 740 && py <= 800);
+      const behindWall = (px >= 640 && px <= 1408 && ((py >= 48 && py <= 104) || (py >= 490 && py <= 548)));
+      const behindTopCanopy = py <= 48;
+      const isPlayerOccluded = behindCottage || behindWall || behindTopCanopy;
+
+      if (isPlayerOccluded) {
+        this.playerSilhouette.setPosition(px, py + this.localPlayer.sprite.y);
+        this.playerSilhouette.setTexture(this.localPlayer.sprite.texture.key, this.localPlayer.sprite.frame.name);
+        this.playerSilhouette.setAngle(this.localPlayer.sprite.angle);
+        this.playerSilhouette.setOrigin(0.5, 0.7);
+        this.playerSilhouette.setAlpha(0.85);
+      } else {
+        if (this.playerSilhouette.alpha > 0) this.playerSilhouette.setAlpha(0);
+      }
+
+      // Enemy X-Ray Silhouettes behind structures (Vibrant Amber/Red #ef4444 glow)
+      for (const [id, obj] of this.entityObjects.entries()) {
+        if (id.startsWith('enemy_') || id.startsWith('boss_')) {
+          const sprite = obj as Phaser.GameObjects.Sprite;
+          let sil = this.enemySilhouettes.get(id);
+          if (!sil) {
+            sil = this.add.sprite(sprite.x, sprite.y, sprite.texture.key);
+            sil.setTintFill(0xef4444);
+            sil.setDepth(3499);
+            sil.setAlpha(0);
+            this.enemySilhouettes.set(id, sil);
+          }
+
+          if (!sprite.visible) {
+            if (sil.alpha > 0) sil.setAlpha(0);
+            continue;
+          }
+
+          const ex = sprite.x;
+          const ey = sprite.y;
+          const enemyBehind = (ex >= 640 && ex <= 1408 && ((ey >= 48 && ey <= 104) || (ey >= 490 && ey <= 548))) || ey <= 48;
+
+          if (enemyBehind) {
+            sil.setPosition(ex, ey);
+            sil.setTexture(sprite.texture.key, sprite.frame.name);
+            sil.setAngle(sprite.angle);
+            sil.setOrigin(sprite.originX, sprite.originY);
+            sil.setAlpha(0.8);
+          } else {
+            if (sil.alpha > 0) sil.setAlpha(0);
+          }
         }
       }
 
@@ -1339,5 +1538,26 @@ export class WorldScene extends Phaser.Scene {
       this.promptReticle.lineTo(bw, bh - arm);
       this.promptReticle.stroke();
     }
+  }
+
+  public getSurfaceAt(worldX: number, worldY: number): 'grass' | 'dirt' | 'stone' | 'wood' | 'water' {
+    const tx = Math.floor(worldX / 32);
+    const ty = Math.floor(worldY / 32);
+
+    // River footbridge
+    if ((tx === 52 || tx === 53) && (ty === 29 || ty === 30)) return 'wood';
+    // Lake pier / dock
+    if ((tx === 31 || tx === 32) && (ty >= 41 && ty <= 44)) return 'wood';
+    // River & Lake water bodies
+    if (tx === 52 || tx === 53) return 'water';
+    if (tx >= 22 && tx <= 42 && ty >= 41 && ty <= 54) return 'water';
+    // Sunken Ruins stone courtyard & perimeter
+    if (tx >= 20 && tx <= 43 && ty >= 2 && ty <= 16) return 'stone';
+    // Cobblestone / dirt path intersections
+    if (ty === 28 || (tx === 32 && ty >= 16 && ty <= 40)) return 'dirt';
+    // Cottage shop approaches
+    if ((tx >= 21 && tx <= 26 && ty >= 24 && ty <= 28) || (tx >= 37 && tx <= 42 && ty >= 24 && ty <= 28)) return 'dirt';
+
+    return 'grass';
   }
 }

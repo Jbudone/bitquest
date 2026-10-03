@@ -27,7 +27,9 @@ export class Player extends Phaser.GameObjects.Container {
   public bufferedActionExpiresAt = 0;
   private bufferedHitScan?: (x: number, y: number, dir: Direction) => void;
 
-  private sprite: Phaser.GameObjects.Sprite;
+  public sprite: Phaser.GameObjects.Sprite;
+  public shadowSprite: Phaser.GameObjects.Sprite;
+  private footstepTimer = 0;
   private carriedPotSprite: Phaser.GameObjects.Sprite;
   private nameText: Phaser.GameObjects.Text;
   private titleText: Phaser.GameObjects.Text;
@@ -40,6 +42,12 @@ export class Player extends Phaser.GameObjects.Container {
     this.id = id;
     this.playerName = name;
     this.paletteIndex = paletteIndex;
+
+    // Grounding Directional Drop Shadow (45 deg southeast skew)
+    this.shadowSprite = scene.add.sprite(2, 4, 'shadow_directional_45');
+    this.shadowSprite.setOrigin(0.5, 0.5);
+    this.shadowSprite.setAlpha(0.65);
+    this.add(this.shadowSprite);
 
     // Sprite
     this.sprite = scene.add.sprite(0, 0, `player_${paletteIndex}_down_idle`);
@@ -159,8 +167,95 @@ export class Player extends Phaser.GameObjects.Container {
       this.titleText.setY(-39);
     }
 
+    // Surface-Reactive Footstep Cadence
+    const isMoving = vx !== 0 || vy !== 0;
+    if (isMoving && !this.isRolling && !this.isAttacking) {
+      const now = this.scene.time.now;
+      if (now - this.footstepTimer > 280) {
+        this.footstepTimer = now;
+        this.emitFootstep();
+      }
+    }
+
     // Broadcast movement to network
     network.sendMove(this.x, this.y, this.direction, animState, this.carryingPotId);
+  }
+
+  private emitFootstep() {
+    const surface = (this.scene as any).getSurfaceAt?.(this.x, this.y + 4) || 'grass';
+    sounds.playFootstep(surface);
+
+    // Particle effect based on terrain
+    const px = this.x + (Math.random() * 6 - 3);
+    const py = this.y + 4 + (Math.random() * 4 - 2);
+
+    if (surface === 'water') {
+      const rip = this.scene.add.image(px, py, 'particle_ripple');
+      rip.setScale(0.5);
+      rip.setAlpha(0.85);
+      this.scene.tweens.add({
+        targets: rip,
+        scaleX: 1.3,
+        scaleY: 1.3,
+        alpha: 0,
+        duration: 320,
+        ease: 'Quad.easeOut',
+        onComplete: () => rip.destroy()
+      });
+    } else if (surface === 'dirt') {
+      const dust = this.scene.add.image(px, py, 'particle_dirt');
+      dust.setScale(0.8);
+      dust.setAlpha(0.7);
+      this.scene.tweens.add({
+        targets: dust,
+        alpha: 0,
+        y: py - 4,
+        scaleX: 1.3,
+        scaleY: 1.3,
+        duration: 240,
+        ease: 'Cubic.easeOut',
+        onComplete: () => dust.destroy()
+      });
+    } else if (surface === 'stone') {
+      const spark = this.scene.add.image(px, py, 'particle_stone_spark');
+      spark.setScale(0.7);
+      spark.setAlpha(0.8);
+      this.scene.tweens.add({
+        targets: spark,
+        alpha: 0,
+        y: py - 5,
+        duration: 180,
+        ease: 'Linear',
+        onComplete: () => spark.destroy()
+      });
+    } else if (surface === 'wood') {
+      const dust = this.scene.add.image(px, py, 'particle_dirt');
+      dust.setScale(0.5);
+      dust.setAlpha(0.5);
+      this.scene.tweens.add({
+        targets: dust,
+        alpha: 0,
+        y: py - 3,
+        duration: 200,
+        onComplete: () => dust.destroy()
+      });
+    } else {
+      // Grass - subtle leaf kick
+      const leaf = this.scene.add.image(px, py, Math.random() < 0.5 ? 'particle_leaf' : 'particle_leaf_autumn');
+      leaf.setScale(0.7);
+      leaf.setAlpha(0.75);
+      const angle = (Math.random() - 0.5) * 1.5;
+      this.scene.tweens.add({
+        targets: leaf,
+        alpha: 0,
+        x: px + Math.sin(angle) * 8,
+        y: py - 6,
+        rotation: 0.5,
+        duration: 260,
+        ease: 'Quad.easeOut',
+        onComplete: () => leaf.destroy()
+      });
+    }
   }
 
   public roll() {
@@ -194,6 +289,25 @@ export class Player extends Phaser.GameObjects.Container {
     this.sprite.setTexture(`player_${this.paletteIndex}_roll`);
     this.sprite.setAngle(vx < 0 ? -25 : (vx > 0 ? 25 : 0));
 
+    // Elevation Hop & Ground Shadow Detachment
+    this.scene.tweens.add({
+      targets: this.sprite,
+      y: -12,
+      duration: 130,
+      yoyo: true,
+      ease: 'Sine.easeOut'
+    });
+
+    this.scene.tweens.add({
+      targets: this.shadowSprite,
+      scaleX: 0.65,
+      scaleY: 0.65,
+      alpha: 0.35,
+      duration: 130,
+      yoyo: true,
+      ease: 'Sine.easeOut'
+    });
+
     // Dust particles
     for (let i = 0; i < 3; i++) {
       const dust = this.scene.add.image(this.x + (Math.random() * 8 - 4), this.y + 6 + (Math.random() * 4), 'particle_dust');
@@ -216,7 +330,25 @@ export class Player extends Phaser.GameObjects.Container {
         this.isInvulnerable = false;
       }
       this.sprite.setAngle(0);
+      this.sprite.y = 0;
+      this.shadowSprite.setScale(1.0).setAlpha(0.65);
       body.setVelocity(0, 0);
+
+      // Impact landing on ground: audio step + landing dust puff
+      this.emitFootstep();
+      for (let i = 0; i < 4; i++) {
+        const p = this.scene.add.image(this.x + (Math.random() * 12 - 6), this.y + 6, 'particle_dust');
+        p.setScale(0.6);
+        p.setAlpha(0.6);
+        this.scene.tweens.add({
+          targets: p,
+          alpha: 0,
+          scaleX: 1.2,
+          y: p.y - 4,
+          duration: 200,
+          onComplete: () => p.destroy()
+        });
+      }
 
       // Check input buffer
       this.checkActionBuffer();

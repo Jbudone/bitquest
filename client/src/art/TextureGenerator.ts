@@ -947,18 +947,102 @@ export class TextureGenerator {
       scene.textures.addCanvas('particle_sparkle', canvas);
     }
 
-    // 4. Soft Shadow (24x12)
+    // 4. Soft Directional & Grounding Shadows
     {
+      // Default Soft Shadow (24x12)
       const [canvas, ctx] = this.createCanvas(24, 12);
       const gradient = ctx.createRadialGradient(12, 6, 1, 12, 6, 11);
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 0.35)');
+      gradient.addColorStop(0, 'rgba(15, 23, 42, 0.40)');
+      gradient.addColorStop(0.7, 'rgba(15, 23, 42, 0.18)');
       gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, 24, 12);
       scene.textures.addCanvas('shadow_soft', canvas);
     }
+    {
+      // 45-degree Directional Ground Shadow (26x14) - skewed toward southeast (sun in northwest)
+      const [canvas, ctx] = this.createCanvas(26, 14);
+      const gradient = ctx.createRadialGradient(15, 8, 1, 14, 7, 12);
+      gradient.addColorStop(0, 'rgba(10, 15, 30, 0.46)');
+      gradient.addColorStop(0.65, 'rgba(10, 15, 30, 0.22)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.ellipse(14, 7, 12, 6, 0.12, 0, Math.PI * 2);
+      ctx.fill();
+      scene.textures.addCanvas('shadow_directional_45', canvas);
+    }
+    {
+      // Small Entity Shadow (16x8) - for wildlife, pots, small drops
+      const [canvas, ctx] = this.createCanvas(16, 8);
+      const gradient = ctx.createRadialGradient(9, 4.5, 0.5, 8, 4, 7.5);
+      gradient.addColorStop(0, 'rgba(10, 15, 30, 0.42)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.ellipse(8, 4, 7, 3.5, 0.1, 0, Math.PI * 2);
+      ctx.fill();
+      scene.textures.addCanvas('shadow_small', canvas);
+    }
+    {
+      // Boss / Giant Shadow (48x24) - Spore King Baron von Truffle
+      const [canvas, ctx] = this.createCanvas(48, 24);
+      const gradient = ctx.createRadialGradient(26, 13, 2, 24, 12, 23);
+      gradient.addColorStop(0, 'rgba(10, 15, 30, 0.52)');
+      gradient.addColorStop(0.7, 'rgba(10, 15, 30, 0.25)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.ellipse(24, 12, 22, 10, 0.1, 0, Math.PI * 2);
+      ctx.fill();
+      scene.textures.addCanvas('shadow_boss', canvas);
+    }
 
-    // 5. Light Glow (128x128)
+    // 5. Surface Reactive Particles
+    {
+      // Water Ripple Ring (16x16)
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      ctx.strokeStyle = 'rgba(186, 230, 253, 0.85)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(8, 8, 6.5, 3.5, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      scene.textures.addCanvas('particle_ripple', canvas);
+    }
+    {
+      // Dirt Puff (8x8)
+      const [canvas, ctx] = this.createCanvas(8, 8);
+      ctx.fillStyle = 'rgba(180, 130, 80, 0.75)';
+      ctx.beginPath();
+      ctx.arc(4, 4, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(215, 165, 110, 0.5)';
+      ctx.fillRect(3, 2, 2, 2);
+      scene.textures.addCanvas('particle_dirt', canvas);
+    }
+    {
+      // Stone Chip / Spark (6x6)
+      const [canvas, ctx] = this.createCanvas(6, 6);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(2, 2, 2, 2);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(1, 2, 1, 2);
+      ctx.fillRect(2, 3, 2, 1);
+      scene.textures.addCanvas('particle_stone_spark', canvas);
+    }
+    {
+      // Autumn Flake / Leaf Kick (8x8)
+      const [canvas, ctx] = this.createCanvas(8, 8);
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.ellipse(4, 4, 3, 2, Math.PI / 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(3, 3, 2, 2);
+      scene.textures.addCanvas('particle_leaf_autumn', canvas);
+    }
+
+    // 6. Light Glow (128x128)
     {
       const [canvas, ctx] = this.createCanvas(128, 128);
       const gradient = ctx.createRadialGradient(64, 64, 5, 64, 64, 64);

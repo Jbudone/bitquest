@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { Direction, PlayerAnimState } from '../../../shared/src/types';
 import { sounds } from '../audio/SoundManager';
 import { network } from '../network/NetworkClient';
+import { chronicles } from '../storage/ChroniclesManager';
 
 export class Player extends Phaser.GameObjects.Container {
   public id: string;
@@ -29,6 +30,7 @@ export class Player extends Phaser.GameObjects.Container {
   private sprite: Phaser.GameObjects.Sprite;
   private carriedPotSprite: Phaser.GameObjects.Sprite;
   private nameText: Phaser.GameObjects.Text;
+  private titleText: Phaser.GameObjects.Text;
   private emoteSprite: Phaser.GameObjects.Sprite | null = null;
   private chatBubbleContainer: Phaser.GameObjects.Container | null = null;
   private chatTimer: Phaser.Time.TimerEvent | null = null;
@@ -60,6 +62,18 @@ export class Player extends Phaser.GameObjects.Container {
     this.nameText.setOrigin(0.5, 1);
     this.add(this.nameText);
 
+    // Cosmetic Title Tag
+    this.titleText = scene.add.text(0, -40, '', {
+      fontFamily: 'monospace',
+      fontSize: '8px',
+      fontStyle: 'bold',
+      color: '#facc15',
+      stroke: '#0f172a',
+      strokeThickness: 2
+    });
+    this.titleText.setOrigin(0.5, 1);
+    this.add(this.titleText);
+
     scene.add.existing(this);
 
     // Enable Arcade physics on container with tuned 16x10 sub-tile foot collider
@@ -75,6 +89,10 @@ export class Player extends Phaser.GameObjects.Container {
     this.paletteIndex = paletteIndex;
     this.nameText.setText(name);
     this.sprite.setTexture(`player_${paletteIndex}_${this.direction}_idle`);
+  }
+
+  public setTitle(title: string) {
+    this.titleText.setText(title);
   }
 
   public updateMovement(cursors: Phaser.Types.Input.Keyboard.CursorKeys, keys: Record<string, Phaser.Input.Keyboard.Key>) {
@@ -134,9 +152,11 @@ export class Player extends Phaser.GameObjects.Container {
       const bob = Math.sin(this.scene.time.now / 110) * 2.5;
       this.carriedPotSprite.setY(-26 + bob);
       this.nameText.setY(-38 + bob);
+      this.titleText.setY(-49 + bob);
     } else {
       this.carriedPotSprite.setVisible(false);
       this.nameText.setY(-28);
+      this.titleText.setY(-39);
     }
 
     // Broadcast movement to network
@@ -158,6 +178,7 @@ export class Player extends Phaser.GameObjects.Container {
     this.rollCooldown = this.scene.time.now + 420;
 
     sounds.playRoll();
+    chronicles.recordStat('rollsExecuted', 1);
 
     let vx = 0;
     let vy = 0;

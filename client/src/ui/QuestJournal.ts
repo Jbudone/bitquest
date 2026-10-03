@@ -1,6 +1,7 @@
 import type { QuestDefinition, QuestStage } from '../../../shared/src/schemas';
 import questsRaw from '../../../shared/data/quests.json';
 import { sounds } from '../audio/SoundManager';
+import { chronicles, TITLES_CATALOG } from '../storage/ChroniclesManager';
 
 export interface QuestProgress {
   questId: string;
@@ -278,6 +279,7 @@ export class QuestJournalManager {
         <div class="journal-tabs">
           <button class="journal-tab active" data-tab="active">Active Quests</button>
           <button class="journal-tab" data-tab="completed">Completed</button>
+          <button class="journal-tab" data-tab="chronicles">🏆 Feats & Titles</button>
         </div>
 
         <div class="journal-content">
@@ -299,11 +301,98 @@ export class QuestJournalManager {
         tabBtns.forEach(b => b.classList.remove('active'));
         const target = e.currentTarget as HTMLElement;
         target.classList.add('active');
-        this.renderJournalCards(target.dataset.tab === 'completed');
+        if (target.dataset.tab === 'chronicles') {
+          this.renderChronicles();
+        } else {
+          this.renderJournalCards(target.dataset.tab === 'completed');
+        }
       });
     });
 
     this.renderJournalCards();
+  }
+
+  public renderChronicles() {
+    const container = document.getElementById('journal-cards-container');
+    if (!container) return;
+
+    const s = chronicles.stats;
+
+    container.innerHTML = `
+      <div class="chronicles-stats-grid">
+        <div class="chronicle-stat-card">
+          <span class="stat-icon">🌿</span>
+          <div class="stat-num">${s.bushesCut}</div>
+          <div class="stat-name">Bushes Trimmed</div>
+        </div>
+        <div class="chronicle-stat-card">
+          <span class="stat-icon">🏺</span>
+          <div class="stat-num">${s.potsSmashed}</div>
+          <div class="stat-name">Pots Shattered</div>
+        </div>
+        <div class="chronicle-stat-card">
+          <span class="stat-icon">💨</span>
+          <div class="stat-num">${s.rollsExecuted}</div>
+          <div class="stat-name">Dodge Rolls</div>
+        </div>
+        <div class="chronicle-stat-card">
+          <span class="stat-icon">⚔️</span>
+          <div class="stat-num">${s.damageDealt}</div>
+          <div class="stat-name">Damage Dealt</div>
+        </div>
+        <div class="chronicle-stat-card">
+          <span class="stat-icon">🍓</span>
+          <div class="stat-num">${s.berriesCollected}</div>
+          <div class="stat-name">Strawberries</div>
+        </div>
+        <div class="chronicle-stat-card">
+          <span class="stat-icon">👑</span>
+          <div class="stat-num">${s.bossesDefeated}</div>
+          <div class="stat-name">Bosses Vanquished</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 14px;">
+        <h3 style="font-family: var(--font-retro); font-size: 11px; color: #facc15; margin-bottom: 8px;">
+          🎖️ Cosmetic Titles & Badges
+        </h3>
+        <div class="chronicle-titles-list">
+          ${TITLES_CATALOG.map(title => {
+            const unlocked = chronicles.unlockedTitles.has(title.id);
+            const isEquipped = chronicles.equippedTitleId === title.id;
+
+            return `
+              <div class="title-card ${unlocked ? 'unlocked' : 'locked'} ${isEquipped ? 'equipped' : ''}">
+                <span class="title-card-icon">${title.icon}</span>
+                <div class="title-card-info">
+                  <div class="title-card-name">${title.name} ${isEquipped ? '<span class="equipped-tag">ACTIVE</span>' : ''}</div>
+                  <div class="title-card-desc">${title.description}</div>
+                </div>
+                <div class="title-card-action">
+                  ${unlocked ? `
+                    <button class="btn btn-equip-title ${isEquipped ? 'btn-primary' : ''}" data-title-id="${title.id}">
+                      ${isEquipped ? '✓ Equipped' : 'Equip'}
+                    </button>
+                  ` : '<span class="locked-badge">🔒 Locked</span>'}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+
+    container.querySelectorAll('.btn-equip-title').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = (e.currentTarget as HTMLElement).dataset.titleId!;
+        if (chronicles.equippedTitleId === id) {
+          chronicles.equipTitle(null);
+        } else {
+          chronicles.equipTitle(id);
+        }
+        this.renderChronicles();
+      });
+    });
   }
 
   public renderJournalCards(showCompleted = false) {

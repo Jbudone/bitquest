@@ -4,13 +4,14 @@ import { OtherPlayer } from '../entities/OtherPlayer';
 import { network } from '../network/NetworkClient';
 import { sounds } from '../audio/SoundManager';
 import { saveManager } from '../storage/SaveManager';
+import { chronicles } from '../storage/ChroniclesManager';
 import type { EntityData, PlayerData, Direction, EmoteType, ItemDropData } from '../../../shared/src/types';
 
 export class WorldScene extends Phaser.Scene {
   public localPlayer: Player | null = null;
   public otherPlayers = new Map<string, OtherPlayer>();
   public entityObjects = new Map<string, Phaser.GameObjects.GameObject>();
-  public itemObjects = new Map<string, { sprite: Phaser.GameObjects.Sprite; data: ItemDropData }>();
+  public itemObjects = new Map<string, { sprite: Phaser.GameObjects.Sprite; shapeText?: Phaser.GameObjects.Text; data: ItemDropData }>();
   public playerGlow?: Phaser.GameObjects.Image;
 
   private obstacles!: Phaser.Physics.Arcade.StaticGroup;
@@ -383,6 +384,9 @@ export class WorldScene extends Phaser.Scene {
     const spawnY = (saved && saved.name === name && saved.y > 50 && saved.y < 1700) ? saved.y : y;
 
     this.localPlayer = new Player(this, spawnX, spawnY, id, name, paletteIndex);
+    if (chronicles.equippedTitleId) {
+      this.localPlayer.setTitle(chronicles.getEquippedTitleName());
+    }
     this.physics.add.collider(this.localPlayer, this.obstacles);
     this.cameras.main.startFollow(this.localPlayer, true, 0.12, 0.12);
 
@@ -585,6 +589,7 @@ export class WorldScene extends Phaser.Scene {
     } else if (event.action === 'defeated') {
       sounds.playVictory();
       this.triggerCameraShake(350, 0.012);
+      chronicles.recordStat('bossesDefeated', 1);
       (window as any).BitQuestUI?.hideBossHp();
       (window as any).BitQuestUI?.showToast('🎉 Baron von Truffle is DEFEATED! The Golden Crown is reclaimed!');
 
@@ -624,6 +629,7 @@ export class WorldScene extends Phaser.Scene {
     sounds.playHit();
     sounds.duckBgm(-5, 450);
     this.triggerCameraShake(120, 0.006);
+    chronicles.recordStat('damageTaken', dmg);
 
     network.sendInteract(this.localPlayer.id, 'player_hurt', undefined, undefined, dmg);
     this.showFloatingText(this.localPlayer.x, this.localPlayer.y, `-${dmg} ❤️`, '#ef4444');
@@ -668,6 +674,7 @@ export class WorldScene extends Phaser.Scene {
 
   private emitLeafBurst(x: number, y: number) {
     this.triggerCameraShake(70, 0.003);
+    chronicles.recordStat('bushesCut', 1);
     for (let i = 0; i < 8; i++) {
       const leaf = this.add.sprite(x, y, 'particle_leaf');
       const angle = Math.random() * Math.PI * 2;
@@ -687,6 +694,7 @@ export class WorldScene extends Phaser.Scene {
 
   private emitPotShards(x: number, y: number) {
     sounds.playPotShatter();
+    chronicles.recordStat('potsSmashed', 1);
     for (let i = 0; i < 6; i++) {
       const shard = this.add.sprite(x, y, 'particle_shard');
       const angle = Math.random() * Math.PI * 2;
@@ -919,14 +927,25 @@ export class WorldScene extends Phaser.Scene {
       }
     });
 
-    this.itemObjects.set(item.id, { sprite, data: item });
+    const shape = this.getLootShapeIndicator(item.itemType);
+    const shapeText = this.add.text(item.x, item.y + 10, shape.glyph, {
+      fontFamily: 'monospace',
+      fontSize: '8px',
+      fontStyle: 'bold',
+      color: shape.color,
+      stroke: '#000000',
+      strokeThickness: 2
+    }).setOrigin(0.5, 0.5);
+
+    this.itemObjects.set(item.id, { sprite, shapeText, data: item });
   }
 
   public removeItem(itemId: string, collectorId: string, itemType: string, value: number) {
     const itemObj = this.itemObjects.get(itemId);
     if (itemObj) {
-      const { sprite } = itemObj;
+      const { sprite, shapeText } = itemObj;
       this.itemObjects.delete(itemId);
+      if (shapeText) shapeText.destroy();
 
       for (let i = 0; i < 5; i++) {
         const p = this.add.image(sprite.x, sprite.y, 'particle_sparkle');
@@ -959,6 +978,7 @@ export class WorldScene extends Phaser.Scene {
           if (itemType === 'coin') {
             this.showFloatingText(sprite.x, sprite.y, `+${value} 🪙`, '#fde047');
             this.localPlayer.coins += value;
+            chronicles.recordStat('coinsCollected', value);
           } else {
             this.showFloatingText(sprite.x, sprite.y, `+${value} 🌰`, '#fbbf24');
             this.localPlayer.acorns += value;
@@ -968,6 +988,7 @@ export class WorldScene extends Phaser.Scene {
           this.showFloatingText(sprite.x, sprite.y, `+1 ❤️`, '#f43f5e');
           this.localPlayer.health = Math.min(this.localPlayer.maxHealth, this.localPlayer.health + 1);
           (window as any).BitQuestUI?.quests?.handleEvent({ type: 'collect', targetId: 'strawberry', amount: value });
+          chronicles.recordStat('berriesCollected', 1);
         } else if (itemType === 'jam') {
           sounds.playStrawberry();
           this.showFloatingText(sprite.x, sprite.y, `SWEET JAM! 🍯`, '#c084fc');
@@ -991,6 +1012,18 @@ export class WorldScene extends Phaser.Scene {
       }
 
       sprite.destroy();
+    }
+  }
+
+  private getLootShapeIndicator(type: string): { glyph: string; color: string } {
+    switch (type) {
+      case 'coin': return { glyph: '●', color: '#facc15' };
+      case 'strawberry': return { glyph: '◆', color: '#f43f5e' };
+      case 'acorn': return { glyph: '▲', color: '#fbbf24' };
+      case 'jam': return { glyph: '♥', color: '#c084fc' };
+      case 'crown': return { glyph: '★', color: '#eab308' };
+      case 'letter': return { glyph: '■', color: '#38bdf8' };
+      default: return { glyph: '○', color: '#ffffff' };
     }
   }
 
@@ -1085,12 +1118,17 @@ export class WorldScene extends Phaser.Scene {
       );
 
       // 1. Magnetic collection of dropped items (extended 75px vacuum with physics curve)
-      for (const [id, { sprite, data }] of this.itemObjects.entries()) {
+      for (const [id, { sprite, shapeText, data }] of this.itemObjects.entries()) {
         const dist = Math.hypot(px - sprite.x, py - sprite.y);
         if (dist < 75) {
           const pullSpeed = 0.10 + (1 - dist / 75) * 0.18;
           sprite.x = Phaser.Math.Linear(sprite.x, px, pullSpeed);
           sprite.y = Phaser.Math.Linear(sprite.y, py, pullSpeed);
+
+          if (shapeText) {
+            shapeText.x = sprite.x;
+            shapeText.y = sprite.y + 10;
+          }
 
           if (dist < 20) {
             network.sendCollectItem(id);

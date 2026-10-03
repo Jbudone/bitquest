@@ -1688,3 +1688,158 @@ body.high-contrast-font .settings-title-group h2 {
 canvas.integer-scaled {
   image-rendering: pixelated !important;
 }
+
+/* ======================================================================
+   Player Chronicles & Cosmetic Titles Styles (Task 5.9 / #41)
+   ====================================================================== */
+.chronicles-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.chronicle-stat-card {
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+}
+
+.stat-icon {
+  font-size: 18px;
+}
+
+.stat-num {
+  font-family: monospace;
+  font-size: 16px;
+  font-weight: 800;
+  color: #38bdf8;
+}
+
+.stat-name {
+  font-size: 9px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chronicle-titles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.title-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 12px;
+  transition: all 0.15s ease;
+}
+
+.title-card.equipped {
+  border-color: #facc15;
+  background: rgba(250, 204, 21, 0.08);
+  box-shadow: 0 0 12px rgba(250, 204, 21, 0.2);
+}
+
+.title-card.locked {
+  opacity: 0.6;
+  background: #0f172a;
+}
+
+.title-card-icon {
+  font-size: 20px;
+}
+
+.title-card-info {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title-card-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f8fafc;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.equipped-tag {
+  font-size: 8px;
+  background: #facc15;
+  color: #0f172a;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 800;
+}
+
+.title-card-desc {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.btn-equip-title {
+  font-size: 10px;
+  padding: 4px 10px;
+}
+
+.locked-badge {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.title-unlocked-banner {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  z-index: 130;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 2px solid #facc15;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8), 0 0 20px rgba(250, 204, 21, 0.4);
+  padding: 12px 18px;
+  backdrop-filter: blur(8px);
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* ======================================================================
+   Retro Ornamental Letterbox Frame (Task 5.8 / #8)
+   ====================================================================== */
+#game-container canvas {
+  box-shadow: 0 0 0 4px #1e293b, 0 0 0 8px #0f172a, 0 20px 60px rgba(0, 0, 0, 0.9);
+  border-radius: 4px;
+  transition: box-shadow 0.2s ease;
+}
+
+/* Ornamental corner filigree styling */
+.viewport-frame-corners {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+}

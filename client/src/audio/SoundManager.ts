@@ -4,9 +4,13 @@ export class SoundManager {
   private masterGain: GainNode | null = null;
   private sfxGain: GainNode | null = null;
   private bgmGain: GainNode | null = null;
+  private envFilter: BiquadFilterNode | null = null;
   private masterVol = 0.8;
   private sfxVol = 0.8;
   private bgmVol = 0.6;
+  private heartbeatActive = false;
+  private heartbeatInterval: any = null;
+  private lastWaterLapTime = 0;
 
   private init() {
     if (!this.ctx) {
@@ -21,13 +25,20 @@ export class SoundManager {
       this.masterGain.gain.setValueAtTime(this.masterVol, this.ctx.currentTime);
       this.masterGain.connect(this.ctx.destination);
 
+      // Environmental Low-Pass Biquad Filter (cavern acoustics)
+      this.envFilter = this.ctx.createBiquadFilter();
+      this.envFilter.type = 'lowpass';
+      this.envFilter.frequency.setValueAtTime(20000, this.ctx.currentTime);
+      this.envFilter.Q.setValueAtTime(1.0, this.ctx.currentTime);
+      this.envFilter.connect(this.masterGain);
+
       this.sfxGain = this.ctx.createGain();
       this.sfxGain.gain.setValueAtTime(this.sfxVol, this.ctx.currentTime);
-      this.sfxGain.connect(this.masterGain);
+      this.sfxGain.connect(this.envFilter);
 
       this.bgmGain = this.ctx.createGain();
       this.bgmGain.gain.setValueAtTime(this.bgmVol, this.ctx.currentTime);
-      this.bgmGain.connect(this.masterGain);
+      this.bgmGain.connect(this.envFilter);
     }
     this.initialized = true;
   }
@@ -66,6 +77,131 @@ export class SoundManager {
   public getMasterVolume(): number { return this.masterVol; }
   public getSfxVolume(): number { return this.sfxVol; }
   public getBgmVolume(): number { return this.bgmVol; }
+
+  public setEnvironmentalLowPass(cutoffHz: number, rampMs = 350) {
+    if (!this.envFilter || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const clamped = Math.max(300, Math.min(20000, cutoffHz));
+    this.envFilter.frequency.cancelScheduledValues(now);
+    this.envFilter.frequency.exponentialRampToValueAtTime(clamped, now + rampMs / 1000);
+  }
+
+  public duckBgm(duckAmountDb = -5, durationMs = 450) {
+    if (!this.bgmGain || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const current = this.bgmVol;
+    const ducked = current * Math.pow(10, duckAmountDb / 20);
+
+    this.bgmGain.gain.cancelScheduledValues(now);
+    this.bgmGain.gain.setValueAtTime(ducked, now);
+    this.bgmGain.gain.exponentialRampToValueAtTime(Math.max(0.001, current), now + durationMs / 1000);
+  }
+
+  public updateHealthHeartbeat(currentHp: number, maxHp: number) {
+    const isCritical = currentHp <= 1 && currentHp > 0;
+    if (isCritical && !this.heartbeatActive) {
+      this.heartbeatActive = true;
+      this.playHeartbeatThud();
+      this.heartbeatInterval = setInterval(() => {
+        if (this.heartbeatActive) this.playHeartbeatThud();
+      }, 880);
+    } else if (!isCritical && this.heartbeatActive) {
+      this.heartbeatActive = false;
+      if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+  }
+
+  public playHeartbeatThud() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Sub-bass sine thud 1 (lub)
+    const osc1 = this.ctx.createOscillator();
+    const gain1 = this.ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(65, now);
+    osc1.frequency.exponentialRampToValueAtTime(35, now + 0.14);
+    gain1.gain.setValueAtTime(0.45, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+    osc1.connect(gain1);
+    gain1.connect(this.soundDestination);
+    osc1.start(now);
+    osc1.stop(now + 0.14);
+
+    // Sub-bass sine thud 2 (dub) after 160ms
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(55, now + 0.16);
+    osc2.frequency.exponentialRampToValueAtTime(30, now + 0.32);
+    gain2.gain.setValueAtTime(0.35, now + 0.16);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+    osc2.connect(gain2);
+    gain2.connect(this.soundDestination);
+    osc2.start(now + 0.16);
+    osc2.stop(now + 0.32);
+  }
+
+  public updateAmbientRiver(listenerX: number, listenerY: number) {
+    // Azure river is around X = 1680 (tileX: 52)
+    const now = Date.now();
+    if (now - this.lastWaterLapTime < 2400) return;
+
+    const riverX = 1680;
+    const riverY = listenerY; // river flows north-south across entire height
+    const dist = Math.abs(listenerX - riverX);
+
+    if (dist < 420) {
+      this.lastWaterLapTime = now;
+      this.playSpatialWaterLap(riverX, riverY, listenerX, listenerY, 420);
+    }
+  }
+
+  public playSpatialWaterLap(emitterX: number, emitterY: number, listenerX: number, listenerY: number, maxDist = 420) {
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const dx = emitterX - listenerX;
+    const dist = Math.hypot(dx, emitterY - listenerY);
+    const falloff = Math.max(0, 1 - dist / maxDist);
+    const pan = Math.max(-1, Math.min(1, dx / 220));
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(falloff * 0.18, this.ctx.currentTime);
+
+    if ((this.ctx as any).createStereoPanner) {
+      const panner = (this.ctx as any).createStereoPanner();
+      panner.pan.setValueAtTime(pan, this.ctx.currentTime);
+      gain.connect(panner);
+      panner.connect(this.soundDestination);
+    } else {
+      gain.connect(this.soundDestination);
+    }
+
+    // Gentle filtered water splash
+    const now = this.ctx.currentTime;
+    const bufferSize = this.ctx.sampleRate * 0.4;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const output = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(600, now);
+    filter.frequency.exponentialRampToValueAtTime(350, now + 0.4);
+    filter.Q.value = 4.0;
+
+    noise.connect(filter);
+    filter.connect(gain);
+    noise.start(now);
+  }
 
   public playSlash() {
     this.ensureContext();

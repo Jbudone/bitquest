@@ -622,6 +622,7 @@ export class WorldScene extends Phaser.Scene {
 
     this.playerInvulnerable = true;
     sounds.playHit();
+    sounds.duckBgm(-5, 450);
     this.triggerCameraShake(120, 0.006);
 
     network.sendInteract(this.localPlayer.id, 'player_hurt', undefined, undefined, dmg);
@@ -1037,6 +1038,11 @@ export class WorldScene extends Phaser.Scene {
 
       const px = this.localPlayer.x;
       const py = this.localPlayer.y;
+
+      // Spatial 2D Audio, DSP Low-Pass & Heartbeat Pass
+      sounds.setEnvironmentalLowPass(py < 550 ? 1100 : 20000);
+      sounds.updateHealthHeartbeat(this.localPlayer.health, this.localPlayer.maxHealth);
+      sounds.updateAmbientRiver(px, py);
 
       // Dynamic Y-Sorting Depth Pass
       this.localPlayer.setDepth(this.localPlayer.y);

@@ -3,12 +3,16 @@ import type { Direction, PlayerAnimState } from '../../../shared/src/types';
 import { sounds } from '../audio/SoundManager';
 import { network } from '../network/NetworkClient';
 import { chronicles } from '../storage/ChroniclesManager';
+import { ClientPredictionManager } from '../../../shared/src/netcode/prediction';
 
 export class Player extends Phaser.GameObjects.Container {
   public id: string;
   public playerName: string;
   public paletteIndex: number;
   public direction: Direction = 'down';
+  public prediction = new ClientPredictionManager();
+  private lastX: number;
+  private lastY: number;
   public isAttacking = false;
   public isRolling = false;
   public isInvulnerable = false;
@@ -45,6 +49,8 @@ export class Player extends Phaser.GameObjects.Container {
     this.id = id;
     this.playerName = name;
     this.paletteIndex = paletteIndex;
+    this.lastX = x;
+    this.lastY = y;
 
     // Grounding Directional Drop Shadow (45 deg southeast skew)
     this.shadowSprite = scene.add.sprite(2, 4, 'shadow_directional_45');
@@ -221,8 +227,23 @@ export class Player extends Phaser.GameObjects.Container {
       }
     }
 
-    // Broadcast movement to network
-    network.sendMove(this.x, this.y, this.direction, animState, this.carryingPotId);
+    // Record predicted movement step and send sequence-tagged packet
+    const dx = this.x - this.lastX;
+    const dy = this.y - this.lastY;
+    this.lastX = this.x;
+    this.lastY = this.y;
+
+    const step = this.prediction.recordPredictedStep(this.x, this.y, dx, dy);
+    network.sendMove(this.x, this.y, this.direction, animState, this.carryingPotId, step.seq);
+  }
+
+  public reconcilePosition(ackSeq: number, authoritativeX: number, authoritativeY: number) {
+    const result = this.prediction.reconcile(authoritativeX, authoritativeY, ackSeq);
+    if (result.corrected) {
+      this.setPosition(result.x, result.y);
+      this.lastX = result.x;
+      this.lastY = result.y;
+    }
   }
 
   public enterPushStance(dir: Direction) {

@@ -4,6 +4,8 @@ import { WorldManager } from './world';
 import { ClientPacket, ServerPacket } from '../../shared/src/types';
 import { STARTER_DIALOGUES } from '../../content/dialogues';
 import { runAssetIngestion } from '../../tools/ingest_assets';
+import { DeltaSyncEngine } from '../../shared/src/netcode/deltaSync';
+import { ServerMovementValidator } from '../../shared/src/netcode/prediction';
 
 const PORT = Number(process.env.PORT) || 3001;
 const world = new WorldManager();
@@ -109,9 +111,13 @@ world.onPotCaught = (potId, catcherId, x, y) => {
   });
 };
 
-// 25Hz World Tick Loop for smooth player sync
+// 25Hz World Tick Loop with Delta State Compression
+const deltaSync = new DeltaSyncEngine();
+let tickCounter = 0;
+
 setInterval(() => {
   if (world.players.size === 0) return;
+  tickCounter++;
   
   const playerUpdates = Array.from(world.players.values()).map(p => ({
     id: p.id,
@@ -122,11 +128,24 @@ setInterval(() => {
     carryingItem: p.carryingItem
   }));
 
-  broadcast({
-    type: 'world_tick',
-    players: playerUpdates,
-    serverTime: Date.now()
-  });
+  // Periodic full sync every 50 ticks (2 seconds) to enforce absolute alignment
+  const isFull = tickCounter % 50 === 0;
+  if (isFull) {
+    broadcast({
+      type: 'world_tick',
+      players: playerUpdates,
+      serverTime: Date.now()
+    });
+  } else {
+    const { delta } = deltaSync.computeDelta(playerUpdates);
+    if (delta.length > 0) {
+      broadcast({
+        type: 'world_tick',
+        players: delta,
+        serverTime: Date.now()
+      });
+    }
+  }
 }, 40);
 
 const server = Bun.serve<SocketData>({
@@ -305,7 +324,30 @@ const server = Bun.serve<SocketData>({
           }
 
           case 'move': {
-            world.updatePlayerMove(id, msg.x, msg.y, msg.direction, msg.anim, msg.carryingItem);
+            const player = world.players.get(id);
+            if (player) {
+              const validation = ServerMovementValidator.validateMovement(
+                player.x,
+                player.y,
+                msg.x,
+                msg.y,
+                60,
+                (x, y) => x >= 0 && x <= 2048 && y >= 0 && y <= 1792
+              );
+
+              if (!validation.valid && msg.seq !== undefined) {
+                ws.send(JSON.stringify({
+                  type: 'reconcile',
+                  ackSeq: msg.seq,
+                  x: validation.correctedX,
+                  y: validation.correctedY
+                }));
+                world.updatePlayerMove(id, validation.correctedX, validation.correctedY, msg.direction, msg.anim, msg.carryingItem);
+                break;
+              }
+
+              world.updatePlayerMove(id, validation.correctedX, validation.correctedY, msg.direction, msg.anim, msg.carryingItem);
+            }
             break;
           }
 
@@ -409,6 +451,7 @@ const server = Bun.serve<SocketData>({
     close(ws) {
       const id = ws.data.id;
       sockets.delete(id);
+      deltaSync.removePlayer(id);
       world.removePlayer(id);
       broadcast({
         type: 'player_left',

@@ -14,7 +14,7 @@ import type {
 // Network protocol packets
 export type ClientPacket =
   | { type: 'join'; name: string; color: string; paletteIndex: number }
-  | { type: 'move'; x: number; y: number; direction: Direction; anim: PlayerAnimState; carryingItem: string | null }
+  | { type: 'move'; x: number; y: number; direction: Direction; anim: PlayerAnimState; carryingItem: string | null; seq?: number }
   | { type: 'interact'; targetId: string; action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever'; x?: number; y?: number; damage?: number }
   | { type: 'pot_throw'; potId: string; startX: number; startY: number; targetX: number; targetY: number }
   | { type: 'pot_catch'; potId: string }
@@ -28,7 +28,8 @@ export type ServerPacket =
   | { type: 'init'; yourId: string; players: PlayerData[]; entities: EntityData[]; items: ItemDropData[]; worldFlags: Record<string, boolean>; serverTime: number }
   | { type: 'player_joined'; player: PlayerData }
   | { type: 'player_left'; id: string }
-  | { type: 'world_tick'; players: Array<{ id: string; x: number; y: number; direction: Direction; anim: PlayerAnimState; carryingItem: string | null }>; serverTime: number }
+  | { type: 'world_tick'; players: Array<{ id: string; x: number; y: number; direction: Direction; anim: PlayerAnimState; carryingItem: string | null }>; serverTime: number; ackSeq?: number }
+  | { type: 'reconcile'; ackSeq: number; x: number; y: number }
   | { type: 'entity_updated'; entity: EntityData }
   | { type: 'item_spawned'; item: ItemDropData }
   | { type: 'item_collected'; itemId: string; collectorId: string; itemType: string; value: number }

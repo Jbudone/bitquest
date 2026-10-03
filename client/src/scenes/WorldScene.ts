@@ -608,6 +608,10 @@ export class WorldScene extends Phaser.Scene {
       });
     };
 
+    network.onReconcile = (ackSeq, x, y) => {
+      this.localPlayer?.reconcilePosition(ackSeq, x, y);
+    };
+
     network.onEntityUpdated = (ent) => {
       this.updateEntityVisuals(ent);
     };

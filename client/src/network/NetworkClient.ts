@@ -32,6 +32,7 @@ export class NetworkClient {
   public onSocialResonance?: (data: { player1Id: string; player2Id: string; emote: EmoteType; x: number; y: number }) => void;
   public onPotThrown?: (data: { potId: string; throwerId: string; startX: number; startY: number; targetX: number; targetY: number; duration: number }) => void;
   public onPotCaught?: (data: { potId: string; catcherId: string; x: number; y: number }) => void;
+  public onReconcile?: (ackSeq: number, x: number, y: number) => void;
   public onConnectionChange?: (connected: boolean) => void;
 
   public connect(url?: string) {
@@ -132,6 +133,9 @@ export class NetworkClient {
       case 'pot_caught':
         this.onPotCaught?.(packet);
         break;
+      case 'reconcile':
+        this.onReconcile?.(packet.ackSeq, packet.x, packet.y);
+        break;
     }
   }
 
@@ -144,8 +148,8 @@ export class NetworkClient {
     this.send({ type: 'join', name, color, paletteIndex });
   }
 
-  public sendMove(x: number, y: number, direction: Direction, anim: PlayerAnimState, carryingItem: string | null) {
-    this.send({ type: 'move', x, y, direction, anim, carryingItem });
+  public sendMove(x: number, y: number, direction: Direction, anim: PlayerAnimState, carryingItem: string | null, seq?: number) {
+    this.send({ type: 'move', x, y, direction, anim, carryingItem, seq });
   }
 
   public sendInteract(targetId: string, action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever', x?: number, y?: number, damage?: number) {

@@ -24,8 +24,9 @@
     "test:pathfinding": "bun run tools/test_pathfinding.ts",
     "test:spatial_culling": "bun run tools/test_spatial_culling.ts",
     "test:behaviors": "bun run tools/test_entity_behaviors.ts",
+    "test:netcode": "bun run tools/test_netcode.ts",
     "ingest:assets": "bun run tools/ingest_assets.ts",
-    "test:all": "bun run check:map && bun run check:quests && bun run check:dialogue && bun run test:balance && bun run test:perf && bun run test:playthrough && bun run test:coop && bun run test:vfx && bun run test:foliage && bun run test:ambient_ai && bun run test:blocks && bun run test:decals && bun run test:elevation && bun run test:pathfinding && bun run test:spatial_culling && bun run test:behaviors && bun run ingest:assets"
+    "test:all": "bun run check:map && bun run check:quests && bun run check:dialogue && bun run test:balance && bun run test:perf && bun run test:playthrough && bun run test:coop && bun run test:vfx && bun run test:foliage && bun run test:ambient_ai && bun run test:blocks && bun run test:decals && bun run test:elevation && bun run test:pathfinding && bun run test:spatial_culling && bun run test:behaviors && bun run test:netcode && bun run ingest:assets"
   },
   "devDependencies": {
     "@types/bun": "latest"

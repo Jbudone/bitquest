@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { Direction, PlayerAnimState } from '../../../shared/src/types';
+import { HermiteInterpolator } from '../../../shared/src/netcode/hermite';
 
 export class OtherPlayer extends Phaser.GameObjects.Container {
   public id: string;
@@ -9,6 +10,7 @@ export class OtherPlayer extends Phaser.GameObjects.Container {
   public targetY: number;
   public direction: Direction = 'down';
   public animState: PlayerAnimState = 'idle';
+  private hermite: HermiteInterpolator;
 
   public sprite: Phaser.GameObjects.Sprite;
   public shadowSprite: Phaser.GameObjects.Sprite;
@@ -25,6 +27,7 @@ export class OtherPlayer extends Phaser.GameObjects.Container {
     this.paletteIndex = paletteIndex;
     this.targetX = x;
     this.targetY = y;
+    this.hermite = new HermiteInterpolator(x, y);
 
     // Grounding Directional Drop Shadow (45 deg southeast skew)
     this.shadowSprite = scene.add.sprite(2, 4, 'shadow_directional_45');
@@ -61,6 +64,7 @@ export class OtherPlayer extends Phaser.GameObjects.Container {
     this.targetY = y;
     this.direction = direction;
     this.animState = anim;
+    this.hermite.pushTarget(x, y);
 
     const isCarrying = !!carryingItem;
     this.carriedPotSprite.setVisible(isCarrying);
@@ -86,10 +90,10 @@ export class OtherPlayer extends Phaser.GameObjects.Container {
   }
 
   public updateInterpolation(delta: number) {
-    // Smooth lerp towards target server position
-    const lerpFactor = Math.min(1, (delta / 1000) * 15);
-    this.x = Phaser.Math.Linear(this.x, this.targetX, lerpFactor);
-    this.y = Phaser.Math.Linear(this.y, this.targetY, lerpFactor);
+    // Cubic Hermite spline velocity extrapolation & smoothing
+    const interpolated = this.hermite.update(delta);
+    this.x = interpolated.x;
+    this.y = interpolated.y;
 
     // Organic idle breathing micro-motion
     if (this.animState === 'idle') {

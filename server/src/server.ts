@@ -285,6 +285,35 @@ world.onFishLogSync = (playerId, log) => {
   }
 };
 
+world.onWeatherSync = (weather, timeOfDaySec, transitionProgress, windAngle, windSpeed) => {
+  broadcast({
+    type: 'weather_sync',
+    weather,
+    timeOfDaySec,
+    transitionProgress,
+    windAngle,
+    windSpeed
+  });
+};
+
+world.onLightningStrike = (x, y) => {
+  broadcast({
+    type: 'lightning_strike',
+    x,
+    y
+  });
+};
+
+world.onCampfireRest = (playerId, campfireId, healedHp, restoredMana) => {
+  broadcast({
+    type: 'campfire_rest',
+    playerId,
+    campfireId,
+    healedHp,
+    restoredMana
+  });
+};
+
 // 25Hz World Tick Loop with Delta State Compression
 const deltaSync = new DeltaSyncEngine();
 let tickCounter = 0;
@@ -483,7 +512,9 @@ const server = Bun.serve<SocketData>({
               entities: Array.from(world.entities.values()),
               items: Array.from(world.items.values()),
               worldFlags: world.db.getAllFlags(),
-              serverTime: Date.now()
+              serverTime: Date.now(),
+              weather: world.weatherState.current,
+              timeOfDaySec: world.weatherState.timeOfDaySec
             };
             ws.send(JSON.stringify(initPacket));
 

@@ -9,8 +9,9 @@ import { DialogueParser } from './DialogueParser';
 import { EquipmentSheetManager } from './EquipmentSheet';
 import { FishLogbookManager } from './FishLogbook';
 import { saveManager } from '../storage/SaveManager';
-import type { EmoteType, CharacterClassId } from '../../../shared/src/types';
+import type { EmoteType, CharacterClassId, WeatherType } from '../../../shared/src/types';
 import { ClassManager } from '../../../shared/src/classes';
+import { WeatherEngine } from '../../../shared/src/weather';
 
 export class UIManager {
   public minimap: MinimapManager;
@@ -709,6 +710,57 @@ export class UIManager {
         this.showToast(`🎁 Spawned ${itemType}!`);
       });
     });
+
+    // Circadian time controls (Task 7.6 / Issue #24)
+    document.querySelectorAll('.time-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const target = e.currentTarget as HTMLElement;
+        const hour = Number(target.dataset.hour);
+        network.sendAdminSetTime(hour);
+        this.showToast(`☀️ World Time set to ${hour}:00!`);
+      });
+    });
+
+    // Dynamic weather overrides (Task 7.6 / Issue #24)
+    document.querySelectorAll('.weather-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const target = e.currentTarget as HTMLElement;
+        const weather = target.dataset.weather as WeatherType;
+        if (weather) {
+          network.sendAdminSetWeather(weather);
+          this.showToast(`🌧️ Weather changed to ${weather.toUpperCase()}!`);
+        }
+      });
+    });
+  }
+
+  public updateClockAndWeather(timeOfDaySec: number, weather: WeatherType) {
+    const info = WeatherEngine.getTimeOfDay(timeOfDaySec);
+    const clockIcon = document.getElementById('hud-clock-icon');
+    const clockTime = document.getElementById('hud-clock-time');
+    const weatherBadge = document.getElementById('hud-weather-badge');
+
+    if (clockIcon) clockIcon.textContent = info.icon;
+    if (clockTime) clockTime.textContent = info.formattedTime;
+    if (weatherBadge) {
+      let weatherText = 'Clear';
+      let weatherColor = '#38bdf8';
+      if (weather === 'rain') {
+        weatherText = 'Rain';
+        weatherColor = '#60a5fa';
+      } else if (weather === 'storm') {
+        weatherText = 'Storm';
+        weatherColor = '#facc15';
+      } else if (weather === 'fog') {
+        weatherText = 'Fog';
+        weatherColor = '#cbd5e1';
+      } else {
+        weatherText = info.phaseTitle.split(' ')[0]!;
+        weatherColor = info.phase === 'golden_hour' ? '#fb923c' : info.phase === 'night' ? '#818cf8' : '#38bdf8';
+      }
+      weatherBadge.textContent = weatherText;
+      weatherBadge.style.color = weatherColor;
+    }
   }
 
   public updateClassAbilityHUD(classId: CharacterClassId, currentMana?: number) {

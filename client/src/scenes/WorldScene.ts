@@ -13,6 +13,7 @@ import { SPELL_DEFINITIONS, type SpellDefinition, type SpellId, StatusEffectMana
 import { ClassManager, CLASS_DEFINITIONS, type CharacterClassId, type ClassAbilityId } from '../../../shared/src/classes';
 import { DUNGEON_CONSTANTS, MALAKOR_SPECS, DungeonManager, CATACOMBS_FLOORS, type DungeonFloorId } from '../../../shared/src/dungeon';
 import { FishingEngine, FISH_SPECIES } from '../../../shared/src/fishing';
+import { WeatherEngine, CAMPFIRES, type WeatherType, type WeatherState, type DayPhase, type CampfireDefinition } from '../../../shared/src/weather';
 
 export class WorldScene extends Phaser.Scene {
   public localPlayer: Player | null = null;
@@ -38,6 +39,23 @@ export class WorldScene extends Phaser.Scene {
   private tensionProgressBar: Phaser.GameObjects.Rectangle | null = null;
   private tensionHintText: Phaser.GameObjects.Text | null = null;
   private biteAlertText: Phaser.GameObjects.Text | null = null;
+
+  // Dynamic Day/Night Cycle, Weather & Campfires (Task 7.6 / Issue #24)
+  public currentWeather: WeatherType = 'clear';
+  public timeOfDaySec: number = 480; // 8:00 AM bright morning
+  public windAngle: number = 0.785; // 45 degrees
+  public windSpeed: number = 1.0;
+  private dayNightDarknessOverlay?: Phaser.GameObjects.Graphics;
+  private lightningFlashOverlay?: Phaser.GameObjects.Rectangle;
+  private rainGraphics?: Phaser.GameObjects.Graphics;
+  private fireflyGraphics?: Phaser.GameObjects.Graphics;
+  private rainDrops: Array<{ x: number; y: number; length: number; speed: number; alpha: number }> = [];
+  private fireflies: Array<{ baseX: number; baseY: number; x: number; y: number; phase: number; speed: number }> = [];
+  private campfireAnimTimer: number = 0;
+  private campfireAnimFrame: number = 1;
+  private rainPuddleSprites: Phaser.GameObjects.Sprite[] = [];
+  private clockUiTimer: number = 0;
+  private lastCampfireAudioCheck: number = 0;
 
   // The Sunken Catacombs Dungeon (Task 7.4)
   public activeFloor: 'overworld' | 'f1' | 'f2' = 'overworld';
@@ -311,6 +329,75 @@ export class WorldScene extends Phaser.Scene {
     this.dungeonLightingOverlay = this.add.graphics();
     this.dungeonLightingOverlay.setDepth(3400);
     this.dungeonLightingOverlay.setVisible(false);
+
+    // 6. Dynamic Day/Night Cycle, Weather & Campfire Systems (Issue #24)
+    this.dayNightDarknessOverlay = this.add.graphics();
+    this.dayNightDarknessOverlay.setDepth(2900);
+    this.dayNightDarknessOverlay.setVisible(true);
+
+    this.lightningFlashOverlay = this.add.rectangle(0, 0, 4000, 4000, 0xffffff);
+    this.lightningFlashOverlay.setDepth(3800);
+    this.lightningFlashOverlay.setAlpha(0);
+    this.lightningFlashOverlay.setScrollFactor(0);
+
+    this.rainGraphics = this.add.graphics();
+    this.rainGraphics.setDepth(3100);
+
+    this.fireflyGraphics = this.add.graphics();
+    this.fireflyGraphics.setDepth(2800);
+
+    // Initialize 140 pre-allocated rain drops
+    for (let i = 0; i < 140; i++) {
+      this.rainDrops.push({
+        x: Math.random() * 2048,
+        y: Math.random() * 1792,
+        length: 12 + Math.random() * 10,
+        speed: 550 + Math.random() * 200,
+        alpha: 0.35 + Math.random() * 0.4
+      });
+    }
+
+    // Initialize 24 pre-allocated fireflies across meadow, lake shoreline and town outskirts
+    const fireflyOrigins = [
+      { x: 1400, y: 750 }, { x: 1520, y: 800 }, { x: 1650, y: 880 }, { x: 1580, y: 1020 },
+      { x: 1440, y: 920 }, { x: 1680, y: 720 }, { x: 1720, y: 960 }, { x: 1500, y: 1100 },
+      { x: 750, y: 1350 }, { x: 880, y: 1380 }, { x: 1050, y: 1420 }, { x: 1250, y: 1380 },
+      { x: 1380, y: 1350 }, { x: 680, y: 1400 }, { x: 820, y: 950 }, { x: 1220, y: 950 },
+      { x: 380, y: 750 }, { x: 440, y: 920 }, { x: 520, y: 820 }, { x: 600, y: 1050 },
+      { x: 920, y: 680 }, { x: 1120, y: 680 }, { x: 1480, y: 650 }, { x: 1620, y: 620 }
+    ];
+    fireflyOrigins.forEach(o => {
+      this.fireflies.push({
+        baseX: o.x,
+        baseY: o.y,
+        x: o.x,
+        y: o.y,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.8 + Math.random() * 0.6
+      });
+    });
+
+    // Initialize pre-placed dynamic rain puddles
+    const puddleLocations = [
+      { x: 1024, y: 780, tex: 'prop_rain_puddle_med' },
+      { x: 950, y: 840, tex: 'prop_rain_puddle_small' },
+      { x: 1100, y: 840, tex: 'prop_rain_puddle_small' },
+      { x: 1024, y: 1080, tex: 'prop_rain_puddle_med' },
+      { x: 860, y: 920, tex: 'prop_rain_puddle_small' },
+      { x: 1180, y: 920, tex: 'prop_rain_puddle_small' },
+      { x: 1460, y: 820, tex: 'prop_rain_puddle_med' },
+      { x: 1580, y: 940, tex: 'prop_rain_puddle_small' },
+      { x: 1024, y: 1240, tex: 'prop_rain_puddle_med' },
+      { x: 450, y: 860, tex: 'prop_rain_puddle_small' },
+      { x: 960, y: 380, tex: 'prop_rain_puddle_small' },
+      { x: 1088, y: 380, tex: 'prop_rain_puddle_small' }
+    ];
+    puddleLocations.forEach(loc => {
+      const spr = this.add.sprite(loc.x, loc.y, loc.tex);
+      spr.setDepth(loc.y - 10);
+      spr.setAlpha(0);
+      this.rainPuddleSprites.push(spr);
+    });
   }
 
   private buildWorld() {
@@ -734,6 +821,15 @@ export class WorldScene extends Phaser.Scene {
         (window as any).BitQuestUI?.updateCurrency(this.localPlayer.coins, this.localPlayer.acorns);
       }
 
+      if (data.weather) {
+        this.currentWeather = data.weather;
+        this.updateWeatherAudio(this.currentWeather);
+      }
+      if (data.timeOfDaySec !== undefined) {
+        this.timeOfDaySec = data.timeOfDaySec;
+      }
+      (window as any).BitQuestUI?.updateClockAndWeather?.(this.timeOfDaySec, this.currentWeather);
+
       data.players.forEach(p => {
         if (p.id !== data.yourId) {
           this.spawnOtherPlayer(p);
@@ -999,6 +1095,27 @@ export class WorldScene extends Phaser.Scene {
       }
     };
 
+    network.onWeatherSync = (data) => {
+      this.currentWeather = data.weather;
+      this.timeOfDaySec = data.timeOfDaySec;
+      this.windAngle = data.windAngle;
+      this.windSpeed = data.windSpeed;
+      this.updateWeatherAudio(this.currentWeather);
+      (window as any).BitQuestUI?.updateClockAndWeather?.(this.timeOfDaySec, this.currentWeather);
+    };
+
+    network.onLightningStrike = (data) => {
+      this.triggerLightningStrike(data.x, data.y);
+    };
+
+    network.onCampfireRest = (data) => {
+      if (data.playerId === network.yourId && this.localPlayer) {
+        sounds.playCampfireRestHeal();
+        this.showFloatingText(this.localPlayer.x, this.localPlayer.y - 28, `+${data.healedHp} HP  +${data.restoredMana} MP`, "#4ade80", true);
+        this.emitWarmthSparks(this.localPlayer.x, this.localPlayer.y);
+      }
+    };
+
     network.connect();
 
     const tryJoin = () => {
@@ -1204,6 +1321,13 @@ export class WorldScene extends Phaser.Scene {
       const shadow = this.add.sprite(ent.x + 2, ent.y + 12, 'shadow_directional_45').setAlpha(0.65).setDepth(ent.y - 2);
       this.entityShadows.set(ent.id, shadow);
       obj = sprite;
+    } else if (ent.type === 'campfire') {
+      const tex = ent.state.lit !== false ? 'prop_campfire_lit_1' : 'prop_campfire_unlit';
+      const sprite = this.add.sprite(ent.x, ent.y, tex);
+      sprite.setDepth(ent.y);
+      const shadow = this.add.sprite(ent.x, ent.y + 10, 'shadow_medium').setAlpha(0.6).setDepth(ent.y - 1);
+      this.entityShadows.set(ent.id, shadow);
+      obj = sprite;
     } else {
       obj = this.add.rectangle(ent.x, ent.y, 20, 20, 0xffffff);
     }
@@ -1308,6 +1432,11 @@ export class WorldScene extends Phaser.Scene {
       obj.setTexture(targetTex);
     } else if (ent.type === 'torch') {
       const targetTex = ent.state.lit ? 'prop_crypt_torch_lit' : 'prop_crypt_torch_unlit';
+      if (obj.texture?.key !== targetTex) {
+        obj.setTexture(targetTex);
+      }
+    } else if (ent.type === 'campfire') {
+      const targetTex = ent.state.lit !== false ? `prop_campfire_lit_${this.campfireAnimFrame}` : 'prop_campfire_unlit';
       if (obj.texture?.key !== targetTex) {
         obj.setTexture(targetTex);
       }
@@ -2326,6 +2455,11 @@ export class WorldScene extends Phaser.Scene {
           sounds.playTorchIgnite();
           return;
         }
+        if (ent.type === 'campfire') {
+          network.sendSitCampfire(ent.id);
+          sounds.playCampfireCrackle();
+          return;
+        }
         if (ent.type === 'trigger') {
           network.sendInteract(ent.id, 'enter_dungeon');
           return;
@@ -3210,6 +3344,109 @@ export class WorldScene extends Phaser.Scene {
         }
       }
 
+      // Cozy Animated Campfires & Audio Proximity Check (Task 7.6 / Issue #24)
+      this.campfireAnimTimer += delta;
+      if (this.campfireAnimTimer >= 150) {
+        this.campfireAnimTimer = 0;
+        this.campfireAnimFrame = (this.campfireAnimFrame % 3) + 1;
+        const frameKey = `prop_campfire_lit_${this.campfireAnimFrame}`;
+        for (const ent of this.worldEntities.values()) {
+          if (ent.type === 'campfire' && ent.state.lit !== false) {
+            const spr = this.entityObjects.get(ent.id) as Phaser.GameObjects.Sprite | undefined;
+            if (spr && spr.active) {
+              spr.setTexture(frameKey);
+            }
+          }
+        }
+      }
+
+      if (time - this.lastCampfireAudioCheck > 800) {
+        this.lastCampfireAudioCheck = time;
+        const nearCampfire = WeatherEngine.getNearestCampfire(this.localPlayer.x, this.localPlayer.y, 70);
+        if (nearCampfire) {
+          sounds.playCampfireCrackle();
+        }
+      }
+
+      // Overworld Circadian Lighting, Weather & Dynamic Ambient Atmosphere
+      if (this.localPlayer.y < 2000) {
+        // Advance client clock interpolation
+        this.timeOfDaySec = (this.timeOfDaySec + delta / 1000) % WeatherEngine.DAY_CYCLE_DURATION_SEC;
+        this.clockUiTimer += delta;
+        if (this.clockUiTimer >= 500) {
+          this.clockUiTimer = 0;
+          (window as any).BitQuestUI?.updateClockAndWeather?.(this.timeOfDaySec, this.currentWeather);
+        }
+
+        const lighting = WeatherEngine.getAmbientLighting(this.timeOfDaySec, this.currentWeather);
+        const cam = this.cameras.main;
+        const left = cam.worldView.x - 20;
+        const top = cam.worldView.y - 20;
+        const width = cam.worldView.width + 40;
+        const height = cam.worldView.height + 40;
+
+        if (this.dayNightDarknessOverlay) {
+          if (lighting.alpha > 0.03) {
+            this.dayNightDarknessOverlay.setVisible(true);
+            this.dayNightDarknessOverlay.clear();
+
+            // Ambient darkness / golden hour / dusk fill
+            this.dayNightDarknessOverlay.fillStyle(lighting.color, lighting.alpha);
+            this.dayNightDarknessOverlay.fillRect(left, top, width, height);
+
+            // If darkness is significant (> 0.16), carve warm light halos around player and campfires
+            if (lighting.alpha > 0.16) {
+              // Player personal light aura
+              this.dayNightDarknessOverlay.fillStyle(0xfde047, 0.07);
+              this.dayNightDarknessOverlay.fillCircle(this.localPlayer.x, this.localPlayer.y, 80);
+              this.dayNightDarknessOverlay.fillStyle(0xffffff, 0.10);
+              this.dayNightDarknessOverlay.fillCircle(this.localPlayer.x, this.localPlayer.y, 48);
+
+              // Campfire warm glowing light
+              for (const ent of this.worldEntities.values()) {
+                if (ent.type === 'campfire' && ent.state.lit !== false) {
+                  if (cam.worldView.contains(ent.x, ent.y)) {
+                    const pulse = 1.0 + Math.sin(time * 0.006) * 0.08;
+                    this.dayNightDarknessOverlay.fillStyle(0xf97316, 0.20);
+                    this.dayNightDarknessOverlay.fillCircle(ent.x, ent.y, 110 * pulse);
+                    this.dayNightDarknessOverlay.fillStyle(0xfde047, 0.25);
+                    this.dayNightDarknessOverlay.fillCircle(ent.x, ent.y, 65 * pulse);
+                    this.dayNightDarknessOverlay.fillStyle(0xffffff, 0.18);
+                    this.dayNightDarknessOverlay.fillCircle(ent.x, ent.y, 30);
+                  }
+                }
+              }
+            }
+          } else {
+            this.dayNightDarknessOverlay.clear();
+            this.dayNightDarknessOverlay.setVisible(false);
+          }
+        }
+
+        // Update rain particles
+        this.updateRainParticles(delta);
+
+        // Update fireflies
+        this.updateFireflies(delta, time);
+
+        // Update puddle reflections
+        const isRaining = this.currentWeather === 'rain' || this.currentWeather === 'storm';
+        const targetPuddleAlpha = isRaining ? 0.70 : 0.0;
+        for (const puddle of this.rainPuddleSprites) {
+          puddle.setAlpha(Phaser.Math.Linear(puddle.alpha, targetPuddleAlpha, 0.04));
+        }
+      } else {
+        if (this.dayNightDarknessOverlay) {
+          this.dayNightDarknessOverlay.setVisible(false);
+        }
+        if (this.rainGraphics) {
+          this.rainGraphics.clear();
+        }
+        if (this.fireflyGraphics) {
+          this.fireflyGraphics.clear();
+        }
+      }
+
       // Update active spell projectiles
       for (let i = this.spellProjectiles.length - 1; i >= 0; i--) {
         const p = this.spellProjectiles[i]!;
@@ -3930,6 +4167,7 @@ export class WorldScene extends Phaser.Scene {
     // Cull offscreen entity sprites and shadows
     for (const [id, obj] of this.entityObjects.entries()) {
       if (id.startsWith('boss_')) continue;
+      if (!obj || typeof (obj as any).x !== 'number') continue;
 
       const sp = obj as Phaser.GameObjects.Sprite;
       const inFrustum = SpatialGrid.isInFrustum(sp.x, sp.y, camX, camY, camW, camH, MARGIN);
@@ -4006,20 +4244,31 @@ export class WorldScene extends Phaser.Scene {
     } else {
       const px = this.localPlayer.x;
       const py = this.localPlayer.y;
-      const prioritized = BehaviorRegistry.getPrioritizedInteraction(
-        px,
-        py,
-        this.worldEntities.values(),
-        48,
-        this.localPlayer as any
-      );
 
-      if (prioritized) {
+      const campfire = WeatherEngine.getNearestCampfire(px, py, 48);
+      if (campfire) {
         hasTarget = true;
-        targetX = prioritized.entity.x;
-        targetY = prioritized.entity.y;
-        label = prioritized.promptText;
-        themeColor = prioritized.trait.priorityWeight > 75 ? 0xf59e0b : 0x38bdf8;
+        targetX = campfire.x;
+        targetY = campfire.y - 18;
+        const isSitting = this.localPlayer.anim === 'sit';
+        label = isSitting ? '[E] Stand Up' : '[E] Rest by Fire';
+        themeColor = 0xf97316;
+      } else {
+        const prioritized = BehaviorRegistry.getPrioritizedInteraction(
+          px,
+          py,
+          this.worldEntities.values(),
+          48,
+          this.localPlayer as any
+        );
+
+        if (prioritized) {
+          hasTarget = true;
+          targetX = prioritized.entity.x;
+          targetY = prioritized.entity.y;
+          label = prioritized.promptText;
+          themeColor = prioritized.trait.priorityWeight > 75 ? 0xf59e0b : 0x38bdf8;
+        }
       }
     }
 
@@ -4468,6 +4717,128 @@ export class WorldScene extends Phaser.Scene {
         r.lineGfx.quadraticCurveTo(midX, midY, r.sprite.x, r.sprite.y);
         r.lineGfx.strokePath();
       }
+    }
+  }
+
+  // ==========================================
+  // Weather, Rain, Lightning & Fireflies Helpers (Task 7.6 / Issue #24)
+  // ==========================================
+
+  private updateRainParticles(delta: number) {
+    if (!this.rainGraphics) return;
+    this.rainGraphics.clear();
+
+    const isRaining = this.currentWeather === 'rain' || this.currentWeather === 'storm';
+    if (!isRaining) return;
+
+    const cam = this.cameras.main;
+    const isStorm = this.currentWeather === 'storm';
+    const count = isStorm ? this.rainDrops.length : Math.floor(this.rainDrops.length * 0.65);
+    const speedMult = isStorm ? 1.4 : 1.0;
+    const cosA = Math.cos(this.windAngle);
+    const sinA = Math.sin(this.windAngle);
+    const dt = delta / 1000;
+
+    for (let i = 0; i < count; i++) {
+      const drop = this.rainDrops[i]!;
+      drop.x += cosA * drop.speed * speedMult * dt;
+      drop.y += sinA * drop.speed * speedMult * dt;
+
+      // Wrap around camera viewport
+      if (drop.x > cam.worldView.right + 40) drop.x = cam.worldView.left - 40;
+      if (drop.x < cam.worldView.left - 40) drop.x = cam.worldView.right + 40;
+      if (drop.y > cam.worldView.bottom + 40) drop.y = cam.worldView.top - 40;
+      if (drop.y < cam.worldView.top - 40) drop.y = cam.worldView.bottom + 40;
+
+      // Render rain streak
+      const x2 = drop.x + cosA * drop.length;
+      const y2 = drop.y + sinA * drop.length;
+      this.rainGraphics.lineStyle(isStorm ? 1.5 : 1.0, 0x93c5fd, drop.alpha);
+      this.rainGraphics.lineBetween(drop.x, drop.y, x2, y2);
+    }
+  }
+
+  private updateFireflies(delta: number, time: number) {
+    if (!this.fireflyGraphics) return;
+    this.fireflyGraphics.clear();
+
+    const info = WeatherEngine.getTimeOfDay(this.timeOfDaySec);
+    const isNightTime = info.phase === 'twilight' || info.phase === 'night' || info.phase === 'early_dawn';
+    if (!isNightTime) return;
+
+    const cam = this.cameras.main;
+    const dt = delta / 1000;
+
+    for (let i = 0; i < this.fireflies.length; i++) {
+      const f = this.fireflies[i]!;
+      f.phase += f.speed * dt;
+      f.x = f.baseX + Math.sin(f.phase) * 16 + Math.cos(f.phase * 0.4) * 8;
+      f.y = f.baseY + Math.cos(f.phase * 0.8) * 12 + Math.sin(f.phase * 0.3) * 6;
+
+      if (cam.worldView.contains(f.x, f.y)) {
+        const pulse = 0.35 + 0.55 * Math.sin(f.phase * 2.5);
+        // Soft outer glow
+        this.fireflyGraphics.fillStyle(0xa3e635, pulse * 0.35);
+        this.fireflyGraphics.fillCircle(f.x, f.y, 4.5);
+        // Bright core
+        this.fireflyGraphics.fillStyle(0xfef08a, pulse * 0.85);
+        this.fireflyGraphics.fillCircle(f.x, f.y, 1.8);
+      }
+    }
+  }
+
+  public triggerLightningStrike(x: number, y: number) {
+    if (this.localPlayer && this.localPlayer.y >= 2000) return;
+
+    if (this.lightningFlashOverlay) {
+      this.lightningFlashOverlay.setAlpha(0.95);
+      this.tweens.add({
+        targets: this.lightningFlashOverlay,
+        alpha: 0.15,
+        duration: 50,
+        yoyo: true,
+        hold: 25,
+        onComplete: () => {
+          this.tweens.add({
+            targets: this.lightningFlashOverlay,
+            alpha: 0,
+            duration: 180,
+            ease: 'Cubic.easeOut'
+          });
+        }
+      });
+    }
+
+    this.triggerCameraShake(180, 0.007);
+    sounds.playThunder();
+  }
+
+  public emitWarmthSparks(x: number, y: number) {
+    for (let i = 0; i < 6; i++) {
+      const p = this.add.circle(x + (Math.random() * 20 - 10), y + (Math.random() * 10 - 5), 2.5, 0x4ade80);
+      p.setDepth(y + 20);
+      this.tweens.add({
+        targets: p,
+        y: p.y - 25 - Math.random() * 15,
+        alpha: 0,
+        scale: 0.2,
+        duration: 600 + Math.random() * 300,
+        onComplete: () => p.destroy()
+      });
+    }
+  }
+
+  public updateWeatherAudio(weather: WeatherType) {
+    if (this.localPlayer && this.localPlayer.y >= 2000) {
+      sounds.setRainAmbient(false);
+      return;
+    }
+    if (weather === 'rain') {
+      sounds.setRainAmbient(true, 0.5);
+    } else if (weather === 'storm') {
+      sounds.setRainAmbient(true, 1.0);
+    } else {
+      sounds.setRainAmbient(false);
     }
   }
 }

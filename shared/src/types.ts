@@ -3,6 +3,7 @@ export * from './equipment';
 export * from './classes';
 export * from './dungeon';
 export * from './fishing';
+export * from './weather';
 import type { 
   Direction, 
   PlayerAnimState, 
@@ -21,12 +22,13 @@ import type {
 import type { PlayerEquipment, PlayerVanity, AggregatedEquipmentStats } from './equipment';
 import type { CharacterClassId, ClassAbilityId } from './classes';
 import type { PlayerFishLog } from './fishing';
+import type { WeatherType } from './weather';
 
 // Network protocol packets
 export type ClientPacket =
   | { type: 'join'; name: string; color: string; paletteIndex: number }
   | { type: 'move'; x: number; y: number; direction: Direction; anim: PlayerAnimState; carryingItem: string | null; seq?: number }
-  | { type: 'interact'; targetId: string; action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever' | 'light_torch' | 'enter_dungeon' | 'warp_floor'; x?: number; y?: number; damage?: number }
+  | { type: 'interact'; targetId: string; action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever' | 'light_torch' | 'enter_dungeon' | 'warp_floor' | 'sit_campfire'; x?: number; y?: number; damage?: number }
   | { type: 'cast_spell'; spellId: SpellId; x: number; y: number; direction: Direction }
   | { type: 'equip_item'; slot: EquipmentSlot; itemId: string | null }
   | { type: 'set_vanity'; slot: VanitySlot; vanityId: string | null }
@@ -42,10 +44,10 @@ export type ClientPacket =
   | { type: 'emote'; emote: EmoteType }
   | { type: 'dialogue_choice'; npcId: string; choiceIndex: number }
   | { type: 'collect_item'; itemId: string }
-  | { type: 'admin_command'; action: 'toggle_gate' | 'teleport' | 'heal' | 'spawn_item' | 'set_flag' | 'speed_boost' | 'spawn_enemy' | 'spawn_boss'; payload?: any };
+  | { type: 'admin_command'; action: 'toggle_gate' | 'teleport' | 'heal' | 'spawn_item' | 'set_flag' | 'speed_boost' | 'spawn_enemy' | 'spawn_boss' | 'set_weather' | 'set_time'; payload?: any };
 
 export type ServerPacket =
-  | { type: 'init'; yourId: string; players: PlayerData[]; entities: EntityData[]; items: ItemDropData[]; worldFlags: Record<string, boolean>; serverTime: number }
+  | { type: 'init'; yourId: string; players: PlayerData[]; entities: EntityData[]; items: ItemDropData[]; worldFlags: Record<string, boolean>; serverTime: number; weather?: WeatherType; timeOfDaySec?: number }
   | { type: 'player_joined'; player: PlayerData }
   | { type: 'player_left'; id: string }
   | { type: 'world_tick'; players: Array<{ id: string; x: number; y: number; direction: Direction; anim: PlayerAnimState; carryingItem: string | null }>; serverTime: number; ackSeq?: number }
@@ -76,6 +78,9 @@ export type ServerPacket =
   | { type: 'fishing_bite'; playerId: string; biteTime: number; speciesHint: string; sweetSpotWidth: number; pullResistance: number }
   | { type: 'fishing_tension_sync'; playerId: string; tension: number; sweetSpotCenter: number; reelProgress: number }
   | { type: 'fishing_resolved'; playerId: string; result: 'caught' | 'escaped' | 'snapped' | 'cancelled'; speciesId?: string; sizeCm?: number; value?: number; isPersonalBest?: boolean }
-  | { type: 'fish_log_sync'; playerId: string; log: PlayerFishLog };
+  | { type: 'fish_log_sync'; playerId: string; log: PlayerFishLog }
+  | { type: 'weather_sync'; weather: WeatherType; timeOfDaySec: number; transitionProgress: number; windAngle: number; windSpeed: number }
+  | { type: 'lightning_strike'; x: number; y: number }
+  | { type: 'campfire_rest'; playerId: string; campfireId: string; healedHp: number; restoredMana: number };
 
 

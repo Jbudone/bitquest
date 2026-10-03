@@ -39,6 +39,9 @@
         <div class="currency-pills">
           <div class="stat-pill" title="Silver Coins"><span class="coin-icon">🪙</span> <span id="coin-counter">0</span></div>
           <div class="stat-pill" title="Forest Acorns"><span class="acorn-icon">🌰</span> <span id="acorn-counter">0</span></div>
+          <div id="hud-clock-weather" class="stat-pill" title="World Time & Weather (Task 7.6)" style="border-color: #f59e0b; font-family: monospace;">
+            <span id="hud-clock-icon">☀️</span> <span id="hud-clock-time">08:00 AM</span> <span id="hud-weather-badge" style="color: #38bdf8; font-size: 11px; margin-left: 2px;">Clear</span>
+          </div>
         </div>
       </div>
 
@@ -130,6 +133,24 @@
             <button class="admin-btn spawn-btn" data-item="acorn" data-val="1">+Acorn 🌰</button>
             <button class="admin-btn spawn-btn" data-item="jam" data-val="1">+Jam 🍯</button>
             <button class="admin-btn spawn-btn" data-item="crown" data-val="100">+Crown 👑</button>
+          </div>
+        </div>
+        <div class="admin-section">
+          <div class="admin-section-title">☀️ Circadian Time Controls</div>
+          <div class="admin-btn-row">
+            <button class="admin-btn time-btn" data-hour="6">🌅 Dawn</button>
+            <button class="admin-btn time-btn" data-hour="12">☀️ Noon</button>
+            <button class="admin-btn time-btn" data-hour="18.5">🌇 Sunset</button>
+            <button class="admin-btn time-btn" data-hour="22">🌙 Night</button>
+          </div>
+        </div>
+        <div class="admin-section">
+          <div class="admin-section-title">🌧️ Dynamic Weather Overrides</div>
+          <div class="admin-btn-row">
+            <button class="admin-btn weather-btn" data-weather="clear">☀️ Clear</button>
+            <button class="admin-btn weather-btn" data-weather="rain">🌧️ Rain</button>
+            <button class="admin-btn weather-btn" data-weather="storm">⛈️ Storm</button>
+            <button class="admin-btn weather-btn" data-weather="fog">🌫️ Fog</button>
           </div>
         </div>
         <div class="admin-section">

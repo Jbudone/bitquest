@@ -145,7 +145,8 @@ export const EntityTypeSchema = z.enum([
   'trigger',
   'prop',
   'torch',
-  'platform'
+  'platform',
+  'campfire'
 ]);
 export type EntityType = z.infer<typeof EntityTypeSchema>;
 

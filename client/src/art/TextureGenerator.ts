@@ -3871,5 +3871,319 @@ export class TextureGenerator {
       ctx.strokeRect(12, 3, 2, 4);
       scene.textures.addCanvas('ui_fish_icon_hook', canvas);
     }
+
+    // 22. Cozy Restful Campfires (32x32 pixel art) - Unlit & 3 Animated Flame Frames (Issue #24)
+    {
+      const drawCampfireBase = (ctx: CanvasRenderingContext2D) => {
+        // Outer stone circle hearth (8 stones placed in a circle)
+        const stones = [
+          { x: 16, y: 25, r: 4 }, { x: 23, y: 23, r: 3.5 }, { x: 27, y: 18, r: 4 },
+          { x: 25, y: 13, r: 3.5 }, { x: 16, y: 11, r: 4 }, { x: 7, y: 13, r: 3.5 },
+          { x: 5, y: 18, r: 4 }, { x: 9, y: 23, r: 3.5 }
+        ];
+        stones.forEach((s, idx) => {
+          ctx.fillStyle = idx % 2 === 0 ? '#475569' : '#334155';
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#64748b';
+          ctx.fillRect(s.x - 1, s.y - 1, 2, 2);
+        });
+
+        // Inner ash pit
+        ctx.fillStyle = '#1c1917';
+        ctx.beginPath();
+        ctx.ellipse(16, 18, 9, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Crossed charred logs
+        ctx.strokeStyle = '#78350f';
+        ctx.lineWidth = 3.5;
+        ctx.lineCap = 'round';
+        // Log 1: top-left to bottom-right
+        ctx.beginPath();
+        ctx.moveTo(9, 13);
+        ctx.lineTo(23, 23);
+        ctx.stroke();
+        // Log 2: top-right to bottom-left
+        ctx.beginPath();
+        ctx.moveTo(23, 13);
+        ctx.lineTo(9, 23);
+        ctx.stroke();
+        // Dark bark detail
+        ctx.strokeStyle = '#451a03';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(11, 14);
+        ctx.lineTo(21, 21);
+        ctx.moveTo(21, 14);
+        ctx.lineTo(11, 21);
+        ctx.stroke();
+      };
+
+      // Unlit campfire
+      {
+        const [canvas, ctx] = this.createCanvas(32, 32);
+        drawCampfireBase(ctx);
+        // Charred grey kindling
+        ctx.fillStyle = '#57534e';
+        ctx.fillRect(14, 16, 4, 3);
+        scene.textures.addCanvas('prop_campfire_unlit', canvas);
+      }
+
+      // Lit frame 1
+      {
+        const [canvas, ctx] = this.createCanvas(32, 32);
+        drawCampfireBase(ctx);
+        // Glowing red/orange ember core
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.ellipse(16, 18, 6, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Main flame (tall left-leaning)
+        ctx.fillStyle = '#f97316';
+        ctx.beginPath();
+        ctx.moveTo(11, 20);
+        ctx.quadraticCurveTo(10, 11, 14, 6);
+        ctx.quadraticCurveTo(18, 12, 21, 20);
+        ctx.closePath();
+        ctx.fill();
+        // Inner golden flame tongue
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.moveTo(13, 19);
+        ctx.quadraticCurveTo(13, 13, 15, 8);
+        ctx.quadraticCurveTo(17, 13, 19, 19);
+        ctx.closePath();
+        ctx.fill();
+        // White-hot core
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(15, 14, 2, 4);
+        // Ember spark
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(13, 4, 2, 2);
+        scene.textures.addCanvas('prop_campfire_lit_1', canvas);
+      }
+
+      // Lit frame 2
+      {
+        const [canvas, ctx] = this.createCanvas(32, 32);
+        drawCampfireBase(ctx);
+        // Glowing core
+        ctx.fillStyle = '#dc2626';
+        ctx.beginPath();
+        ctx.ellipse(16, 18, 7, 4.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Main flame (centered high burst)
+        ctx.fillStyle = '#f97316';
+        ctx.beginPath();
+        ctx.moveTo(10, 20);
+        ctx.quadraticCurveTo(13, 9, 16, 4);
+        ctx.quadraticCurveTo(19, 9, 22, 20);
+        ctx.closePath();
+        ctx.fill();
+        // Inner golden tongue
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.moveTo(12, 19);
+        ctx.quadraticCurveTo(14, 11, 16, 7);
+        ctx.quadraticCurveTo(18, 11, 20, 19);
+        ctx.closePath();
+        ctx.fill();
+        // White-hot core
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(15, 13, 2, 5);
+        // Ember sparks
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(17, 3, 2, 2);
+        ctx.fillRect(11, 6, 1.5, 1.5);
+        scene.textures.addCanvas('prop_campfire_lit_2', canvas);
+      }
+
+      // Lit frame 3
+      {
+        const [canvas, ctx] = this.createCanvas(32, 32);
+        drawCampfireBase(ctx);
+        // Glowing core
+        ctx.fillStyle = '#b91c1c';
+        ctx.beginPath();
+        ctx.ellipse(16, 18, 6.5, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Main flame (right-leaning dynamic flicker)
+        ctx.fillStyle = '#f97316';
+        ctx.beginPath();
+        ctx.moveTo(11, 20);
+        ctx.quadraticCurveTo(14, 11, 18, 5);
+        ctx.quadraticCurveTo(21, 13, 22, 20);
+        ctx.closePath();
+        ctx.fill();
+        // Inner golden tongue
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.moveTo(13, 19);
+        ctx.quadraticCurveTo(15, 12, 17, 8);
+        ctx.quadraticCurveTo(19, 14, 20, 19);
+        ctx.closePath();
+        ctx.fill();
+        // White-hot core
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(16, 15, 2, 3);
+        // Ember sparks
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(19, 4, 2, 2);
+        scene.textures.addCanvas('prop_campfire_lit_3', canvas);
+      }
+    }
+
+    // 23. Rain Puddles (24x14 & 36x20 transparent oval puddle sprites)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 14);
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.35)';
+      ctx.beginPath();
+      ctx.ellipse(12, 7, 10, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(186, 230, 253, 0.55)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // Highlight ripple
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.beginPath();
+      ctx.arc(10, 6, 4, Math.PI * 0.7, Math.PI * 1.4);
+      ctx.stroke();
+      scene.textures.addCanvas('prop_rain_puddle_small', canvas);
+    }
+    {
+      const [canvas, ctx] = this.createCanvas(36, 20);
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.38)';
+      ctx.beginPath();
+      ctx.ellipse(18, 10, 16, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(186, 230, 253, 0.60)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      // Ripple rings
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+      ctx.beginPath();
+      ctx.ellipse(16, 9, 8, 3.5, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      scene.textures.addCanvas('prop_rain_puddle_med', canvas);
+    }
+
+    // 24. Firefly Glow Particle (6x6)
+    {
+      const [canvas, ctx] = this.createCanvas(6, 6);
+      ctx.fillStyle = 'rgba(163, 230, 53, 0.45)';
+      ctx.beginPath();
+      ctx.arc(3, 3, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(2, 2, 2, 2);
+      scene.textures.addCanvas('particle_firefly', canvas);
+    }
+
+    // 25. Rain Splash Particle (8x8)
+    {
+      const [canvas, ctx] = this.createCanvas(8, 8);
+      ctx.strokeStyle = 'rgba(147, 197, 253, 0.85)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(4, 4, 3, 0, Math.PI * 2);
+      ctx.stroke();
+      scene.textures.addCanvas('particle_rain_splash', canvas);
+    }
+
+    // 26. UI Clock & Weather Icons (16x16)
+    {
+      // Sun
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.arc(8, 8, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < 8; i++) {
+        const ang = (i * Math.PI) / 4;
+        ctx.beginPath();
+        ctx.moveTo(8 + Math.cos(ang) * 5.5, 8 + Math.sin(ang) * 5.5);
+        ctx.lineTo(8 + Math.cos(ang) * 7.5, 8 + Math.sin(ang) * 7.5);
+        ctx.stroke();
+      }
+      scene.textures.addCanvas('ui_clock_sun', canvas);
+    }
+    {
+      // Moon
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(8, 8, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath();
+      ctx.arc(6, 6, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+      scene.textures.addCanvas('ui_clock_moon', canvas);
+    }
+    {
+      // Rain Cloud
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      ctx.fillStyle = '#94a3b8';
+      ctx.beginPath();
+      ctx.arc(6, 6, 3.5, 0, Math.PI * 2);
+      ctx.arc(10, 5, 4, 0, Math.PI * 2);
+      ctx.arc(13, 7, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(4, 7, 9, 3);
+      // Drops
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(6, 11);
+      ctx.lineTo(5, 14);
+      ctx.moveTo(10, 11);
+      ctx.lineTo(9, 14);
+      ctx.stroke();
+      scene.textures.addCanvas('ui_weather_rain', canvas);
+    }
+    {
+      // Storm Cloud with Lightning
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      ctx.fillStyle = '#475569';
+      ctx.beginPath();
+      ctx.arc(6, 5, 3.5, 0, Math.PI * 2);
+      ctx.arc(10, 4, 4, 0, Math.PI * 2);
+      ctx.arc(13, 6, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(4, 6, 9, 3);
+      // Lightning bolt
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.moveTo(9, 9);
+      ctx.lineTo(6, 12);
+      ctx.lineTo(8, 12);
+      ctx.lineTo(7, 15);
+      ctx.lineTo(11, 11);
+      ctx.lineTo(9, 11);
+      ctx.closePath();
+      ctx.fill();
+      scene.textures.addCanvas('ui_weather_storm', canvas);
+    }
+    {
+      // Fog Mist
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(3, 5);
+      ctx.lineTo(13, 5);
+      ctx.moveTo(2, 9);
+      ctx.lineTo(14, 9);
+      ctx.moveTo(4, 13);
+      ctx.lineTo(12, 13);
+      ctx.stroke();
+      scene.textures.addCanvas('ui_weather_fog', canvas);
+    }
   }
 }

@@ -28,6 +28,7 @@ import { EquipmentManager } from '../../shared/src/equipment';
 import { ClassManager } from '../../shared/src/classes';
 import { DUNGEON_CONSTANTS, MALAKOR_SPECS, DungeonManager, CATACOMBS_FLOORS, type DungeonFloorId } from '../../shared/src/dungeon';
 import { FishingEngine, FISH_SPECIES, type FishSpecies, type PlayerFishLog } from '../../shared/src/fishing';
+import { WeatherEngine, CAMPFIRES, type WeatherType, type WeatherState, type DayPhase, type CampfireDefinition } from '../../shared/src/weather';
 
 function pointToSegmentDistance(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
   const dx = x2 - x1;
@@ -75,6 +76,20 @@ export class WorldManager {
   public onFishingTensionSync?: (playerId: string, tension: number, sweetSpotCenter: number, reelProgress: number) => void;
   public onFishingResolved?: (playerId: string, result: 'caught' | 'escaped' | 'snapped' | 'cancelled', speciesId?: string, sizeCm?: number, value?: number, isPersonalBest?: boolean) => void;
   public onFishLogSync?: (playerId: string, log: PlayerFishLog) => void;
+  public onWeatherSync?: (weather: WeatherType, timeOfDaySec: number, transitionProgress: number, windAngle: number, windSpeed: number) => void;
+  public onLightningStrike?: (x: number, y: number) => void;
+  public onCampfireRest?: (playerId: string, campfireId: string, healedHp: number, restoredMana: number) => void;
+
+  public weatherState: WeatherState = {
+    current: 'clear',
+    targetWeather: 'clear',
+    transitionProgress: 0,
+    nextChangeTime: Date.now() + 600000,
+    windAngle: 0.785,
+    windSpeed: 1.0,
+    timeOfDaySec: 480 // 8:00 AM bright morning
+  };
+  private weatherSyncTimer = 0;
 
   public activeFishingSessions = new Map<string, {
     playerId: string;
@@ -116,6 +131,7 @@ export class WorldManager {
     this.startAiLoop();
     this.startProjectileLoop();
     this.startFishingLoop();
+    this.startWeatherAndCircadianLoop();
   }
 
   private initDefaultEntities() {
@@ -602,6 +618,20 @@ export class WorldManager {
       state: { active: false, targetFloor: 'overworld' }
     });
 
+    // 14. Cozy Restful Campfires (Task 7.6 / Issue #24)
+    CAMPFIRES.forEach(c => {
+      this.entities.set(c.id, {
+        id: c.id,
+        type: 'campfire',
+        subtype: 'wood_campfire',
+        name: c.name,
+        x: c.x,
+        y: c.y,
+        interactable: true,
+        state: { lit: true, warmthRadius: c.warmthRadius }
+      });
+    });
+
     // Index all world entities into the spatial partitioning grid
     for (const ent of this.entities.values()) {
       this.spatialGrid.insert(ent);
@@ -894,8 +924,116 @@ export class WorldManager {
     this.onPlayerStatsUpdated?.(player);
   }
 
+  // ==========================================
+  // Dynamic Day/Night Cycle, Weather & Campfires (Task 7.6 / Issue #24)
+  // ==========================================
+  private startWeatherAndCircadianLoop() {
+    let lastTick = Date.now();
+    setInterval(() => {
+      const now = Date.now();
+      const dt = Math.min(2.0, (now - lastTick) / 1000);
+      lastTick = now;
+
+      // 1. Advance weather & circadian simulation
+      const { weatherChanged, lightningTriggered } = WeatherEngine.updateWeatherStep(
+        dt,
+        this.weatherState,
+        now
+      );
+
+      // 2. Broadcast lightning strike if triggered during thunderstorms
+      if (lightningTriggered) {
+        const players = Array.from(this.players.values());
+        let strikeX = 1024 + (Math.random() * 400 - 200);
+        let strikeY = 896 + (Math.random() * 400 - 200);
+        if (players.length > 0) {
+          const p = players[Math.floor(Math.random() * players.length)]!;
+          strikeX = p.x + (Math.random() * 240 - 120);
+          strikeY = p.y + (Math.random() * 240 - 120);
+        }
+        this.onLightningStrike?.(strikeX, strikeY);
+      }
+
+      // 3. Campfire Restful Warmth & Healing Loop
+      this.tickCampfireResting();
+
+      // 4. Periodic Weather Sync (every 3 seconds or immediately on weather change)
+      this.weatherSyncTimer += dt;
+      if (weatherChanged || this.weatherSyncTimer >= 3.0) {
+        this.weatherSyncTimer = 0;
+        this.onWeatherSync?.(
+          this.weatherState.current,
+          this.weatherState.timeOfDaySec,
+          this.weatherState.transitionProgress,
+          this.weatherState.windAngle,
+          this.weatherState.windSpeed
+        );
+      }
+    }, 1000);
+  }
+
+  public setWeather(weather: WeatherType) {
+    this.weatherState.current = weather;
+    this.weatherState.targetWeather = weather;
+    this.weatherState.transitionProgress = 0.0;
+    this.weatherState.nextChangeTime = Date.now() + WeatherEngine.rollWeatherDuration(weather);
+    this.onWeatherSync?.(
+      this.weatherState.current,
+      this.weatherState.timeOfDaySec,
+      this.weatherState.transitionProgress,
+      this.weatherState.windAngle,
+      this.weatherState.windSpeed
+    );
+  }
+
+  public setTimeOfDay(hour: number) {
+    const normalizedHour = ((hour % 24) + 24) % 24;
+    this.weatherState.timeOfDaySec = normalizedHour * WeatherEngine.SECONDS_PER_GAME_HOUR;
+    this.onWeatherSync?.(
+      this.weatherState.current,
+      this.weatherState.timeOfDaySec,
+      this.weatherState.transitionProgress,
+      this.weatherState.windAngle,
+      this.weatherState.windSpeed
+    );
+  }
+
+  public getWeather(): WeatherType {
+    return this.weatherState.current;
+  }
+
+  public getTimeOfDaySec(): number {
+    return this.weatherState.timeOfDaySec;
+  }
+
+  public tickCampfireResting() {
+    for (const player of this.players.values()) {
+      if (player.health >= player.maxHealth && player.mana >= player.maxMana) continue;
+      const campfire = WeatherEngine.getNearestCampfire(player.x, player.y, 56);
+      if (campfire) {
+        const ent = this.entities.get(campfire.id);
+        if (!ent || ent.state.lit === false) continue;
+
+        const isSitting = player.anim === 'sit';
+        const healHp = isSitting ? campfire.hpPerTick * 2 : campfire.hpPerTick;
+        const restoreMp = isSitting ? campfire.mpPerTick * 2 : campfire.mpPerTick;
+
+        const oldHp = player.health;
+        const oldMp = player.mana;
+        player.health = Math.min(player.maxHealth, player.health + healHp);
+        player.mana = Math.min(player.maxMana, player.mana + restoreMp);
+
+        if (player.health !== oldHp || player.mana !== oldMp) {
+          const actualHeal = player.health - oldHp;
+          const actualMp = player.mana - oldMp;
+          this.onCampfireRest?.(player.id, campfire.id, actualHeal, actualMp);
+          this.onPlayerStatsUpdated?.(player);
+        }
+      }
+    }
+  }
+
   public handleLeverPull(playerId: string, targetId: string) {
-    if (targetId !== 'lever_duo_left' && targetId !== 'lever_duo_right') return;
     const lever = this.entities.get(targetId);
     if (!lever || lever.state.solved) return;
 
@@ -2002,6 +2140,15 @@ export class WorldManager {
       return;
     }
 
+    if (action === 'sit_campfire' || entity.type === 'campfire') {
+      const player = this.players.get(playerId);
+      if (player) {
+        player.anim = player.anim === 'sit' ? 'idle' : 'sit';
+        this.updatePlayerMove(playerId, player.x, player.y, player.direction, player.anim, player.carryingItem);
+      }
+      return;
+    }
+
     const result = BehaviorRegistry.handleInteraction(entity, { playerId, action, x, y, damage }, this);
     if (result.handled) {
       if (result.stateChanged) {
@@ -2118,6 +2265,14 @@ export class WorldManager {
       };
       this.entities.set(id, enemy);
       this.onEntityStateChanged?.(enemy);
+    } else if (action === 'set_weather') {
+      if (payload && payload.weather) {
+        this.setWeather(payload.weather);
+      }
+    } else if (action === 'set_time') {
+      if (payload && typeof payload.hour === 'number') {
+        this.setTimeOfDay(payload.hour);
+      }
     }
   }
 

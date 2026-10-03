@@ -14,6 +14,9 @@ export class SoundManager {
   private heartbeatActive = false;
   private heartbeatInterval: any = null;
   private lastWaterLapTime = 0;
+  private rainSource: AudioBufferSourceNode | null = null;
+  private rainGain: GainNode | null = null;
+  private lastCampfireCrackleTime = 0;
 
   private init() {
     if (!this.ctx) {
@@ -1626,6 +1629,166 @@ export class SoundManager {
     gain.connect(this.soundDestination);
     osc.start(now);
     osc.stop(now + 0.35);
+  }
+
+  // ==========================================
+  // Dynamic Weather & Campfire Audio (Issue #24)
+  // ==========================================
+
+  public playThunder() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Sub-bass impact
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(80, now);
+    osc.frequency.exponentialRampToValueAtTime(28, now + 1.2);
+
+    // Lowpass filter for deep muffled rumble
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(140, now);
+    filter.frequency.linearRampToValueAtTime(70, now + 1.4);
+
+    gain.gain.setValueAtTime(0.45 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.soundDestination);
+
+    osc.start(now);
+    osc.stop(now + 1.4);
+
+    // Rumble rolling noise layer
+    const bufferSize = Math.floor(this.ctx.sampleRate * 1.6);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let lastOut = 0.0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      data[i] = (lastOut + 0.02 * white) / 1.02; // Brown noise
+      lastOut = data[i]!;
+    }
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    const noiseFilter = this.ctx.createBiquadFilter();
+    noiseFilter.type = 'lowpass';
+    noiseFilter.frequency.setValueAtTime(110, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(45, now + 1.6);
+
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.35 * this.sfxVol, now + 0.05);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 1.6);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(this.soundDestination);
+
+    noise.start(now + 0.05);
+  }
+
+  public playCampfireCrackle() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    if (now - this.lastCampfireCrackleTime < 0.6) return;
+    this.lastCampfireCrackleTime = now;
+
+    // Small wood snap pop
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(700 + Math.random() * 300, now);
+    osc.frequency.exponentialRampToValueAtTime(120, now + 0.06);
+
+    gain.gain.setValueAtTime(0.12 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.06);
+  }
+
+  public playCampfireRestHeal() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Gentle warm restorative chord: E4, G#4, B4, E5
+    const chord = [329.63, 415.30, 493.88, 659.25];
+    chord.forEach((freq, idx) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.04);
+      gain.gain.setValueAtTime(0.12 * this.sfxVol, now + idx * 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.04 + 0.4);
+
+      osc.connect(gain);
+      gain.connect(this.soundDestination);
+      osc.start(now + idx * 0.04);
+      osc.stop(now + idx * 0.04 + 0.4);
+    });
+  }
+
+  public setRainAmbient(active: boolean, intensity: number = 0.5) {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    if (!active) {
+      if (this.rainGain) {
+        this.rainGain.gain.linearRampToValueAtTime(0.0001, now + 1.2);
+        setTimeout(() => {
+          if (this.rainSource) {
+            try { this.rainSource.stop(); } catch (_) {}
+            this.rainSource.disconnect();
+            this.rainSource = null;
+          }
+        }, 1300);
+      }
+      return;
+    }
+
+    if (!this.rainSource) {
+      // Loopable gentle pink rain noise buffer
+      const bufferSize = this.ctx.sampleRate * 2;
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      let b0 = 0, b1 = 0, b2 = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        data[i] = (b0 + b1 + b2 + white * 0.5362) * 0.11;
+      }
+
+      this.rainSource = this.ctx.createBufferSource();
+      this.rainSource.buffer = buffer;
+      this.rainSource.loop = true;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1200, now);
+
+      this.rainGain = this.ctx.createGain();
+      this.rainGain.gain.setValueAtTime(0.001, now);
+      this.rainGain.gain.linearRampToValueAtTime(Math.min(0.25, 0.15 * intensity * this.sfxVol), now + 1.0);
+
+      this.rainSource.connect(filter);
+      filter.connect(this.rainGain);
+      this.rainGain.connect(this.soundDestination);
+
+      this.rainSource.start(now);
+    } else if (this.rainGain) {
+      this.rainGain.gain.linearRampToValueAtTime(Math.min(0.25, 0.15 * intensity * this.sfxVol), now + 0.5);
+    }
   }
 }
 

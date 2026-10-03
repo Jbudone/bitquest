@@ -16,7 +16,8 @@ import type {
   PlayerVanity,
   AggregatedEquipmentStats,
   CharacterClassId,
-  ClassAbilityId
+  ClassAbilityId,
+  WeatherType
 } from '../../../shared/src/types';
 
 export class NetworkClient {
@@ -24,7 +25,7 @@ export class NetworkClient {
   public isConnected = false;
   public yourId: string | null = null;
 
-  public onInit?: (data: { yourId: string; players: PlayerData[]; entities: EntityData[]; items: ItemDropData[]; worldFlags: Record<string, boolean> }) => void;
+  public onInit?: (data: { yourId: string; players: PlayerData[]; entities: EntityData[]; items: ItemDropData[]; worldFlags: Record<string, boolean>; weather?: WeatherType; timeOfDaySec?: number }) => void;
   public onPlayerJoined?: (player: PlayerData) => void;
   public onPlayerLeft?: (id: string) => void;
   public onWorldTick?: (players: Array<{ id: string; x: number; y: number; direction: Direction; anim: PlayerAnimState; carryingItem: string | null }>) => void;
@@ -55,6 +56,9 @@ export class NetworkClient {
   public onFishingTensionSync?: (data: { playerId: string; tension: number; sweetSpotCenter: number; reelProgress: number }) => void;
   public onFishingResolved?: (data: { playerId: string; result: 'caught' | 'escaped' | 'snapped' | 'cancelled'; speciesId?: string; sizeCm?: number; value?: number; isPersonalBest?: boolean }) => void;
   public onFishLogSync?: (data: { playerId: string; log: any }) => void;
+  public onWeatherSync?: (data: { weather: WeatherType; timeOfDaySec: number; transitionProgress: number; windAngle: number; windSpeed: number }) => void;
+  public onLightningStrike?: (data: { x: number; y: number }) => void;
+  public onCampfireRest?: (data: { playerId: string; campfireId: string; healedHp: number; restoredMana: number }) => void;
   public onReconcile?: (ackSeq: number, x: number, y: number) => void;
   public onConnectionChange?: (connected: boolean) => void;
 
@@ -201,6 +205,29 @@ export class NetworkClient {
       case 'fish_log_sync':
         this.onFishLogSync?.(packet);
         break;
+      case 'weather_sync':
+        this.onWeatherSync?.({
+          weather: packet.weather,
+          timeOfDaySec: packet.timeOfDaySec,
+          transitionProgress: packet.transitionProgress,
+          windAngle: packet.windAngle,
+          windSpeed: packet.windSpeed
+        });
+        break;
+      case 'lightning_strike':
+        this.onLightningStrike?.({
+          x: packet.x,
+          y: packet.y
+        });
+        break;
+      case 'campfire_rest':
+        this.onCampfireRest?.({
+          playerId: packet.playerId,
+          campfireId: packet.campfireId,
+          healedHp: packet.healedHp,
+          restoredMana: packet.restoredMana
+        });
+        break;
       case 'reconcile':
         this.onReconcile?.(packet.ackSeq, packet.x, packet.y);
         break;
@@ -244,8 +271,12 @@ export class NetworkClient {
     this.send({ type: 'shoot_arrow', x, y, direction, damage });
   }
 
-  public sendInteract(targetId: string, action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever' | 'light_torch' | 'enter_dungeon' | 'warp_floor', x?: number, y?: number, damage?: number) {
+  public sendInteract(targetId: string, action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever' | 'light_torch' | 'enter_dungeon' | 'warp_floor' | 'sit_campfire', x?: number, y?: number, damage?: number) {
     this.send({ type: 'interact', targetId, action, x, y, damage });
+  }
+
+  public sendSitCampfire(campfireId: string) {
+    this.send({ type: 'interact', targetId: campfireId, action: 'sit_campfire' });
   }
 
   public sendPotThrow(potId: string, startX: number, startY: number, targetX: number, targetY: number) {
@@ -284,8 +315,16 @@ export class NetworkClient {
     this.send({ type: 'collect_item', itemId });
   }
 
-  public sendAdminCommand(action: 'toggle_gate' | 'teleport' | 'heal' | 'spawn_item' | 'set_flag' | 'speed_boost' | 'spawn_enemy' | 'spawn_boss', payload?: any) {
+  public sendAdminCommand(action: 'toggle_gate' | 'teleport' | 'heal' | 'spawn_item' | 'set_flag' | 'speed_boost' | 'spawn_enemy' | 'spawn_boss' | 'set_weather' | 'set_time', payload?: any) {
     this.send({ type: 'admin_command', action, payload });
+  }
+
+  public sendAdminSetWeather(weather: WeatherType) {
+    this.sendAdminCommand('set_weather', { weather });
+  }
+
+  public sendAdminSetTime(hour: number) {
+    this.sendAdminCommand('set_time', { hour });
   }
 }
 

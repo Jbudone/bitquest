@@ -1,0 +1,120 @@
+{
+  "worldFlags": {
+    "ancient_gate_opened": false,
+    "fountain_jam_discovered": false,
+    "first_scone_eaten": false,
+    "crown_reclaimed": true
+  },
+  "players": {
+    "p_murdj6gu_lopo": {
+      "name": "TestHero",
+      "color": "#2e9939",
+      "paletteIndex": 0,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "lastSeen": 1790970396799
+    },
+    "p_murdjaf2_lk4l": {
+      "name": "Tester",
+      "color": "#267bd6",
+      "paletteIndex": 1,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "lastSeen": 1790970401918
+    },
+    "p_murdjch0_er9u": {
+      "name": "Tester",
+      "color": "#267bd6",
+      "paletteIndex": 1,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "lastSeen": 1790970404580
+    },
+    "p_mure21ay_xa9o": {
+      "name": "Johr",
+      "color": "#2e9939",
+      "paletteIndex": 0,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "lastSeen": 1790971282412
+    },
+    "p_murelfux_h7sk": {
+      "name": "Tester",
+      "color": "#267bd6",
+      "paletteIndex": 1,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "lastSeen": 1790972181897
+    },
+    "p_murelmtu_gxu6": {
+      "name": "Tester",
+      "color": "#267bd6",
+      "paletteIndex": 1,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "lastSeen": 1790972190930
+    },
+    "p_murelxh8_dl6a": {
+      "name": "Tester",
+      "color": "#267bd6",
+      "paletteIndex": 1,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "lastSeen": 1790972204732
+    },
+    "p_muremgk1_970p": {
+      "name": "Tester",
+      "color": "#267bd6",
+      "paletteIndex": 1,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "lastSeen": 1790972229458
+    },
+    "p_murh30hk_f7ei": {
+      "name": "ffgh",
+      "color": "#2e9939",
+      "paletteIndex": 3,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "lastSeen": 1790976371244
+    },
+    "p_murichy5_17jw": {
+      "name": "Adventurer",
+      "color": "#2e9939",
+      "paletteIndex": 0,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "lastSeen": 1790978483465
+    },
+    "p_mursynic_os8k": {
+      "name": "hghhghg",
+      "color": "#2e9939",
+      "paletteIndex": 0,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "lastSeen": 1790996335845
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "bitquest",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev:server": "bun --watch server/src/server.ts",
+    "server": "bun run server/src/server.ts",
+    "dev:client": "bun run --cwd client dev",
+    "build:client": "bun run --cwd client build",
+    "check:map": "bun run tools/check_map.ts",
+    "check:quests": "bun run tools/check_quests.ts",
+    "check:dialogue": "bun run tools/check_dialogue.ts",
+    "test:balance": "bun run tools/test_balance.ts",
+    "test:perf": "bun run tools/test_perf.ts",
+    "test:playthrough": "bun run tools/test_playthrough.ts",
+    "ingest:assets": "bun run tools/ingest_assets.ts",
+    "test:all": "bun run check:map && bun run check:quests && bun run check:dialogue && bun run test:balance && bun run test:perf && bun run test:playthrough && bun run ingest:assets"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  }
+}

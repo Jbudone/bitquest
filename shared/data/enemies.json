@@ -1,0 +1,38 @@
+[
+  {
+    "id": "enemy_slime_blue",
+    "name": "Bouncy Meadow Slime",
+    "maxHealth": 3,
+    "damage": 1,
+    "speed": 45,
+    "aggroRadius": 120,
+    "attackCooldownMs": 1200,
+    "telegraphMs": 400,
+    "lootTableId": "loot_slime",
+    "aiArchetype": "skitterer"
+  },
+  {
+    "id": "enemy_slime_red",
+    "name": "Fiery Spore Slime",
+    "maxHealth": 5,
+    "damage": 2,
+    "speed": 60,
+    "aggroRadius": 140,
+    "attackCooldownMs": 1000,
+    "telegraphMs": 350,
+    "lootTableId": "loot_slime",
+    "aiArchetype": "charger"
+  },
+  {
+    "id": "boss_fungal_overlord",
+    "name": "Spore King Fungor",
+    "maxHealth": 50,
+    "damage": 2,
+    "speed": 35,
+    "aggroRadius": 250,
+    "attackCooldownMs": 2000,
+    "telegraphMs": 800,
+    "lootTableId": "loot_boss_spore",
+    "aiArchetype": "boss"
+  }
+]

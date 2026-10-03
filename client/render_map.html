@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BitQuest 2K Map Renderer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html {
+      width: 2048px;
+      height: 1792px;
+      overflow: hidden;
+      background: #000;
+    }
+    canvas {
+      display: block;
+      width: 2048px;
+      height: 1792px;
+      image-rendering: pixelated;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="map-canvas" width="2048" height="1792"></canvas>
+  <script type="module" src="/src/tools/renderMap.ts"></script>
+</body>
+</html>

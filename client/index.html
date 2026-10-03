@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BitQuest: The Vale of Oakhaven</title>
+  <link rel="stylesheet" href="/src/ui/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗡️</text></svg>">
+</head>
+<body>
+  <div id="game-container"></div>
+
+  <!-- UI Overlay Layer -->
+  <div id="ui-overlay">
+    <!-- Header / Nav -->
+    <header class="top-bar">
+      <div class="brand-badge">
+        <span class="brand-title">🌲 BITQUEST</span>
+        <div class="status-pill">
+          <span class="status-dot"></span>
+          <span class="status-text">Oakhaven Online</span>
+        </div>
+      </div>
+
+      <!-- Player Stats HUD (Hearts + Coins + Acorns) -->
+      <div class="player-stats-badge">
+        <div id="hearts-container" class="hearts-container" title="Player Health">
+          <span class="heart-icon full">❤️</span>
+          <span class="heart-icon full">❤️</span>
+          <span class="heart-icon full">❤️</span>
+        </div>
+        <div class="currency-pills">
+          <div class="stat-pill" title="Silver Coins"><span class="coin-icon">🪙</span> <span id="coin-counter">0</span></div>
+          <div class="stat-pill" title="Forest Acorns"><span class="acorn-icon">🌰</span> <span id="acorn-counter">0</span></div>
+        </div>
+      </div>
+
+      <div class="quest-banner">
+        <span>🗝️</span>
+        <span><strong class="quest-highlight">Quest:</strong> The Sunken Gate &mdash; Stand on both twin sun stones to open the passage!</span>
+      </div>
+
+      <div class="controls-hint">
+        <span><span class="key-badge">WASD</span> Move</span>
+        <span><span class="key-badge">SPACE/J</span> Slash/Throw</span>
+        <span><span class="key-badge">SHIFT/L</span> Roll</span>
+        <span><span class="key-badge">E/K</span> Lift/Talk</span>
+        <span><span class="key-badge">1-6</span> Emotes</span>
+      </div>
+
+      <button id="admin-toggle-btn" class="admin-pill-btn" title="Toggle Admin Hack Panel (`)">⚡ Dev Tools</button>
+    </header>
+
+    <!-- Boss Health Bar (Appears when fighting Baron von Truffle) -->
+    <div id="boss-hud" class="boss-hud hidden">
+      <div class="boss-hud-inner">
+        <div class="boss-header">
+          <span class="boss-crown">👑</span>
+          <span id="boss-name" class="boss-name">Baron von Truffle &mdash; Sovereign of Spores</span>
+          <span id="boss-hp-text" class="boss-hp-text">12 / 12 HP</span>
+        </div>
+        <div class="boss-bar-track">
+          <div id="boss-bar-fill" class="boss-bar-fill" style="width: 100%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Hack Panel (For solo testing & puzzle overrides) -->
+    <div id="admin-panel" class="admin-panel hidden">
+      <div class="admin-header">
+        <div class="admin-title">⚡ ADMIN HACK PANEL</div>
+        <button id="admin-close-btn" class="admin-close-btn" title="Close Panel">&times;</button>
+      </div>
+      <div class="admin-body">
+        <div class="admin-section">
+          <div class="admin-section-title">🗝️ Co-Op Puzzle Overrides</div>
+          <div class="admin-btn-row">
+            <button class="admin-btn" id="admin-solve-switches">Solve Sun Stones</button>
+            <button class="admin-btn" id="admin-toggle-gate">Toggle Gate</button>
+          </div>
+        </div>
+        <div class="admin-section">
+          <div class="admin-section-title">⚡ Solo Player Cheats</div>
+          <div class="admin-btn-row">
+            <button class="admin-btn" id="admin-godmode">God Mode: OFF</button>
+            <button class="admin-btn" id="admin-speed">2.5x Speed: OFF</button>
+            <button class="admin-btn" id="admin-heal">Full Heal ❤️</button>
+          </div>
+        </div>
+        <div class="admin-section">
+          <div class="admin-section-title">📍 Fast Teleport</div>
+          <div class="admin-btn-row">
+            <button class="admin-btn tp-btn" data-x="1024" data-y="950">Town Square</button>
+            <button class="admin-btn tp-btn" data-x="1024" data-y="620">Sunken Gate</button>
+            <button class="admin-btn tp-btn" data-x="1024" data-y="300">👑 Boss Arena</button>
+            <button class="admin-btn tp-btn" data-x="1620" data-y="850">🍓 Whispering Meadow</button>
+            <button class="admin-btn tp-btn" data-x="420" data-y="880">🍄 Fungal Hollow</button>
+            <button class="admin-btn tp-btn" data-x="1024" data-y="1300">🦆 Crystal Lake</button>
+          </div>
+        </div>
+        <div class="admin-section">
+          <div class="admin-section-title">👾 Spawn Entities & Boss</div>
+          <div class="admin-btn-row">
+            <button class="admin-btn" id="admin-spawn-sprout">Sproutling 🥕</button>
+            <button class="admin-btn" id="admin-spawn-grumble">Grumble 🍄</button>
+            <button class="admin-btn" id="admin-spawn-boss">👑 Baron von Truffle</button>
+          </div>
+        </div>
+        <div class="admin-section">
+          <div class="admin-section-title">🎁 Spawn Items</div>
+          <div class="admin-btn-row">
+            <button class="admin-btn spawn-btn" data-item="coin" data-val="10">+10 Coins 🪙</button>
+            <button class="admin-btn spawn-btn" data-item="strawberry" data-val="1">+Berry 🍓</button>
+            <button class="admin-btn spawn-btn" data-item="acorn" data-val="1">+Acorn 🌰</button>
+            <button class="admin-btn spawn-btn" data-item="jam" data-val="1">+Jam 🍯</button>
+            <button class="admin-btn spawn-btn" data-item="crown" data-val="100">+Crown 👑</button>
+          </div>
+        </div>
+        <div class="admin-section">
+          <div class="admin-section-title">🛠️ Tooling & AI Copilot</div>
+          <div class="admin-btn-row">
+            <a href="/tools.html" target="_blank" class="admin-btn" style="text-decoration: none; text-align: center; background: #6366f1; color: white; grid-column: span 3; padding: 8px;">🚀 Open AI Dev Suite & Copilot</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- EarthBound / Zelda Dialogue Box Modal -->
+    <div id="dialogue-modal" class="dialogue-modal">
+      <div id="dialogue-portrait" class="dialogue-portrait"></div>
+      <div class="dialogue-content">
+        <div>
+          <div id="dialogue-speaker" class="dialogue-speaker">Speaker Name</div>
+          <div id="dialogue-text" class="dialogue-text">...</div>
+        </div>
+        <div id="dialogue-responses" class="dialogue-responses"></div>
+        <button id="dialogue-close-btn" class="dialogue-close-btn">ESC / CLOSE</button>
+      </div>
+    </div>
+
+    <!-- Bottom HUD (Emotes + Chat Bar) -->
+    <footer class="bottom-hud">
+      <div class="action-bar">
+        <button class="emote-btn" data-emote="heart" title="Heart [1]">❤️</button>
+        <button class="emote-btn" data-emote="wave" title="Wave [2]">👋</button>
+        <button class="emote-btn" data-emote="laugh" title="Laugh [3]">😄</button>
+        <button class="emote-btn" data-emote="music" title="Song [4]">🎵</button>
+        <button class="emote-btn" data-emote="exclamation" title="Surprise [5]">❗</button>
+        <button class="emote-btn" data-emote="question" title="Ponder [6]">❓</button>
+      </div>
+
+      <div class="chat-container">
+        <input type="text" id="chat-input" class="chat-input" placeholder="Type a message or whisper to friends... (Enter)" maxlength="120" autocomplete="off" />
+        <button id="chat-send-btn" class="chat-send-btn">Send</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Join / Character Customizer Modal Backdrop -->
+  <div id="join-modal-backdrop" class="join-modal-backdrop">
+    <div class="join-modal">
+      <h1 class="join-title">⚔️ BITQUEST 🛡️</h1>
+      <p class="join-subtitle">A cozy, multiplayer pixel adventure for family & friends in the Vale of Oakhaven.</p>
+      
+      <div class="field-group">
+        <label for="player-name-input" class="field-label">Your Adventurer Name:</label>
+        <input type="text" id="player-name-input" class="input-text" placeholder="e.g. Robin, Zelda, Pippin..." maxlength="16" autofocus />
+      </div>
+
+      <div class="field-group">
+        <span class="field-label">Choose Your Tunic Palette:</span>
+        <div class="palette-picker">
+          <div class="palette-swatch selected" data-palette="0" style="background: #2e9939;" title="Hero Green"></div>
+          <div class="palette-swatch" data-palette="1" style="background: #267bd6;" title="Ocean Blue"></div>
+          <div class="palette-swatch" data-palette="2" style="background: #d63429;" title="Ranger Red"></div>
+          <div class="palette-swatch" data-palette="3" style="background: #8e3fd1;" title="Mystic Purple"></div>
+          <div class="palette-swatch" data-palette="4" style="background: #d99e1e;" title="Golden Paladin"></div>
+        </div>
+      </div>
+
+      <button id="start-btn" class="start-btn">ENTER OAKHAVEN ▶</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BitQuest Dev Suite & AI Copilot</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --border: #334155;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Header & Nav */
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.05);
+    }
+
+    .tab-btn.active {
+      color: #fff;
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn {
+      background: #334155;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn:hover { background: #475569; }
+    .btn-primary { background: var(--accent); }
+    .btn-primary:hover { background: var(--accent-hover); }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .tab-content {
+      display: none;
+      width: 100%;
+      height: 100%;
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+
+    /* Copilot Floating Drawer */
+    .copilot-bar {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--accent);
+      border-radius: 30px;
+      padding: 8px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 0 15px rgba(99, 102, 241, 0.3);
+      z-index: 100;
+      width: 580px;
+      max-width: 90%;
+    }
+
+    .copilot-bar input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .copilot-bar .pill {
+      background: rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      top: 60px;
+      right: 20px;
+      background: #10b981;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.2s;
+      z-index: 200;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span>⚔️ BitQuest Dev Suite</span>
+      <span style="font-size: 11px; background: rgba(99,102,241,0.2); color: #a5b4fc; padding: 2px 6px; border-radius: 4px;">AI-Powered</span>
+    </div>
+
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-tab="tab-map">🗺️ Level Editor</button>
+      <button class="tab-btn" data-tab="tab-sandbox">⚔️ Combat Sandbox</button>
+      <button class="tab-btn" data-tab="tab-quests">📜 Quests & Dialogue</button>
+      <button class="tab-btn" data-tab="tab-entities">🐺 Enemies & Items</button>
+    </nav>
+
+    <div class="actions">
+      <button id="btn-undo" class="btn" title="Undo (Ctrl+Z)">↩️ Undo</button>
+      <button id="btn-redo" class="btn" title="Redo (Ctrl+Y)">↪️ Redo</button>
+      <a href="/" class="btn btn-primary" style="text-decoration: none;">🎮 Launch Game</a>
+    </div>
+  </header>
+
+  <main>
+    <!-- Tab 1: Map Editor -->
+    <div id="tab-map" class="tab-content active" style="flex-direction: row;">
+      <div style="flex: 1; position: relative; overflow: auto; background: #090d16;" id="map-viewport">
+        <canvas id="map-canvas" width="2048" height="1792" style="cursor: crosshair; display: block; image-rendering: pixelated;"></canvas>
+      </div>
+      <aside style="width: 280px; background: var(--panel); border-left: 1px solid var(--border); padding: 16px; overflow-y: auto;">
+        <h3 style="font-size: 14px; margin-bottom: 12px;">🎨 Tile Palette</h3>
+        <div id="palette-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px;"></div>
+
+        <h3 style="font-size: 14px; margin-bottom: 12px;">📍 Spawners & Triggers</h3>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
+          <button class="btn" onclick="window.DevSuite.setTool('spawn_slime')">🔵 Meadow Slime</button>
+          <button class="btn" onclick="window.DevSuite.setTool('spawn_chest')">📦 Treasure Chest</button>
+          <button class="btn" onclick="window.DevSuite.setTool('spawn_bush')">🌿 Berry Bush</button>
+          <button class="btn" onclick="window.DevSuite.setTool('spawn_pot')">🏺 Clay Pot</button>
+        </div>
+
+        <h3 style="font-size: 14px; margin-bottom: 12px;">📊 Selection Info</h3>
+        <div id="selection-info" style="font-size: 12px; color: var(--text-muted); background: #0f172a; padding: 10px; border-radius: 6px;">
+          No area selected. Click & drag on the map to select a region.
+        </div>
+      </aside>
+    </div>
+
+    <!-- Tab 2: Combat Sandbox -->
+    <div id="tab-sandbox" class="tab-content" style="padding: 24px; gap: 24px;">
+      <div style="flex: 1; background: var(--panel); border-radius: 8px; padding: 20px; border: 1px solid var(--border);">
+        <h3>🥊 Combat Simulation & TTK Benchmarks</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin: 8px 0 20px 0;">
+          Run instant Monte Carlo combat simulations against all enemy archetypes to verify balance and Time-To-Kill curves.
+        </p>
+        <button id="btn-run-sim" class="btn btn-primary" style="margin-bottom: 20px;">⚡ Run 1,000 Headless Simulations</button>
+        <div id="sandbox-results" style="font-family: monospace; font-size: 12px; line-height: 1.8; background: #0f172a; padding: 16px; border-radius: 6px; max-height: 400px; overflow-y: auto;">
+          Click "Run Simulations" to execute real-time combat matrix...
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: Quests & Dialogue -->
+    <div id="tab-quests" class="tab-content" style="padding: 24px; gap: 24px;">
+      <div style="flex: 1; background: var(--panel); border-radius: 8px; padding: 20px; border: 1px solid var(--border); overflow-y: auto;">
+        <h3>📜 Registered Quests & Dialogue Trees</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin: 8px 0 20px 0;">
+          Live preview of quests loaded and verified by our Zod schemas.
+        </p>
+        <div id="quest-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
+      </div>
+    </div>
+
+    <!-- Tab 4: Enemies & Items -->
+    <div id="tab-entities" class="tab-content" style="padding: 24px; gap: 24px;">
+      <div style="flex: 1; background: var(--panel); border-radius: 8px; padding: 20px; border: 1px solid var(--border); overflow-y: auto;">
+        <h3>🐺 Enemy Bestiary & Item Catalog</h3>
+        <div id="entity-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin-top: 16px;"></div>
+      </div>
+    </div>
+
+    <!-- Contextual AI Copilot Floating Prompt -->
+    <div class="copilot-bar">
+      <span class="pill" id="copilot-context">Context: Map (Global)</span>
+      <input type="text" id="copilot-input" placeholder="Prompt AI: 'Add a goblin camp here', 'Autotile river', 'Tune boss HP'..." />
+      <button class="btn btn-primary" id="btn-copilot-submit">Generate</button>
+    </div>
+  </main>
+
+  <div id="toast">Changes Applied!</div>
+
+  <script type="module" src="/src/tools/devSuite.ts"></script>
+</body>
+</html>

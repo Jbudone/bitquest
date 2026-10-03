@@ -1,0 +1,81 @@
+[
+  {
+    "id": "quest_grandma_berries",
+    "title": "Grandma's Fresh Jam",
+    "description": "Grandma needs sweet wild strawberries to bake her famous village jam. Scour the meadow bushes to the east!",
+    "giverNpcId": "npc_grandma",
+    "prerequisiteQuests": [],
+    "stages": [
+      {
+        "stageIndex": 0,
+        "journalSummary": "Talk to Grandma in the village cottage.",
+        "objectiveType": "talk",
+        "targetId": "npc_grandma",
+        "targetCount": 1,
+        "currentCount": 0,
+        "markerCoordinate": { "x": 1050, "y": 800 }
+      },
+      {
+        "stageIndex": 1,
+        "journalSummary": "Slash bushes in Whispering Meadow to find 3 Wild Strawberries.",
+        "objectiveType": "collect",
+        "targetId": "strawberry",
+        "targetCount": 3,
+        "currentCount": 0,
+        "markerCoordinate": { "x": 1550, "y": 850 }
+      },
+      {
+        "stageIndex": 2,
+        "journalSummary": "Return to Grandma with the berries.",
+        "objectiveType": "talk",
+        "targetId": "npc_grandma",
+        "targetCount": 1,
+        "currentCount": 0,
+        "markerCoordinate": { "x": 1050, "y": 800 }
+      }
+    ],
+    "rewards": {
+      "coins": 25,
+      "acorns": 5,
+      "items": [
+        { "itemType": "jam", "count": 2 }
+      ],
+      "unlockedWorldFlags": ["grandma_jam_completed"]
+    }
+  },
+  {
+    "id": "quest_moss_gate",
+    "title": "The Ancient Moss Gate",
+    "description": "The path to the northern sanctuary is sealed by twin sun stones. Place weight on both switches to open the way.",
+    "giverNpcId": "npc_barnaby",
+    "prerequisiteQuests": [],
+    "stages": [
+      {
+        "stageIndex": 0,
+        "journalSummary": "Examine the twin pressure switches near the northern gate.",
+        "objectiveType": "reach_area",
+        "targetId": "switch_sun_left",
+        "targetCount": 1,
+        "currentCount": 0,
+        "markerCoordinate": { "x": 1024, "y": 550 }
+      },
+      {
+        "stageIndex": 1,
+        "journalSummary": "Lift and carry clay pots onto the switches to break the seal.",
+        "objectiveType": "interact",
+        "targetId": "moss_gate",
+        "targetCount": 1,
+        "currentCount": 0,
+        "markerCoordinate": { "x": 1024, "y": 500 }
+      }
+    ],
+    "rewards": {
+      "coins": 50,
+      "acorns": 10,
+      "items": [
+        { "itemType": "sword_iron", "count": 1 }
+      ],
+      "unlockedWorldFlags": ["gate_unsealed"]
+    }
+  }
+]

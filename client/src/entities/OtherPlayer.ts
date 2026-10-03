@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { Direction, PlayerAnimState, PlayerEquipment, PlayerVanity } from '../../../shared/src/types';
+import type { Direction, PlayerAnimState, PlayerEquipment, PlayerVanity, CharacterClassId } from '../../../shared/src/types';
 import { HermiteInterpolator } from '../../../shared/src/netcode/hermite';
 
 export class OtherPlayer extends Phaser.GameObjects.Container {
@@ -11,6 +11,9 @@ export class OtherPlayer extends Phaser.GameObjects.Container {
   public direction: Direction = 'down';
   public animState: PlayerAnimState = 'idle';
   private hermite: HermiteInterpolator;
+
+  // Class Archetype
+  public classId: CharacterClassId = 'warrior';
 
   // Equipment & Vanity
   public equipment: PlayerEquipment = { weapon: 'sword_wood', offhand: null, armor: null, relic: null };

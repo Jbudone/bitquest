@@ -54,6 +54,26 @@ export const WeaponArchetypeSchema = z.enum(['sword', 'dagger', 'broadsword', 's
 export type WeaponArchetype = z.infer<typeof WeaponArchetypeSchema>;
 
 // ==========================================
+// 1d. Class Archetypes Schemas
+// ==========================================
+export const CharacterClassSchema = z.enum(['warrior', 'mage', 'bard', 'necromancer', 'archer']);
+export type CharacterClass = z.infer<typeof CharacterClassSchema>;
+
+export const ClassAbilitySchema = z.enum([
+  'shield_parry',
+  'stagger_cleave',
+  'teleport_blink',
+  'arcane_nova',
+  'speed_fanfare',
+  'harmony_chord',
+  'raise_skeleton',
+  'life_siphon',
+  'piercing_arrow',
+  'evasive_backhop'
+]);
+export type ClassAbility = z.infer<typeof ClassAbilitySchema>;
+
+// ==========================================
 // 2. Player Data Schema
 // ==========================================
 export const PlayerDataSchema = z.object({
@@ -61,6 +81,7 @@ export const PlayerDataSchema = z.object({
   name: z.string().min(1).max(32),
   color: z.string(),
   paletteIndex: z.number().int().nonnegative().default(0),
+  classId: CharacterClassSchema.default('warrior'),
   x: z.number(),
   y: z.number(),
   direction: DirectionSchema,
@@ -111,6 +132,7 @@ export const EntityTypeSchema = z.enum([
   'wildlife',
   'enemy',
   'boss',
+  'minion',
   'trigger',
   'prop'
 ]);

@@ -3056,5 +3056,224 @@ export class TextureGenerator {
       ctx.fillRect(3, 7, 3, 3);
       ctx.fillRect(14, 7, 3, 3);
     });
+
+    // ==========================================
+    // Class Archetypes Art & VFX Assets (Task 7.3)
+    // ==========================================
+
+    // 1. Skeletal Bone Minion (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Skull
+      ctx.fillStyle = '#f1f5f9';
+      ctx.fillRect(7, 3, 10, 8);
+      // Jaw
+      ctx.fillRect(9, 11, 6, 3);
+      // Eye sockets & teeth
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(8, 6, 3, 3);
+      ctx.fillRect(13, 6, 3, 3);
+      ctx.fillRect(10, 11, 1, 2);
+      ctx.fillRect(13, 11, 1, 2);
+      // Glowing red pupil dots
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(9, 7, 1, 1);
+      ctx.fillRect(14, 7, 1, 1);
+      // Spine & Ribs
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(11, 14, 2, 6);
+      ctx.fillRect(8, 15, 8, 1);
+      ctx.fillRect(9, 17, 6, 1);
+      // Legs
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(9, 20, 2, 4);
+      ctx.fillRect(13, 20, 2, 4);
+      // Arms & Bone Blade
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(6, 14, 2, 4);
+      ctx.fillRect(16, 14, 2, 4);
+      // Bone dagger
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(18, 11, 2, 7);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(18, 9, 2, 2);
+
+      scene.textures.addCanvas('entity_minion_skeleton', canvas);
+    }
+
+    // 2. Piercing Arrow Projectile (16x16)
+    {
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      // Luminous jade shaft
+      ctx.fillStyle = '#10b981';
+      ctx.fillRect(2, 7, 11, 2);
+      // Glowing emerald arrowhead
+      ctx.fillStyle = '#34d399';
+      ctx.beginPath();
+      ctx.moveTo(15, 8);
+      ctx.lineTo(11, 5);
+      ctx.lineTo(11, 11);
+      ctx.fill();
+      // Aerodynamic fletching
+      ctx.fillStyle = '#a7f3d0';
+      ctx.fillRect(1, 5, 3, 2);
+      ctx.fillRect(1, 9, 3, 2);
+
+      scene.textures.addCanvas('proj_arrow_pierce', canvas);
+    }
+
+    // 3. Parry Aegis Shield Flare VFX (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      ctx.fillStyle = 'rgba(251, 191, 36, 0.4)';
+      ctx.beginPath();
+      ctx.arc(12, 12, 11, 0, Math.PI * 2);
+      ctx.fill();
+      // Golden shield crest
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.moveTo(12, 3);
+      ctx.lineTo(20, 6);
+      ctx.lineTo(18, 16);
+      ctx.lineTo(12, 21);
+      ctx.lineTo(6, 16);
+      ctx.lineTo(4, 6);
+      ctx.closePath();
+      ctx.fill();
+      // White reflection core
+      ctx.fillStyle = '#fffbeb';
+      ctx.fillRect(10, 8, 4, 8);
+
+      scene.textures.addCanvas('fx_shield_parry', canvas);
+    }
+
+    // 4. Arcane Nova Shockwave VFX (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      const grad = ctx.createRadialGradient(16, 16, 4, 16, 16, 15);
+      grad.addColorStop(0, 'rgba(167, 139, 250, 0.9)');
+      grad.addColorStop(0.5, 'rgba(129, 140, 248, 0.6)');
+      grad.addColorStop(1, 'rgba(99, 102, 241, 0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(16, 16, 15, 0, Math.PI * 2);
+      ctx.fill();
+      // Mystic sparks
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(15, 6, 2, 2);
+      ctx.fillRect(15, 24, 2, 2);
+      ctx.fillRect(6, 15, 2, 2);
+      ctx.fillRect(24, 15, 2, 2);
+
+      scene.textures.addCanvas('fx_arcane_nova', canvas);
+    }
+
+    // 5. Musical Note Particle VFX (16x16)
+    {
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      ctx.fillStyle = '#ec4899';
+      // Eighth note head
+      ctx.beginPath();
+      ctx.ellipse(6, 12, 3, 2.2, -0.2, 0, Math.PI * 2);
+      ctx.fill();
+      // Note stem
+      ctx.fillRect(8, 4, 2, 8);
+      // Note flag
+      ctx.beginPath();
+      ctx.moveTo(10, 4);
+      ctx.bezierCurveTo(13, 5, 14, 8, 11, 10);
+      ctx.lineTo(10, 9);
+      ctx.fill();
+
+      scene.textures.addCanvas('fx_music_note', canvas);
+    }
+
+    // 6. Life Siphon Soul Bead (16x16)
+    {
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      const grad = ctx.createRadialGradient(8, 8, 2, 8, 8, 7);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.4, '#ec4899');
+      grad.addColorStop(0.8, '#a855f7');
+      grad.addColorStop(1, 'rgba(147, 51, 234, 0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(8, 8, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      scene.textures.addCanvas('fx_siphon_orb', canvas);
+    }
+
+    // 7. Class Crest Badges (24x24)
+    {
+      // Warrior: Gold heater shield & sword
+      const [cWar, ctxWar] = this.createCanvas(24, 24);
+      ctxWar.fillStyle = '#b45309';
+      ctxWar.fillRect(2, 2, 20, 20);
+      ctxWar.fillStyle = '#f59e0b';
+      ctxWar.fillRect(4, 4, 16, 16);
+      ctxWar.fillStyle = '#ffffff';
+      ctxWar.fillRect(11, 6, 2, 12);
+      ctxWar.fillRect(8, 9, 8, 2);
+      scene.textures.addCanvas('class_icon_warrior', cWar);
+
+      // Mage: Mystic blue diamond & arcane star
+      const [cMage, ctxMage] = this.createCanvas(24, 24);
+      ctxMage.fillStyle = '#1e3a8a';
+      ctxMage.fillRect(2, 2, 20, 20);
+      ctxMage.fillStyle = '#3b82f6';
+      ctxMage.fillRect(4, 4, 16, 16);
+      ctxMage.fillStyle = '#93c5fd';
+      ctxMage.beginPath();
+      ctxMage.arc(12, 12, 5, 0, Math.PI * 2);
+      ctxMage.fill();
+      ctxMage.fillStyle = '#ffffff';
+      ctxMage.fillRect(11, 11, 2, 2);
+      scene.textures.addCanvas('class_icon_mage', cMage);
+
+      // Bard: Magenta fanfare horn / lute
+      const [cBard, ctxBard] = this.createCanvas(24, 24);
+      ctxBard.fillStyle = '#9d174d';
+      ctxBard.fillRect(2, 2, 20, 20);
+      ctxBard.fillStyle = '#ec4899';
+      ctxBard.fillRect(4, 4, 16, 16);
+      ctxBard.fillStyle = '#fdf2f8';
+      ctxBard.beginPath();
+      ctxBard.ellipse(10, 14, 4, 3, 0, 0, Math.PI * 2);
+      ctxBard.fill();
+      ctxBard.fillRect(13, 6, 2, 8);
+      ctxBard.fillRect(15, 6, 4, 2);
+      scene.textures.addCanvas('class_icon_bard', cBard);
+
+      // Necromancer: Violet horned skull
+      const [cNecro, ctxNecro] = this.createCanvas(24, 24);
+      ctxNecro.fillStyle = '#581c87';
+      ctxNecro.fillRect(2, 2, 20, 20);
+      ctxNecro.fillStyle = '#a855f7';
+      ctxNecro.fillRect(4, 4, 16, 16);
+      ctxNecro.fillStyle = '#f3e8ff';
+      ctxNecro.fillRect(8, 7, 8, 6);
+      ctxNecro.fillRect(9, 13, 6, 3);
+      ctxNecro.fillStyle = '#581c87';
+      ctxNecro.fillRect(9, 9, 2, 2);
+      ctxNecro.fillRect(13, 9, 2, 2);
+      scene.textures.addCanvas('class_icon_necromancer', cNecro);
+
+      // Archer: Emerald bow & wind arrow
+      const [cArch, ctxArch] = this.createCanvas(24, 24);
+      ctxArch.fillStyle = '#065f46';
+      ctxArch.fillRect(2, 2, 20, 20);
+      ctxArch.fillStyle = '#10b981';
+      ctxArch.fillRect(4, 4, 16, 16);
+      ctxArch.strokeStyle = '#d1fae5';
+      ctxArch.lineWidth = 2;
+      ctxArch.beginPath();
+      ctxArch.arc(9, 12, 6, -Math.PI / 2, Math.PI / 2);
+      ctxArch.stroke();
+      ctxArch.fillStyle = '#ffffff';
+      ctxArch.fillRect(8, 11, 10, 2);
+      ctxArch.fillRect(16, 9, 2, 6);
+      scene.textures.addCanvas('class_icon_archer', cArch);
+    }
   }
 }

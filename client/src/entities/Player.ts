@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { Direction, PlayerAnimState } from '../../../shared/src/types';
+import type { Direction, PlayerAnimState, CharacterClassId } from '../../../shared/src/types';
 import { sounds } from '../audio/SoundManager';
 import { network } from '../network/NetworkClient';
 import { chronicles } from '../storage/ChroniclesManager';
@@ -32,6 +32,7 @@ export class Player extends Phaser.GameObjects.Container {
   public manaPool = new ManaPool(50, 50, 5);
   public isCasting = false;
   public spellCooldowns: Record<SpellId, number> = { fireball: 0, ice_lance: 0, gale_ward: 0 };
+  public classId: CharacterClassId = 'warrior';
   public coins = 0;
   public acorns = 0;
 

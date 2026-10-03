@@ -14,7 +14,9 @@ import {
   VanitySlot,
   PlayerEquipment,
   PlayerVanity,
-  AggregatedEquipmentStats
+  AggregatedEquipmentStats,
+  CharacterClassId,
+  ClassAbilityId
 } from '../../shared/src/types';
 import { WorldDatabase } from './db';
 import { STARTER_DIALOGUES } from '../../content/dialogues';
@@ -23,6 +25,17 @@ import { SpatialGrid } from '../../shared/src/spatialGrid';
 import { BehaviorRegistry } from '../../shared/src/behaviors/registry';
 import { SPELL_DEFINITIONS, StatusEffectManager } from '../../shared/src/magic';
 import { EquipmentManager } from '../../shared/src/equipment';
+import { ClassManager } from '../../shared/src/classes';
+
+function pointToSegmentDistance(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.hypot(px - x1, py - y1);
+  let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+}
 
 export class WorldManager {
   public db: WorldDatabase;
@@ -46,6 +59,11 @@ export class WorldManager {
   public onSpellCast?: (casterId: string, spellId: SpellId, x: number, y: number, direction: Direction) => void;
   public onEquipmentUpdated?: (playerId: string, equipment: PlayerEquipment, vanity: PlayerVanity, stats: AggregatedEquipmentStats) => void;
   public onArrowShot?: (shooterId: string, x: number, y: number, direction: Direction, speed: number, range: number, damage: number) => void;
+  public onClassUpdated?: (playerId: string, classId: CharacterClassId, stats: AggregatedEquipmentStats) => void;
+  public onClassAbilityTriggered?: (playerId: string, abilityId: ClassAbilityId, x: number, y: number, direction: Direction, targetId?: string) => void;
+  public onParryEvent?: (playerId: string, attackerId?: string, x?: number, y?: number) => void;
+  public onLifeSiphonEvent?: (casterId: string, targetId: string, amount: number, casterHp: number) => void;
+  public onMinionSpawned?: (minionId: string, ownerId: string, x: number, y: number, subtype: string) => void;
 
   public flyingPots = new Map<string, {
     potId: string;
@@ -664,14 +682,12 @@ export class WorldManager {
 
           const now = Date.now();
           if (playerNear) {
-            // Excited when player is near!
             if (entity.state.behavior !== 'idle') {
               entity.state.behavior = 'idle';
               entity.state.behaviorTimer = now + 4000;
               this.onEntityStateChanged?.(entity);
             }
           } else {
-            // When alone, naturally cycle between sniffing, napping, and idle looking around
             if (!entity.state.behaviorTimer || now > entity.state.behaviorTimer) {
               const roll = Math.random();
               if (roll < 0.40) {
@@ -688,12 +704,59 @@ export class WorldManager {
             }
           }
         }
+
+        // 2d. Bone Minion AI (Summoned by Necromancer)
+        if (entity.type === 'minion' && entity.subtype === 'skeleton' && !entity.state.destroyed) {
+          const now = Date.now();
+          if (entity.state.expiresAt && now > entity.state.expiresAt) {
+            entity.state.destroyed = true;
+            this.onEntityStateChanged?.(entity);
+            continue;
+          }
+
+          // Hunt closest enemy or boss within 160px
+          let target: EntityData | null = null;
+          let minDist = 160;
+          for (const other of this.entities.values()) {
+            if ((other.type === 'enemy' || other.type === 'boss') && !other.state.destroyed) {
+              const d = Math.hypot(other.x - entity.x, other.y - entity.y);
+              if (d < minDist) {
+                minDist = d;
+                target = other;
+              }
+            }
+          }
+
+          if (target) {
+            const angle = Math.atan2(target.y - entity.y, target.x - entity.x);
+            if (minDist > 26) {
+              entity.x += Math.cos(angle) * 22;
+              entity.y += Math.sin(angle) * 22;
+              this.spatialGrid.update(entity);
+              this.onEntityStateChanged?.(entity);
+            } else {
+              const ownerId = entity.state.ownerId || 'system';
+              this.handleInteract(ownerId, target.id, 'hit_enemy', undefined, undefined, 1);
+            }
+          } else {
+            const owner = entity.state.ownerId ? this.players.get(entity.state.ownerId) : null;
+            if (owner) {
+              const ownerDist = Math.hypot(owner.x - entity.x, owner.y - entity.y);
+              if (ownerDist > 40) {
+                const angle = Math.atan2(owner.y - entity.y, owner.x - entity.x);
+                entity.x += Math.cos(angle) * 24;
+                entity.y += Math.sin(angle) * 24;
+                this.spatialGrid.update(entity);
+                this.onEntityStateChanged?.(entity);
+              }
+            }
+          }
+        }
       }
 
       // 3. Baron von Truffle Boss Patterns
       const boss = this.entities.get('boss_baron');
       if (boss && !boss.state.destroyed) {
-        // Check if any player is in the Sanctuary arena
         let playerInArena = false;
         let targetPlayer: PlayerData | null = null;
 
@@ -706,7 +769,6 @@ export class WorldManager {
         }
 
         if (playerInArena && targetPlayer) {
-          // If boss is currently stunned, skip action cycle
           if (boss.state.stunnedUntil && Date.now() < boss.state.stunnedUntil) {
             return;
           }
@@ -714,7 +776,6 @@ export class WorldManager {
           this.bossCycle = (this.bossCycle + 1) % 4;
 
           if (this.bossCycle === 1) {
-            // Ground Stomp!
             this.onBossEvent?.({
               type: 'boss_event',
               action: 'stomp',
@@ -722,7 +783,6 @@ export class WorldManager {
               y: boss.y
             });
           } else if (this.bossCycle === 2) {
-            // Spore Barrage!
             this.onBossEvent?.({
               type: 'boss_event',
               action: 'spore',
@@ -730,7 +790,6 @@ export class WorldManager {
               y: boss.y
             });
           } else if (this.bossCycle === 3) {
-            // Charge towards player!
             const angle = Math.atan2(targetPlayer.y - boss.y, targetPlayer.x - boss.x);
             const nextX = boss.x + Math.cos(angle) * 44;
             const nextY = boss.y + Math.sin(angle) * 44;
@@ -744,7 +803,6 @@ export class WorldManager {
               targetY: targetPlayer.y
             });
 
-            // Check if charge hits pillars (pillars at x: 920, 1128, y: 240) or arena boundaries
             const nearLeftPillar = Math.hypot(nextX - 920, nextY - 240) < 36;
             const nearRightPillar = Math.hypot(nextX - 1128, nextY - 240) < 36;
             const hitWall = nextX < 850 || nextX > 1200 || nextY < 180 || nextY > 440;
@@ -766,12 +824,14 @@ export class WorldManager {
         }
       }
 
-      // Natural Player Mana Regeneration (5 MP per tick)
+      // Natural Player Mana Regeneration (scaled by class multiplier)
       for (const p of this.players.values()) {
         if (p.mana === undefined) p.mana = 50;
         if (p.maxMana === undefined) p.maxMana = 50;
         if (p.mana < p.maxMana) {
-          p.mana = Math.min(p.maxMana, p.mana + 5);
+          const classDef = ClassManager.getClass(p.classId || 'warrior');
+          const regen = Math.max(2, Math.round(5 * classDef.statModifiers.manaRegenMultiplier));
+          p.mana = Math.min(p.maxMana, p.mana + regen);
           this.onPlayerStatsUpdated?.(p);
         }
       }
@@ -783,7 +843,9 @@ export class WorldManager {
     if (!player || !player.equipment) {
       return EquipmentManager.createDefaultStats();
     }
-    return EquipmentManager.calculateStats(player.equipment, EquipmentManager.createDefaultStats());
+    const equipStats = EquipmentManager.calculateStats(player.equipment, EquipmentManager.createDefaultStats());
+    const classId = player.classId || 'warrior';
+    return ClassManager.applyClassModifiers(classId, equipStats, equipStats);
   }
 
   public handleEquipItem(playerId: string, slot: EquipmentSlot, itemId: string | null) {
@@ -888,8 +950,212 @@ export class WorldManager {
     }
   }
 
+  public handleSetClass(playerId: string, classId: CharacterClassId) {
+    const player = this.players.get(playerId);
+    if (!player) return;
+
+    player.classId = classId;
+
+    const stats = this.getPlayerStats(playerId);
+    const oldMaxHealth = player.maxHealth || 3;
+    const oldMaxMana = player.maxMana || 50;
+
+    const newMaxHealth = 3 + stats.maxHealthBonus;
+    const newMaxMana = 50 + stats.maxManaBonus;
+
+    player.maxHealth = newMaxHealth;
+    player.maxMana = newMaxMana;
+
+    const hpDelta = newMaxHealth - oldMaxHealth;
+    const mpDelta = newMaxMana - oldMaxMana;
+
+    player.health = Math.max(1, Math.min(player.maxHealth, player.health + hpDelta));
+    player.mana = Math.max(0, Math.min(player.maxMana, (player.mana ?? 50) + mpDelta));
+
+    this.db.savePlayer(playerId, player.name, player.color, player.paletteIndex, player.equipment, player.vanity, player.classId);
+    this.onPlayerStatsUpdated?.(player);
+    this.onClassUpdated?.(playerId, player.classId, stats);
+  }
+
+  public handleUseClassAbility(playerId: string, abilityId: ClassAbilityId, x: number, y: number, direction: Direction) {
+    const player = this.players.get(playerId);
+    if (!player) return;
+
+    const ability = ClassManager.getAbility(abilityId);
+    if (!ability) return;
+
+    // Verify ability matches player class
+    if (ability.classId !== player.classId) return;
+
+    const stats = this.getPlayerStats(playerId);
+    const actualCost = Math.max(1, Math.round(ability.manaCost * (1 - stats.manaCostReductionPct)));
+
+    if ((player.mana ?? 50) < actualCost) return;
+
+    // Deduct mana
+    player.mana = (player.mana ?? 50) - actualCost;
+    this.onPlayerStatsUpdated?.(player);
+
+    const now = Date.now();
+
+    // 1. Warrior
+    if (abilityId === 'shield_parry') {
+      (player as any).parryUntil = now + 1200;
+      this.onClassAbilityTriggered?.(playerId, abilityId, x, y, direction);
+    } else if (abilityId === 'stagger_cleave') {
+      const radius = 52;
+      const cleaveDamage = 3 + stats.attackPower;
+      for (const entity of this.entities.values()) {
+        if ((entity.type === 'enemy' || entity.type === 'boss') && !entity.state.destroyed) {
+          const dist = Math.hypot(entity.x - x, entity.y - y);
+          if (dist <= radius) {
+            StatusEffectManager.applyEffect(entity.state, 'stun', 1500, now);
+            const angle = Math.atan2(entity.y - y, entity.x - x);
+            entity.x += Math.cos(angle) * 45;
+            entity.y += Math.sin(angle) * 45;
+            this.spatialGrid.update(entity);
+            this.onEntityStateChanged?.(entity);
+            this.handleInteract(playerId, entity.id, 'hit_enemy', undefined, undefined, cleaveDamage);
+          }
+        }
+      }
+      this.onClassAbilityTriggered?.(playerId, abilityId, x, y, direction);
+    }
+
+    // 2. Mage
+    else if (abilityId === 'teleport_blink') {
+      const dist = 96;
+      const dx = direction === 'right' ? dist : direction === 'left' ? -dist : 0;
+      const dy = direction === 'down' ? dist : direction === 'up' ? -dist : 0;
+      player.x = Math.max(64, Math.min(1984, player.x + dx));
+      player.y = Math.max(64, Math.min(1728, player.y + dy));
+      (player as any).invulnerableUntil = now + 300;
+      this.onClassAbilityTriggered?.(playerId, abilityId, player.x, player.y, direction);
+    } else if (abilityId === 'arcane_nova') {
+      const radius = 72;
+      for (const entity of this.entities.values()) {
+        if ((entity.type === 'enemy' || entity.type === 'boss') && !entity.state.destroyed) {
+          const dist = Math.hypot(entity.x - x, entity.y - y);
+          if (dist <= radius) {
+            StatusEffectManager.applyEffect(entity.state, 'freeze', 2500, now);
+            const angle = Math.atan2(entity.y - y, entity.x - x);
+            entity.x += Math.cos(angle) * 38;
+            entity.y += Math.sin(angle) * 38;
+            this.spatialGrid.update(entity);
+            this.onEntityStateChanged?.(entity);
+            this.handleInteract(playerId, entity.id, 'hit_enemy', undefined, undefined, 3);
+          }
+        }
+      }
+      this.onClassAbilityTriggered?.(playerId, abilityId, x, y, direction);
+    }
+
+    // 3. Bard
+    else if (abilityId === 'speed_fanfare') {
+      (player as any).speedBoostUntil = now + 6000;
+      for (const other of this.players.values()) {
+        if (other.id !== playerId && Math.hypot(other.x - x, other.y - y) <= 128) {
+          (other as any).speedBoostUntil = now + 6000;
+        }
+      }
+      this.onClassAbilityTriggered?.(playerId, abilityId, x, y, direction);
+    } else if (abilityId === 'harmony_chord') {
+      player.health = Math.min(player.maxHealth, player.health + 2);
+      this.onPlayerStatsUpdated?.(player);
+      for (const other of this.players.values()) {
+        if (other.id !== playerId && Math.hypot(other.x - x, other.y - y) <= 96) {
+          other.health = Math.min(other.maxHealth, other.health + 2);
+          this.onPlayerStatsUpdated?.(other);
+        }
+      }
+      for (const entity of this.entities.values()) {
+        if ((entity.type === 'enemy' || entity.type === 'boss') && !entity.state.destroyed) {
+          if (Math.hypot(entity.x - x, entity.y - y) <= 96) {
+            StatusEffectManager.applyEffect(entity.state, 'freeze', 3500, now);
+            this.handleInteract(playerId, entity.id, 'hit_enemy', undefined, undefined, 1);
+          }
+        }
+      }
+      this.onClassAbilityTriggered?.(playerId, abilityId, x, y, direction);
+    }
+
+    // 4. Necromancer
+    else if (abilityId === 'raise_skeleton') {
+      const minionId = `minion_skel_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`;
+      const minion: EntityData = {
+        id: minionId,
+        type: 'minion',
+        subtype: 'skeleton',
+        name: 'Bone Minion',
+        x: x + (direction === 'left' ? -20 : 20),
+        y: y,
+        interactable: true,
+        state: {
+          hp: 5,
+          maxHp: 5,
+          ownerId: playerId,
+          expiresAt: now + 25000,
+          destroyed: false
+        }
+      };
+      this.entities.set(minionId, minion);
+      this.spatialGrid.insert(minion);
+      this.onEntityStateChanged?.(minion);
+      this.onMinionSpawned?.(minionId, playerId, minion.x, minion.y, 'skeleton');
+      this.onClassAbilityTriggered?.(playerId, abilityId, x, y, direction);
+    } else if (abilityId === 'life_siphon') {
+      let closest: EntityData | null = null;
+      let closestDist = 130;
+      for (const entity of this.entities.values()) {
+        if ((entity.type === 'enemy' || entity.type === 'boss') && !entity.state.destroyed) {
+          const d = Math.hypot(entity.x - x, entity.y - y);
+          if (d < closestDist) {
+            closestDist = d;
+            closest = entity;
+          }
+        }
+      }
+      if (closest) {
+        this.handleInteract(playerId, closest.id, 'hit_enemy', undefined, undefined, 2);
+        player.health = Math.min(player.maxHealth, player.health + 2);
+        this.onPlayerStatsUpdated?.(player);
+        this.onLifeSiphonEvent?.(playerId, closest.id, 2, player.health);
+        this.onClassAbilityTriggered?.(playerId, abilityId, x, y, direction, closest.id);
+      }
+    }
+
+    // 5. Archer
+    else if (abilityId === 'piercing_arrow') {
+      const range = 340;
+      const angle = direction === 'right' ? 0 : direction === 'left' ? Math.PI : direction === 'down' ? Math.PI / 2 : -Math.PI / 2;
+      const endX = x + Math.cos(angle) * range;
+      const endY = y + Math.sin(angle) * range;
+
+      for (const entity of this.entities.values()) {
+        if ((entity.type === 'enemy' || entity.type === 'boss') && !entity.state.destroyed) {
+          const distToLine = pointToSegmentDistance(entity.x, entity.y, x, y, endX, endY);
+          if (distToLine <= 28) {
+            this.handleInteract(playerId, entity.id, 'hit_enemy', undefined, undefined, 3);
+            StatusEffectManager.applyEffect(entity.state, 'freeze', 1500, now);
+          }
+        }
+      }
+      this.onArrowShot?.(playerId, x, y, direction, 440, 340, 3);
+      this.onClassAbilityTriggered?.(playerId, abilityId, x, y, direction);
+    } else if (abilityId === 'evasive_backhop') {
+      const hopDist = 76;
+      const dx = direction === 'right' ? -hopDist : direction === 'left' ? hopDist : 0;
+      const dy = direction === 'down' ? -hopDist : direction === 'up' ? hopDist : 0;
+      player.x = Math.max(64, Math.min(1984, player.x + dx));
+      player.y = Math.max(64, Math.min(1728, player.y + dy));
+      (player as any).invulnerableUntil = now + 350;
+      this.onClassAbilityTriggered?.(playerId, abilityId, player.x, player.y, direction);
+    }
+  }
+
   public addPlayer(id: string, name: string, color: string, paletteIndex: number): PlayerData {
     const saved = this.db.getPlayerData(id);
+    const classId = saved?.classId || 'warrior';
     const equipment = saved?.equipment || {
       weapon: 'sword_wood',
       offhand: null,
@@ -901,7 +1167,8 @@ export class WorldManager {
       armor: null,
       weapon: null
     };
-    const stats = EquipmentManager.calculateStats(equipment, EquipmentManager.createDefaultStats());
+    let stats = EquipmentManager.calculateStats(equipment, EquipmentManager.createDefaultStats());
+    stats = ClassManager.applyClassModifiers(classId, stats, stats);
     const baseHealth = 3 + stats.maxHealthBonus;
     const baseMana = 50 + stats.maxManaBonus;
 
@@ -910,6 +1177,7 @@ export class WorldManager {
       name,
       color,
       paletteIndex,
+      classId,
       x: 1024 + (Math.random() * 40 - 20),
       y: 950 + (Math.random() * 40 - 20),
       direction: 'down',
@@ -925,7 +1193,7 @@ export class WorldManager {
       vanity
     };
     this.players.set(id, player);
-    this.db.savePlayer(id, name, color, paletteIndex, equipment, vanity);
+    this.db.savePlayer(id, name, color, paletteIndex, equipment, vanity, classId);
     return player;
   }
 
@@ -1011,6 +1279,25 @@ export class WorldManager {
     if (action === 'player_hurt') {
       const player = this.players.get(playerId);
       if (player && player.health > 0) {
+        const now = Date.now();
+        // Check invulnerability frames (e.g. from evasive back-hop or teleport blink)
+        if ((player as any).invulnerableUntil && now < (player as any).invulnerableUntil) {
+          return;
+        }
+
+        // Check Warrior Shield Parry!
+        if ((player as any).parryUntil && now < (player as any).parryUntil) {
+          (player as any).parryUntil = 0;
+          this.onParryEvent?.(playerId, targetId, player.x, player.y);
+          // Riposte counter-strike against attacker
+          const attacker = this.entities.get(targetId);
+          if (attacker) {
+            StatusEffectManager.applyEffect(attacker.state, 'stun', 1800, now);
+            this.handleInteract(playerId, targetId, 'hit_enemy', undefined, undefined, 2);
+          }
+          return; // 100% incoming damage blocked!
+        }
+
         const stats = this.getPlayerStats(playerId);
         const incoming = damage || 1;
         const reduced = Math.max(1, Math.round(incoming * (1 - stats.damageReductionPct)));
@@ -1029,6 +1316,14 @@ export class WorldManager {
         let dmg = damage || 1;
         const res = healthPool.onHurt(entity, dmg);
         if (res.isDestroyed) {
+          // Necromancer Soul Harvest Passive Perk: restores 2 HP and 10 MP!
+          const killer = this.players.get(playerId);
+          if (killer && killer.classId === 'necromancer') {
+            killer.health = Math.min(killer.maxHealth, killer.health + 2);
+            killer.mana = Math.min(killer.maxMana, (killer.mana ?? 50) + 10);
+            this.onPlayerStatsUpdated?.(killer);
+          }
+
           if (entity.type === 'boss') {
             this.onBossEvent?.({
               type: 'boss_event',

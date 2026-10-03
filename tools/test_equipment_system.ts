@@ -168,8 +168,8 @@ assert(claymoreStats.attackPower === 3, 'Server calculates attack power 3');
 // Equip Iron Armor
 world.handleEquipItem(playerId, 'armor', 'armor_plate');
 assert(p.equipment.armor === 'armor_plate', 'Equipped Knight Cuirass');
-assert(p.maxHealth === 5, 'Max health increased from 3 to 5 (3 + 2 armor bonus)');
-assert(p.health === 5, 'Current health scaled up to 5');
+assert(p.maxHealth === 7, 'Max health increased to 7 (3 base + 2 warrior + 2 armor bonus)');
+assert(p.health === 7, 'Current health scaled up to 7');
 
 // Test Damage Reduction on player_hurt
 const initialHp = p.health;

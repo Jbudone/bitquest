@@ -1284,6 +1284,66 @@ export class SoundManager {
       volume: 0.18
     });
   }
+
+  public playShieldParry() {
+    this.playCustom({
+      frequency: 1400,
+      targetFrequency: 1800,
+      duration: 0.16,
+      type: 'triangle',
+      volume: 0.35
+    });
+  }
+
+  public playBlink() {
+    this.playCustom({
+      frequency: 450,
+      targetFrequency: 1100,
+      duration: 0.18,
+      type: 'sine',
+      volume: 0.25
+    });
+  }
+
+  public playSongFanfare() {
+    this.playCustom({
+      frequency: 523,
+      targetFrequency: 784,
+      duration: 0.25,
+      type: 'triangle',
+      volume: 0.28
+    });
+  }
+
+  public playSummonMinion() {
+    this.playCustom({
+      frequency: 220,
+      targetFrequency: 110,
+      duration: 0.3,
+      type: 'sawtooth',
+      volume: 0.22
+    });
+  }
+
+  public playLifeSiphon() {
+    this.playCustom({
+      frequency: 330,
+      targetFrequency: 550,
+      duration: 0.28,
+      type: 'sine',
+      volume: 0.25
+    });
+  }
+
+  public playPiercingShot() {
+    this.playCustom({
+      frequency: 880,
+      targetFrequency: 440,
+      duration: 0.15,
+      type: 'triangle',
+      volume: 0.3
+    });
+  }
 }
 
 export const sounds = new SoundManager();

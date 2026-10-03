@@ -96,6 +96,58 @@ world.onEquipmentUpdated = (playerId, equipment, vanity, stats) => {
   });
 };
 
+world.onClassUpdated = (playerId, classId, stats) => {
+  broadcast({
+    type: 'class_updated',
+    playerId,
+    classId,
+    stats
+  });
+};
+
+world.onClassAbilityTriggered = (playerId, abilityId, x, y, direction, targetId) => {
+  broadcast({
+    type: 'class_ability_triggered',
+    playerId,
+    abilityId,
+    x,
+    y,
+    direction,
+    targetId
+  });
+};
+
+world.onParryEvent = (playerId, attackerId, x, y) => {
+  broadcast({
+    type: 'parry_event',
+    playerId,
+    attackerId,
+    x: x || 0,
+    y: y || 0
+  });
+};
+
+world.onLifeSiphonEvent = (casterId, targetId, amount, casterHp) => {
+  broadcast({
+    type: 'life_siphon_event',
+    casterId,
+    targetId,
+    amount,
+    casterHp
+  });
+};
+
+world.onMinionSpawned = (minionId, ownerId, x, y, subtype) => {
+  broadcast({
+    type: 'minion_spawned',
+    minionId,
+    ownerId,
+    x,
+    y,
+    subtype
+  });
+};
+
 world.onArrowShot = (shooterId, x, y, direction, speed, range, damage) => {
   broadcast({
     type: 'arrow_shot',
@@ -399,6 +451,16 @@ const server = Bun.serve<SocketData>({
 
           case 'set_vanity': {
             world.handleSetVanity(id, msg.slot, msg.vanityId);
+            break;
+          }
+
+          case 'set_class': {
+            world.handleSetClass(id, msg.classId);
+            break;
+          }
+
+          case 'use_class_ability': {
+            world.handleUseClassAbility(id, msg.abilityId, msg.x, msg.y, msg.direction);
             break;
           }
 

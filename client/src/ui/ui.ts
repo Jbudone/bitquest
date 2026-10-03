@@ -8,7 +8,8 @@ import { EmoteWheelManager } from './EmoteWheel';
 import { DialogueParser } from './DialogueParser';
 import { EquipmentSheetManager } from './EquipmentSheet';
 import { saveManager } from '../storage/SaveManager';
-import type { EmoteType } from '../../../shared/src/types';
+import type { EmoteType, CharacterClassId } from '../../../shared/src/types';
+import { ClassManager } from '../../../shared/src/classes';
 
 export class UIManager {
   public minimap: MinimapManager;
@@ -18,6 +19,7 @@ export class UIManager {
   public emoteWheel: EmoteWheelManager;
   public equipmentSheet: EquipmentSheetManager;
   private selectedPalette = 0;
+  public selectedClass: CharacterClassId = 'warrior';
   private currentTypewriterTimer: any = null;
   private fastForwardDialogue: (() => void) | null = null;
 
@@ -148,6 +150,19 @@ export class UIManager {
       this.settings.toggle();
     });
 
+    // Class archetype picker
+    const classCards = document.querySelectorAll('.class-card');
+    classCards.forEach(card => {
+      card.addEventListener('click', (e) => {
+        classCards.forEach(c => c.classList.remove('selected'));
+        const target = e.currentTarget as HTMLElement;
+        target.classList.add('selected');
+        this.selectedClass = (target.dataset.class as CharacterClassId) || 'warrior';
+        sounds.ensureContext();
+        sounds.playClick();
+      });
+    });
+
     const joinGame = () => {
       sounds.ensureContext();
       const rawName = nameInput.value.trim();
@@ -160,7 +175,8 @@ export class UIManager {
 
       (window as any).BitQuestUser = {
         name: playerName,
-        palette: this.selectedPalette
+        palette: this.selectedPalette,
+        classId: this.selectedClass
       };
 
       const joinBackdrop = document.getElementById('join-modal-backdrop');
@@ -171,14 +187,17 @@ export class UIManager {
       // If network is already open, join immediately
       if (network.isConnected) {
         network.sendJoin(playerName, '#2e9939', this.selectedPalette);
+        network.sendSetClass(this.selectedClass);
       }
 
       const worldScene = (window as any).BitQuestGame?.scene?.getScene('WorldScene') as any;
       if (worldScene?.localPlayer) {
         worldScene.localPlayer.updateProfile(playerName, this.selectedPalette);
+        worldScene.localPlayer.classId = this.selectedClass;
       }
+      this.updateClassAbilityHUD(this.selectedClass);
 
-      this.showToast(`✨ Welcome to Oakhaven, ${playerName}!`);
+      this.showToast(`✨ Welcome to Oakhaven, ${playerName} the ${ClassManager.getClass(this.selectedClass).name}!`);
     };
 
     startBtn?.addEventListener('click', joinGame);
@@ -188,6 +207,19 @@ export class UIManager {
   }
 
   private setupChatAndEmotes() {
+    // Class ability hotbar buttons
+    document.getElementById('ability-btn-1')?.addEventListener('click', () => {
+      sounds.ensureContext();
+      const worldScene = (window as any).BitQuestGame?.scene?.getScene('WorldScene');
+      worldScene?.useClassAbility(1);
+    });
+
+    document.getElementById('ability-btn-2')?.addEventListener('click', () => {
+      sounds.ensureContext();
+      const worldScene = (window as any).BitQuestGame?.scene?.getScene('WorldScene');
+      worldScene?.useClassAbility(2);
+    });
+
     // Spell hotbar buttons
     const spellBtns = document.querySelectorAll('.spell-slot-btn');
     spellBtns.forEach(btn => {
@@ -652,5 +684,41 @@ export class UIManager {
         this.showToast(`🎁 Spawned ${itemType}!`);
       });
     });
+  }
+
+  public updateClassAbilityHUD(classId: CharacterClassId, currentMana?: number) {
+    const cls = ClassManager.getClass(classId);
+    const ab1 = cls.abilities[0];
+    const ab2 = cls.abilities[1];
+
+    const icon1 = document.getElementById('ability-1-icon');
+    const name1 = document.getElementById('ability-1-name');
+    const cost1 = document.getElementById('ability-1-cost');
+    const btn1 = document.getElementById('ability-btn-1');
+
+    if (icon1) icon1.innerText = ab1.icon;
+    if (name1) name1.innerText = ab1.name.split(' ')[0];
+    if (cost1) cost1.innerText = `${ab1.manaCost} MP`;
+    if (btn1) {
+      btn1.title = `${ab1.name} [Z] (${ab1.manaCost} MP) - ${ab1.description}`;
+      if (currentMana !== undefined) {
+        btn1.style.opacity = currentMana < ab1.manaCost ? '0.5' : '1';
+      }
+    }
+
+    const icon2 = document.getElementById('ability-2-icon');
+    const name2 = document.getElementById('ability-2-name');
+    const cost2 = document.getElementById('ability-2-cost');
+    const btn2 = document.getElementById('ability-btn-2');
+
+    if (icon2) icon2.innerText = ab2.icon;
+    if (name2) name2.innerText = ab2.name.split(' ')[0];
+    if (cost2) cost2.innerText = `${ab2.manaCost} MP`;
+    if (btn2) {
+      btn2.title = `${ab2.name} [X] (${ab2.manaCost} MP) - ${ab2.description}`;
+      if (currentMana !== undefined) {
+        btn2.style.opacity = currentMana < ab2.manaCost ? '0.5' : '1';
+      }
+    }
   }
 }

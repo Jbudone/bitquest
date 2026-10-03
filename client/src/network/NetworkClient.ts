@@ -14,7 +14,9 @@ import type {
   VanitySlot,
   PlayerEquipment,
   PlayerVanity,
-  AggregatedEquipmentStats
+  AggregatedEquipmentStats,
+  CharacterClassId,
+  ClassAbilityId
 } from '../../../shared/src/types';
 
 export class NetworkClient {
@@ -33,6 +35,11 @@ export class NetworkClient {
   public onSpellCast?: (data: { casterId: string; spellId: SpellId; x: number; y: number; direction: Direction }) => void;
   public onEquipmentUpdated?: (data: { playerId: string; equipment: PlayerEquipment; vanity: PlayerVanity; stats: AggregatedEquipmentStats }) => void;
   public onArrowShot?: (data: { shooterId: string; x: number; y: number; direction: Direction; speed: number; range: number; damage: number }) => void;
+  public onClassUpdated?: (data: { playerId: string; classId: CharacterClassId; stats: AggregatedEquipmentStats }) => void;
+  public onClassAbilityTriggered?: (data: { playerId: string; abilityId: ClassAbilityId; x: number; y: number; direction: Direction; targetId?: string }) => void;
+  public onParryEvent?: (data: { playerId: string; attackerId?: string; x: number; y: number }) => void;
+  public onLifeSiphonEvent?: (data: { casterId: string; targetId: string; amount: number; casterHp: number }) => void;
+  public onMinionSpawned?: (data: { minionId: string; ownerId: string; x: number; y: number; subtype: string }) => void;
   public onChatBroadcast?: (chat: ChatMessage) => void;
   public onEmoteBroadcast?: (emote: EmoteEvent) => void;
   public onWorldFlagUpdated?: (key: string, value: boolean) => void;
@@ -151,6 +158,21 @@ export class NetworkClient {
       case 'arrow_shot':
         this.onArrowShot?.(packet);
         break;
+      case 'class_updated':
+        this.onClassUpdated?.(packet);
+        break;
+      case 'class_ability_triggered':
+        this.onClassAbilityTriggered?.(packet);
+        break;
+      case 'parry_event':
+        this.onParryEvent?.(packet);
+        break;
+      case 'life_siphon_event':
+        this.onLifeSiphonEvent?.(packet);
+        break;
+      case 'minion_spawned':
+        this.onMinionSpawned?.(packet);
+        break;
       case 'reconcile':
         this.onReconcile?.(packet.ackSeq, packet.x, packet.y);
         break;
@@ -180,6 +202,14 @@ export class NetworkClient {
 
   public sendSetVanity(slot: VanitySlot, vanityId: string | null) {
     this.send({ type: 'set_vanity', slot, vanityId });
+  }
+
+  public sendSetClass(classId: CharacterClassId) {
+    this.send({ type: 'set_class', classId });
+  }
+
+  public sendUseClassAbility(abilityId: ClassAbilityId, x: number, y: number, direction: Direction) {
+    this.send({ type: 'use_class_ability', abilityId, x, y, direction });
   }
 
   public sendShootArrow(x: number, y: number, direction: Direction, damage: number) {

@@ -10,6 +10,7 @@ import type { EntityData, PlayerData, Direction, EmoteType, ItemDropData } from 
 import { SpatialGrid } from '../../../shared/src/spatialGrid';
 import { BehaviorRegistry } from '../../../shared/src/behaviors/registry';
 import { SPELL_DEFINITIONS, type SpellDefinition, type SpellId, StatusEffectManager } from '../../../shared/src/magic';
+import { ClassManager, CLASS_DEFINITIONS, type CharacterClassId, type ClassAbilityId } from '../../../shared/src/classes';
 
 export class WorldScene extends Phaser.Scene {
   public localPlayer: Player | null = null;
@@ -189,7 +190,9 @@ export class WorldScene extends Phaser.Scene {
         THREE: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE),
         FOUR: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR),
         FIVE: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FIVE),
-        SIX: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SIX)
+        SIX: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SIX),
+        Z: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z),
+        X: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X)
       };
 
       // Space / J: Attack / Throw
@@ -206,6 +209,10 @@ export class WorldScene extends Phaser.Scene {
       // E / K: Interact / Lift / Talk
       this.keys.E.on('down', () => this.handleActionInteract());
       this.keys.K.on('down', () => this.handleActionInteract());
+
+      // Class Abilities: Z (Ability 1), X (Ability 2)
+      this.keys.Z.on('down', () => this.useClassAbility(1));
+      this.keys.X.on('down', () => this.useClassAbility(2));
 
       // Magic Spells: 1 / Q (Fireball), 2 (Ice Lance), 3 / R (Gale Ward)
       this.keys.ONE.on('down', () => this.castSpell('fireball'));
@@ -749,6 +756,31 @@ export class WorldScene extends Phaser.Scene {
       }
     };
 
+    network.onClassUpdated = (data) => {
+      if (data.playerId === this.localPlayer?.id && this.localPlayer) {
+        this.localPlayer.classId = data.classId;
+        (window as any).BitQuestUI?.updateClassAbilityHUD(data.classId, this.localPlayer.mana);
+        (window as any).BitQuestUI?.equipmentSheet?.updateSheet();
+      } else {
+        const other = this.otherPlayers.get(data.playerId);
+        if (other) {
+          other.classId = data.classId;
+        }
+      }
+    };
+
+    network.onClassAbilityTriggered = (data) => {
+      this.handleClassAbilityVFX(data);
+    };
+
+    network.onParryEvent = (data) => {
+      this.handleParryVFX(data.x, data.y);
+    };
+
+    network.onLifeSiphonEvent = (data) => {
+      this.handleLifeSiphonVFX(data.casterId, data.targetId, data.amount);
+    };
+
     network.connect();
 
     const tryJoin = () => {
@@ -896,6 +928,13 @@ export class WorldScene extends Phaser.Scene {
       const sprite = this.add.sprite(ent.x, ent.y, 'boss_baron');
       sprite.setVisible(!ent.state.destroyed);
       const shadow = this.add.sprite(ent.x + 4, ent.y + 16, 'shadow_boss').setAlpha(0.7).setDepth(ent.y - 1);
+      shadow.setVisible(!ent.state.destroyed);
+      this.entityShadows.set(ent.id, shadow);
+      obj = sprite;
+    } else if (ent.type === 'minion') {
+      const sprite = this.add.sprite(ent.x, ent.y, 'entity_minion_skeleton');
+      sprite.setVisible(!ent.state.destroyed);
+      const shadow = this.add.sprite(ent.x + 1, ent.y + 6, 'shadow_small').setAlpha(0.6).setDepth(ent.y - 1);
       shadow.setVisible(!ent.state.destroyed);
       this.entityShadows.set(ent.id, shadow);
       obj = sprite;
@@ -1093,6 +1132,28 @@ export class WorldScene extends Phaser.Scene {
         (window as any).BitQuestUI?.updateBossHp(ent.state.hp || 0, ent.state.maxHp || 12);
       } else {
         (window as any).BitQuestUI?.hideBossHp();
+      }
+    } else if (ent.type === 'minion') {
+      obj.setVisible(!ent.state.destroyed);
+      const shadow = this.entityShadows.get(ent.id);
+      if (shadow) shadow.setVisible(!ent.state.destroyed);
+      if (!ent.state.destroyed) {
+        this.tweens.add({
+          targets: obj,
+          x: ent.x,
+          y: ent.y,
+          duration: 250,
+          ease: 'Sine.easeOut'
+        });
+        if (shadow) {
+          this.tweens.add({
+            targets: shadow,
+            x: ent.x + 1,
+            y: ent.y + 6,
+            duration: 250,
+            ease: 'Sine.easeOut'
+          });
+        }
       }
     }
   }
@@ -2041,6 +2102,184 @@ export class WorldScene extends Phaser.Scene {
     if (!this.localPlayer) return;
     this.localPlayer.showEmote(emote);
     network.sendEmote(emote);
+  }
+
+  public useClassAbility(slot: 1 | 2) {
+    if (!this.localPlayer) return;
+    const classId = this.localPlayer.classId || 'warrior';
+    const def = CLASS_DEFINITIONS[classId];
+    if (!def) return;
+    const ability = slot === 1 ? def.abilities[0] : def.abilities[1];
+    if (!ability) return;
+
+    if (this.localPlayer.mana < ability.manaCost) {
+      sounds.playOutOfMana();
+      this.showFloatingText(this.localPlayer.x, this.localPlayer.y - 20, "NO MANA!", "#ef4444");
+      return;
+    }
+
+    network.sendUseClassAbility(ability.id, this.localPlayer.x, this.localPlayer.y, this.localPlayer.direction);
+  }
+
+  private handleClassAbilityVFX(data: { playerId: string; classId: CharacterClassId; abilityId: ClassAbilityId; x: number; y: number; direction: Direction; targetId?: string }) {
+    const isLocal = data.playerId === this.localPlayer?.id;
+    const playerSpr = isLocal ? this.localPlayer : this.otherPlayers.get(data.playerId)?.sprite;
+
+    switch (data.abilityId) {
+      case 'shield_parry': {
+        sounds.playShieldParry();
+        this.cameras.main.shake(80, 0.003);
+        const ring = this.add.sprite(data.x, data.y, 'fx_shield_parry');
+        ring.setDepth(1500).setScale(0.6).setAlpha(1);
+        this.tweens.add({
+          targets: ring,
+          scale: 1.4,
+          alpha: 0,
+          duration: 400,
+          ease: 'Quad.easeOut',
+          onComplete: () => ring.destroy()
+        });
+        this.showFloatingText(data.x, data.y - 24, "🛡️ PARRY STANCE", "#38bdf8");
+        break;
+      }
+      case 'stagger_cleave': {
+        sounds.playSlash();
+        this.cameras.main.shake(120, 0.005);
+        this.particles?.emitSparks(data.x, data.y, 8);
+        this.showFloatingText(data.x, data.y - 24, "💥 STAGGER CLEAVE", "#f59e0b");
+        break;
+      }
+      case 'teleport_blink': {
+        sounds.playBlink();
+        this.particles?.emitSparkles(data.x, data.y, 8);
+        this.cameras.main.shake(60, 0.002);
+        if (isLocal && this.localPlayer) {
+          this.localPlayer.x = data.x;
+          this.localPlayer.y = data.y;
+        } else if (playerSpr) {
+          playerSpr.x = data.x;
+          playerSpr.y = data.y;
+        }
+        this.showFloatingText(data.x, data.y - 24, "✨ BLINK", "#a855f7");
+        break;
+      }
+      case 'arcane_nova': {
+        sounds.playIceShatter();
+        this.cameras.main.shake(140, 0.006);
+        const nova = this.add.sprite(data.x, data.y, 'fx_arcane_nova');
+        nova.setDepth(1500).setScale(0.4).setAlpha(0.9);
+        this.tweens.add({
+          targets: nova,
+          scale: 1.8,
+          alpha: 0,
+          duration: 450,
+          ease: 'Cubic.easeOut',
+          onComplete: () => nova.destroy()
+        });
+        this.showFloatingText(data.x, data.y - 24, "🔮 ARCANE NOVA", "#c084fc");
+        break;
+      }
+      case 'speed_fanfare': {
+        sounds.playSongFanfare();
+        for (let i = 0; i < 5; i++) {
+          const note = this.add.sprite(data.x + (Math.random() * 30 - 15), data.y + (Math.random() * 20 - 10), 'fx_music_note');
+          note.setDepth(1500).setScale(0.8);
+          this.tweens.add({
+            targets: note,
+            y: note.y - 32 - Math.random() * 16,
+            alpha: 0,
+            duration: 600 + Math.random() * 200,
+            ease: 'Sine.easeOut',
+            onComplete: () => note.destroy()
+          });
+        }
+        this.showFloatingText(data.x, data.y - 24, "🎵 SPEED FANFARE", "#fbbf24");
+        break;
+      }
+      case 'harmony_chord': {
+        sounds.playSongFanfare();
+        this.emitHeartBurst(data.x, data.y);
+        this.showFloatingText(data.x, data.y - 24, "💚 HARMONY CHORD +2 HP", "#4ade80");
+        break;
+      }
+      case 'raise_skeleton': {
+        sounds.playSummonMinion();
+        this.cameras.main.shake(70, 0.003);
+        this.showFloatingText(data.x, data.y - 24, "💀 BONE MINION", "#94a3b8");
+        break;
+      }
+      case 'life_siphon': {
+        sounds.playLifeSiphon();
+        if (data.targetId) {
+          this.handleLifeSiphonVFX(data.playerId, data.targetId, 2);
+        }
+        break;
+      }
+      case 'piercing_arrow': {
+        sounds.playPiercingShot();
+        this.showFloatingText(data.x, data.y - 24, "🏹 PIERCING ARROW", "#38bdf8");
+        break;
+      }
+      case 'evasive_backhop': {
+        sounds.playRoll();
+        if (isLocal && this.localPlayer) {
+          this.localPlayer.x = data.x;
+          this.localPlayer.y = data.y;
+        } else if (playerSpr) {
+          playerSpr.x = data.x;
+          playerSpr.y = data.y;
+        }
+        this.showFloatingText(data.x, data.y - 24, "💨 EVASIVE HOP", "#e2e8f0");
+        break;
+      }
+    }
+  }
+
+  private handleParryVFX(x: number, y: number) {
+    sounds.playShieldParry();
+    this.cameras.main.shake(120, 0.007);
+    const parrySprite = this.add.sprite(x, y, 'fx_shield_parry');
+    parrySprite.setDepth(1500).setScale(0.8);
+    this.tweens.add({
+      targets: parrySprite,
+      scale: 1.6,
+      alpha: 0,
+      duration: 350,
+      ease: 'Back.easeOut',
+      onComplete: () => parrySprite.destroy()
+    });
+    this.showFloatingText(x, y - 24, "✨ PERFECT PARRY! ✨", "#facc15");
+  }
+
+  private handleLifeSiphonVFX(casterId: string, targetId: string, amount: number) {
+    sounds.playLifeSiphon();
+    const isLocal = casterId === this.localPlayer?.id;
+    const casterSpr = isLocal ? this.localPlayer : this.otherPlayers.get(casterId)?.sprite;
+    const targetObj = this.entityObjects.get(targetId) as Phaser.GameObjects.Sprite | undefined;
+
+    if (targetObj) {
+      this.showFloatingText(targetObj.x, targetObj.y - 18, `-${amount} 🩸 SIPHON`, "#ef4444");
+
+      if (casterSpr) {
+        for (let i = 0; i < 3; i++) {
+          const orb = this.add.sprite(targetObj.x + (Math.random() * 12 - 6), targetObj.y + (Math.random() * 12 - 6), 'fx_siphon_orb');
+          orb.setDepth(1500).setScale(0.8);
+          this.tweens.add({
+            targets: orb,
+            x: casterSpr.x,
+            y: casterSpr.y,
+            duration: 350 + i * 80,
+            ease: 'Quad.easeInOut',
+            onComplete: () => {
+              orb.destroy();
+              if (i === 0) {
+                this.showFloatingText(casterSpr.x, casterSpr.y - 20, `+${amount} 💚`, "#4ade80");
+              }
+            }
+          });
+        }
+      }
+    }
   }
 
   public castSpell(spellId: string) {

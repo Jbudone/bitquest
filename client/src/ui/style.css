@@ -2742,3 +2742,233 @@ canvas.integer-scaled {
   padding: 40px 10px;
 }
 
+/* ==========================================
+   Class Archetype UI & Hotbar Styles (Task 7.3)
+   ========================================== */
+.class-archetype-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: rgba(15, 23, 42, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 12px;
+}
+
+.class-picker-title {
+  font-family: var(--font-retro);
+  font-size: 9px;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.class-chips-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.class-chip-btn {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: #cbd5e1;
+  font-family: var(--font-retro);
+  font-size: 9px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.class-chip-btn:hover {
+  background: rgba(51, 65, 85, 0.9);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.class-chip-btn.active {
+  background: #3b82f6;
+  border-color: #60a5fa;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+}
+
+.class-perk-summary-box {
+  background: rgba(30, 41, 59, 0.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.class-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.class-display-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.class-primary-attr {
+  font-family: var(--font-retro);
+  font-size: 9px;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.class-details-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.class-perk-card, .class-abilities-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.perk-label {
+  font-family: var(--font-retro);
+  font-size: 8px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.perk-desc {
+  font-size: 11px;
+  color: #e2e8f0;
+  line-height: 1.3;
+}
+
+.abilities-chip-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ability-pill {
+  font-size: 10px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #f1f5f9;
+}
+
+/* HUD Class Ability Hotbar */
+.class-ability-hotbar {
+  display: flex;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 4px 6px;
+}
+
+.ability-slot-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 4px 8px;
+  min-width: 52px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ability-slot-btn:hover {
+  background: rgba(51, 65, 85, 0.95);
+  border-color: #38bdf8;
+  transform: translateY(-2px);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+}
+
+.ability-key-badge {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  font-family: var(--font-retro);
+  font-size: 7px;
+  color: #facc15;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+.ability-icon-hud {
+  font-size: 18px;
+  margin-top: 2px;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+}
+
+.ability-name-hud {
+  font-size: 9px;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.ability-cost-hud {
+  font-family: var(--font-retro);
+  font-size: 7px;
+  color: #60a5fa;
+}
+
+/* Join Modal Class Picker */
+.join-class-picker {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.class-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.class-card:hover {
+  background: rgba(51, 65, 85, 0.9);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.class-card.selected {
+  background: rgba(59, 130, 246, 0.3);
+  border-color: #3b82f6;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+}
+
+.class-card-icon {
+  font-size: 20px;
+}
+
+.class-card-name {
+  font-family: var(--font-retro);
+  font-size: 8px;
+  color: #f8fafc;
+}
+
+

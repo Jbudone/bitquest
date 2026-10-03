@@ -1,6 +1,6 @@
 // client/src/ui/EquipmentSheet.ts
-// BitQuest Character Equipment & Vanity Wardrobe Sheet
-// Issue #20: Task 7.2
+// BitQuest Character Equipment, Class Archetypes & Vanity Wardrobe Sheet
+// Issue #20 (Task 7.2) & Issue #21 (Task 7.3)
 
 import { network } from '../network/NetworkClient';
 import { sounds } from '../audio/SoundManager';
@@ -14,11 +14,17 @@ import {
   type PlayerVanity,
   type AggregatedEquipmentStats
 } from '../../../shared/src/equipment';
+import { 
+  ClassManager, 
+  CLASS_DEFINITIONS, 
+  type CharacterClassId 
+} from '../../../shared/src/classes';
 
 export class EquipmentSheetManager {
   private modal: HTMLElement | null = null;
   public isOpen = false;
   private selectedSlot: EquipmentSlot = 'weapon';
+  public currentClass: CharacterClassId = 'warrior';
 
   constructor() {
     this.setupDOM();
@@ -33,10 +39,42 @@ export class EquipmentSheetManager {
       <div class="equipment-window">
         <div class="equipment-header">
           <div class="equipment-title-block">
-            <h2>🛡️ Character Equipment & Vanity</h2>
+            <h2>🛡️ Character Sheet & Class Archetypes</h2>
             <span class="equipment-hint">Press <strong>[C]</strong> or <strong>[ESC]</strong> to close</span>
           </div>
           <button id="equipment-close-btn" class="equipment-close-btn">&times;</button>
+        </div>
+
+        <!-- Class Archetype Selection Header -->
+        <div class="class-archetype-bar">
+          <div class="class-picker-title">Class Archetype:</div>
+          <div class="class-chips-row">
+            <button class="class-chip-btn active" data-class="warrior">🛡️ Warrior</button>
+            <button class="class-chip-btn" data-class="mage">🔮 Mage</button>
+            <button class="class-chip-btn" data-class="bard">🎵 Bard</button>
+            <button class="class-chip-btn" data-class="necromancer">💀 Necromancer</button>
+            <button class="class-chip-btn" data-class="archer">🏹 Archer</button>
+          </div>
+        </div>
+
+        <div class="class-perk-summary-box">
+          <div class="class-title-row">
+            <span id="class-display-title" class="class-display-title">Warrior — Iron Vanguard</span>
+            <span id="class-primary-attr" class="class-primary-attr">Strength & Poise</span>
+          </div>
+          <div class="class-details-row">
+            <div class="class-perk-card">
+              <span class="perk-label">Passive Perk:</span>
+              <span id="class-passive-desc" class="perk-desc">🛡️ High Poise: Immune to knockback, +2 Max Health, +20% damage reduction.</span>
+            </div>
+            <div class="class-abilities-card">
+              <span class="perk-label">Active Abilities:</span>
+              <div id="class-abilities-list" class="abilities-chip-list">
+                <span class="ability-pill"><strong>[Z]</strong> 🛡️ Shield Parry (10 MP)</span>
+                <span class="ability-pill"><strong>[X]</strong> ⚔️ Stagger Cleave (15 MP)</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="equipment-body">
@@ -140,20 +178,22 @@ export class EquipmentSheetManager {
               </div>
 
               <div class="vanity-select-group">
-                <label>Cloak / Armor:</label>
+                <label>Cosmetic Cape:</label>
                 <select id="vanity-armor-select" class="vanity-select">
-                  <option value="">None</option>
-                  <option value="vanity_cape_hero">🦸 Hero's Crimson Cape</option>
-                  <option value="vanity_armor_knight">🛡️ Knight's Steel Pauldrons</option>
+                  <option value="">None (Adventurer Tunic)</option>
+                  <option value="vanity_cape_hero">🧣 Scarlet Hero Cape</option>
+                  <option value="vanity_armor_knight">🛡️ Knight Paladin Pauldrons</option>
                 </select>
               </div>
             </div>
           </div>
 
-          <!-- Right Column: Available Equipment to Equip -->
+          <!-- Right Column: Click-to-Equip Inventory Picker -->
           <div class="equipment-picker-column">
-            <h3 class="column-heading" id="picker-column-title">🎒 Available Weapons</h3>
-            <div id="picker-items-container" class="picker-items-container"></div>
+            <h3 id="picker-column-title" class="column-heading">🎒 Available Equipment</h3>
+            <div id="picker-items-container" class="picker-items-container">
+              <!-- Dynamically populated -->
+            </div>
           </div>
         </div>
       </div>
@@ -164,6 +204,27 @@ export class EquipmentSheetManager {
     // Close button
     document.getElementById('equipment-close-btn')?.addEventListener('click', () => this.close());
     this.modal.querySelector('.equipment-backdrop')?.addEventListener('click', () => this.close());
+
+    // Class selection chips
+    const classChips = this.modal.querySelectorAll('.class-chip-btn');
+    classChips.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const target = e.currentTarget as HTMLElement;
+        const classId = target.dataset.class as CharacterClassId;
+        if (classId) {
+          this.currentClass = classId;
+          sounds.ensureContext();
+          sounds.playClick();
+          network.sendSetClass(classId);
+          const scene = (window as any).BitQuestGame?.scene?.getScene('WorldScene') as any;
+          if (scene?.localPlayer) {
+            scene.localPlayer.classId = classId;
+          }
+          (window as any).BitQuestUI?.showToast(`✨ Chosen Class: ${ClassManager.getClass(classId).name}!`);
+          this.updateSheet();
+        }
+      });
+    });
 
     // Slot click selection
     const slotCards = this.modal.querySelectorAll('.gear-slot-card');
@@ -225,9 +286,39 @@ export class EquipmentSheetManager {
     if (!scene || !scene.localPlayer) return;
 
     const player = scene.localPlayer;
+    if (player.classId) {
+      this.currentClass = player.classId;
+    }
     const eq: PlayerEquipment = player.equipment || EquipmentManager.getDefaultEquipment();
     const vn: PlayerVanity = player.vanity || EquipmentManager.getDefaultVanity();
     const stats: AggregatedEquipmentStats = player.equipmentStats || EquipmentManager.createDefaultStats();
+
+    // Update Class Archetype Info
+    const cls = ClassManager.getClass(this.currentClass);
+    const titleEl = document.getElementById('class-display-title');
+    if (titleEl) titleEl.innerText = `${cls.name} — ${cls.title}`;
+    const attrEl = document.getElementById('class-primary-attr');
+    if (attrEl) attrEl.innerText = cls.primaryAttribute;
+    const passiveDesc = document.getElementById('class-passive-desc');
+    if (passiveDesc) passiveDesc.innerText = `${cls.passivePerk.icon} ${cls.passivePerk.name}: ${cls.passivePerk.description}`;
+
+    // Active abilities list
+    const abilitiesContainer = document.getElementById('class-abilities-list');
+    if (abilitiesContainer) {
+      abilitiesContainer.innerHTML = `
+        <span class="ability-pill" title="${cls.abilities[0].description}"><strong>[Z]</strong> ${cls.abilities[0].icon} ${cls.abilities[0].name} (${cls.abilities[0].manaCost} MP)</span>
+        <span class="ability-pill" title="${cls.abilities[1].description}"><strong>[X]</strong> ${cls.abilities[1].icon} ${cls.abilities[1].name} (${cls.abilities[1].manaCost} MP)</span>
+      `;
+    }
+
+    // Active class chip button highlight
+    this.modal?.querySelectorAll('.class-chip-btn').forEach(btn => {
+      if ((btn as HTMLElement).dataset.class === this.currentClass) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
 
     // Name & Doll preview
     const nameEl = document.getElementById('doll-player-name');

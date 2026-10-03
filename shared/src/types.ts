@@ -1,5 +1,6 @@
 export * from './schemas';
 export * from './equipment';
+export * from './classes';
 import type { 
   Direction, 
   PlayerAnimState, 
@@ -16,6 +17,7 @@ import type {
   VanitySlot
 } from './schemas';
 import type { PlayerEquipment, PlayerVanity, AggregatedEquipmentStats } from './equipment';
+import type { CharacterClassId, ClassAbilityId } from './classes';
 
 // Network protocol packets
 export type ClientPacket =
@@ -25,6 +27,8 @@ export type ClientPacket =
   | { type: 'cast_spell'; spellId: SpellId; x: number; y: number; direction: Direction }
   | { type: 'equip_item'; slot: EquipmentSlot; itemId: string | null }
   | { type: 'set_vanity'; slot: VanitySlot; vanityId: string | null }
+  | { type: 'set_class'; classId: CharacterClassId }
+  | { type: 'use_class_ability'; abilityId: ClassAbilityId; x: number; y: number; direction: Direction }
   | { type: 'shoot_arrow'; x: number; y: number; direction: Direction; damage: number }
   | { type: 'pot_throw'; potId: string; startX: number; startY: number; targetX: number; targetY: number }
   | { type: 'pot_catch'; potId: string }
@@ -53,6 +57,11 @@ export type ServerPacket =
   | { type: 'spell_cast'; casterId: string; spellId: SpellId; x: number; y: number; direction: Direction }
   | { type: 'arrow_shot'; shooterId: string; x: number; y: number; direction: Direction; speed: number; range: number; damage: number }
   | { type: 'equipment_updated'; playerId: string; equipment: PlayerEquipment; vanity: PlayerVanity; stats: AggregatedEquipmentStats }
+  | { type: 'class_updated'; playerId: string; classId: CharacterClassId; stats: AggregatedEquipmentStats }
+  | { type: 'class_ability_triggered'; playerId: string; abilityId: ClassAbilityId; x: number; y: number; direction: Direction; targetId?: string }
+  | { type: 'parry_event'; playerId: string; attackerId?: string; x: number; y: number }
+  | { type: 'life_siphon_event'; casterId: string; targetId: string; amount: number; casterHp: number }
+  | { type: 'minion_spawned'; minionId: string; ownerId: string; x: number; y: number; subtype: string }
   | { type: 'player_stats_updated'; id: string; health: number; maxHealth: number; mana: number; maxMana: number; coins: number; acorns: number }
   | { type: 'boss_event'; action: 'spawn' | 'stomp' | 'spore' | 'charge' | 'crash_stun' | 'defeated'; x?: number; y?: number; targetX?: number; targetY?: number };
 

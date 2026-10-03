@@ -178,6 +178,22 @@
         </button>
       </div>
 
+      <!-- Class Abilities Hotbar (Task 7.3) -->
+      <div id="class-ability-hotbar" class="class-ability-hotbar">
+        <button class="ability-slot-btn" id="ability-btn-1" title="Class Ability 1 [Z]">
+          <span class="ability-key-badge">Z</span>
+          <span id="ability-1-icon" class="ability-icon-hud">🛡️</span>
+          <span id="ability-1-name" class="ability-name-hud">Parry</span>
+          <span id="ability-1-cost" class="ability-cost-hud">10 MP</span>
+        </button>
+        <button class="ability-slot-btn" id="ability-btn-2" title="Class Ability 2 [X]">
+          <span class="ability-key-badge">X</span>
+          <span id="ability-2-icon" class="ability-icon-hud">⚔️</span>
+          <span id="ability-2-name" class="ability-name-hud">Cleave</span>
+          <span id="ability-2-cost" class="ability-cost-hud">15 MP</span>
+        </button>
+      </div>
+
       <div class="action-bar">
         <button class="emote-btn" data-emote="heart" title="Heart [1]">❤️</button>
         <button class="emote-btn" data-emote="wave" title="Wave [2]">👋</button>
@@ -203,6 +219,32 @@
       <div class="field-group">
         <label for="player-name-input" class="field-label">Your Adventurer Name:</label>
         <input type="text" id="player-name-input" class="input-text" placeholder="e.g. Robin, Zelda, Pippin..." maxlength="16" autofocus />
+      </div>
+
+      <div class="field-group">
+        <span class="field-label">Choose Class Archetype:</span>
+        <div id="join-class-picker" class="join-class-picker">
+          <div class="class-card selected" data-class="warrior">
+            <span class="class-card-icon">🛡️</span>
+            <span class="class-card-name">Warrior</span>
+          </div>
+          <div class="class-card" data-class="mage">
+            <span class="class-card-icon">🔮</span>
+            <span class="class-card-name">Mage</span>
+          </div>
+          <div class="class-card" data-class="bard">
+            <span class="class-card-icon">🎵</span>
+            <span class="class-card-name">Bard</span>
+          </div>
+          <div class="class-card" data-class="necromancer">
+            <span class="class-card-icon">💀</span>
+            <span class="class-card-name">Necro</span>
+          </div>
+          <div class="class-card" data-class="archer">
+            <span class="class-card-icon">🏹</span>
+            <span class="class-card-name">Archer</span>
+          </div>
+        </div>
       </div>
 
       <div class="field-group">

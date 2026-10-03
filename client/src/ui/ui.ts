@@ -1,17 +1,39 @@
 import { network } from '../network/NetworkClient';
 import { sounds } from '../audio/SoundManager';
+import { MinimapManager } from './Minimap';
 import type { EmoteType } from '../../../shared/src/types';
 
 export class UIManager {
+  public minimap: MinimapManager;
   private selectedPalette = 0;
   private currentTypewriterTimer: any = null;
 
   constructor() {
+    this.minimap = new MinimapManager();
     this.setupJoinModal();
     this.setupChatAndEmotes();
     this.setupDialogueBox();
     this.setupControlsHelp();
     this.setupAdminPanel();
+    this.setupGlobalShortcuts();
+  }
+
+  private setupGlobalShortcuts() {
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+        return;
+      }
+      if (e.key === 'm' || e.key === 'M') {
+        sounds.ensureContext();
+        this.minimap.toggleAtlas();
+      }
+      if (e.key === 'Escape') {
+        if (this.minimap.isAtlasActive()) {
+          this.minimap.closeAtlas();
+          e.stopPropagation();
+        }
+      }
+    });
   }
 
   private setupJoinModal() {

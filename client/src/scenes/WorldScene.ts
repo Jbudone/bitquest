@@ -1018,6 +1018,34 @@ export class WorldScene extends Phaser.Scene {
         }
       }
 
+      // Minimap & Exploration Fog Pass
+      const dirMap: Record<Direction, number> = { down: 0, up: 1, left: 2, right: 3 };
+      const facingIdx = dirMap[this.localPlayer.direction] ?? 0;
+
+      const otherList: Array<{ x: number; y: number; color?: string }> = [];
+      for (const other of this.otherPlayers.values()) {
+        otherList.push({ x: other.x, y: other.y, color: other.color });
+      }
+
+      const entList: Array<{ id: string; x: number; y: number; type: string }> = [];
+      for (const [id, obj] of this.entityObjects.entries()) {
+        const spr = obj as Phaser.GameObjects.Sprite;
+        if (spr && spr.visible) {
+          entList.push({
+            id,
+            x: spr.x,
+            y: spr.y,
+            type: id.startsWith('boss_') ? 'boss' : id.startsWith('npc_') ? 'npc' : 'prop'
+          });
+        }
+      }
+
+      (window as any).BitQuestUI?.minimap?.update(
+        { x: px, y: py, facing: facingIdx },
+        otherList,
+        entList
+      );
+
       // 1. Magnetic collection of dropped items (extended 75px vacuum with physics curve)
       for (const [id, { sprite, data }] of this.itemObjects.entries()) {
         const dist = Math.hypot(px - sprite.x, py - sprite.y);

@@ -60,6 +60,19 @@ export class WorldScene extends Phaser.Scene {
     isInside: boolean;
   }> = [];
 
+  // Multiplayer Social Synergy & Co-Op
+  private airbornePots = new Map<string, {
+    pot: Phaser.GameObjects.Sprite;
+    shadow: Phaser.GameObjects.Sprite;
+    startX: number;
+    startY: number;
+    targetX: number;
+    targetY: number;
+    startTime: number;
+    duration: number;
+    tween: Phaser.Tweens.Tween;
+  }>();
+
   constructor() {
     super({ key: 'WorldScene' });
   }
@@ -460,7 +473,22 @@ export class WorldScene extends Phaser.Scene {
       if (key === 'ancient_gate_opened') {
         if (val) this.openGate(true);
         else this.closeGate();
+      } else if (key === 'duo_vault_unlocked' && val) {
+        sounds.playDuoSolveFanfare();
+        this.showFloatingText(1024, 410, "✨ DUO VAULT UNLOCKED! ✨", "#facc15");
       }
+    };
+
+    network.onSocialResonance = (data) => {
+      this.handleSocialResonance(data);
+    };
+
+    network.onPotThrown = (data) => {
+      this.handleAirbornePotThrown(data);
+    };
+
+    network.onPotCaught = (data) => {
+      this.handlePotCaught(data);
     };
 
     network.onChatBroadcast = (chat) => {
@@ -580,7 +608,9 @@ export class WorldScene extends Phaser.Scene {
       this.entityShadows.set(ent.id, shadow);
       obj = sprite;
     } else if (ent.type === 'switch') {
-      if (ent.subtype === 'pillar') {
+      if (ent.id.startsWith('lever_')) {
+        obj = this.add.sprite(ent.x, ent.y, ent.state.activated ? 'prop_lever_down' : 'prop_lever_up');
+      } else if (ent.subtype === 'pillar') {
         const sprite = this.obstacles.create(ent.x, ent.y, 'ent_pillar');
         sprite.body.setSize(24, 20);
         sprite.body.setOffset(4, 28);
@@ -595,6 +625,12 @@ export class WorldScene extends Phaser.Scene {
       } else {
         obj = this.add.sprite(ent.x, ent.y, ent.state.activated ? 'switch_down' : 'switch_up');
       }
+    } else if (ent.type === 'chest') {
+      const tex = ent.state.opened ? 'chest_opened' : 'chest_closed';
+      const sprite = this.add.sprite(ent.x, ent.y, tex);
+      const shadow = this.add.sprite(ent.x + 1, ent.y + 6, 'shadow_small').setAlpha(0.6).setDepth(ent.y - 1);
+      this.entityShadows.set(ent.id, shadow);
+      obj = sprite;
     } else if (ent.type === 'door') {
       obj = this.add.sprite(ent.x, ent.y, ent.state.opened ? 'gate_opened' : 'gate_closed');
     } else if (ent.type === 'sign') {
@@ -676,8 +712,23 @@ export class WorldScene extends Phaser.Scene {
         shadow.setVisible(isVisible);
       }
     } else if (ent.type === 'switch' && !ent.subtype) {
-      const isDown = !!ent.state.activated;
-      obj.setTexture(isDown ? 'switch_down' : 'switch_up');
+      if (ent.id.startsWith('lever_')) {
+        const isDown = !!ent.state.activated;
+        const newTex = isDown ? 'prop_lever_down' : 'prop_lever_up';
+        if (obj.texture?.key !== newTex) {
+          obj.setTexture(newTex);
+          sounds.playLever();
+          if (ent.state.solved) {
+            this.emitSparkleBurst(ent.x, ent.y);
+          }
+        }
+      } else {
+        const isDown = !!ent.state.activated;
+        obj.setTexture(isDown ? 'switch_down' : 'switch_up');
+      }
+    } else if (ent.type === 'chest') {
+      const isOpened = !!ent.state.opened;
+      obj.setTexture(isOpened ? 'chest_opened' : 'chest_closed');
     } else if (ent.type === 'door') {
       const isOpened = !!ent.state.opened;
       obj.setTexture(isOpened ? 'gate_opened' : 'gate_closed');
@@ -1339,16 +1390,26 @@ export class WorldScene extends Phaser.Scene {
   private handleActionInteract() {
     if (!this.localPlayer) return;
 
+    const px = this.localPlayer.x;
+    const py = this.localPlayer.y;
+
+    // 1. Mid-Air Pot Catching: Check if an airborne pot is flying nearby!
+    for (const [potId, airborne] of this.airbornePots.entries()) {
+      const dist = Math.hypot(px - airborne.pot.x, py - airborne.pot.y);
+      if (dist < 50) {
+        network.sendPotCatch(potId);
+        return;
+      }
+    }
+
+    // 2. If holding a pot, throw it across the network!
     if (this.localPlayer.carryingPotId) {
       const potInfo = this.localPlayer.throwPot();
       if (potInfo) {
-        this.animatePotThrow(this.localPlayer.x, this.localPlayer.y, potInfo.x, potInfo.y, potInfo.potId);
+        network.sendPotThrow(potInfo.potId, this.localPlayer.x, this.localPlayer.y, potInfo.x, potInfo.y);
       }
       return;
     }
-
-    const px = this.localPlayer.x;
-    const py = this.localPlayer.y;
 
     let closestId: string | null = null;
     let closestDist = 38;
@@ -1370,61 +1431,170 @@ export class WorldScene extends Phaser.Scene {
         this.localPlayer.liftPot(closestId);
         network.sendInteract(closestId, 'lift');
       }
+    } else if (closestId.startsWith('lever_')) {
+      network.sendInteract(closestId, 'pull_lever');
+      sounds.playLever();
+    } else if (closestId.startsWith('chest_')) {
+      network.sendInteract(closestId, 'open');
+      sounds.playChestOpen();
     } else if (closestId.startsWith('npc_') || closestId.startsWith('sign_') || closestId.startsWith('wildlife_') || closestId.startsWith('boss_')) {
       network.sendInteract(closestId, 'talk');
     }
   }
 
-  private animatePotThrow(startX: number, startY: number, targetX: number, targetY: number, potId: string) {
-    const shadow = this.add.sprite(startX, startY, 'shadow_small').setAlpha(0.6).setDepth(Math.max(startY, targetY) - 1);
-    const pot = this.add.sprite(startX, startY - 16, 'ent_pot').setDepth(Math.max(startY, targetY) + 5);
+  private handleAirbornePotThrown(data: { potId: string; throwerId: string; startX: number; startY: number; targetX: number; targetY: number; duration: number }) {
+    if (this.localPlayer && this.localPlayer.carryingPotId === data.potId) {
+      this.localPlayer.carryingPotId = null;
+      (this.localPlayer as any).carriedPotSprite?.setVisible(false);
+      (this.localPlayer as any).nameText?.setY(-28);
+    }
+
+    const existing = this.entityObjects.get(data.potId) as Phaser.GameObjects.Sprite;
+    if (existing) existing.setVisible(false);
+    const existingShadow = this.entityShadows.get(data.potId);
+    if (existingShadow) existingShadow.setVisible(false);
+
+    const maxZ = Math.max(data.startY, data.targetY) + 6;
+    const shadow = this.add.sprite(data.startX, data.startY, 'shadow_small').setAlpha(0.6).setDepth(maxZ - 2);
+    const pot = this.add.sprite(data.startX, data.startY - 16, 'ent_pot').setDepth(maxZ);
     sounds.playSlash();
 
-    // Ground shadow moves linearly along ground plane
-    this.tweens.add({
-      targets: shadow,
-      x: targetX,
-      y: targetY,
-      duration: 260,
-      ease: 'Linear'
-    });
-
-    this.tweens.addCounter({
+    const tween = this.tweens.addCounter({
       from: 0,
       to: 1,
-      duration: 260,
+      duration: data.duration,
       onUpdate: (tw) => {
         const p = tw.getValue();
-        pot.x = Phaser.Math.Linear(startX, targetX, p);
-        const groundY = Phaser.Math.Linear(startY, targetY, p);
-        const arcHeight = Math.sin(p * Math.PI) * 32;
+        const currX = Phaser.Math.Linear(data.startX, data.targetX, p);
+        const groundY = Phaser.Math.Linear(data.startY, data.targetY, p);
+        const arcHeight = Math.sin(p * Math.PI) * 36;
+        pot.x = currX;
         pot.y = groundY - arcHeight;
         pot.angle += 14;
-        shadow.setScale(1.0 - (arcHeight / 32) * 0.45);
-        shadow.setAlpha(0.6 - (arcHeight / 32) * 0.3);
+
+        shadow.x = currX;
+        shadow.y = groundY;
+        shadow.setScale(1.0 - (arcHeight / 36) * 0.45);
+        shadow.setAlpha(0.6 - (arcHeight / 36) * 0.3);
       },
       onComplete: () => {
+        this.airbornePots.delete(data.potId);
         pot.destroy();
         shadow.destroy();
-        this.emitPotShards(targetX, targetY);
-        network.sendInteract(potId, 'toss', targetX, targetY);
-
-        // Check if pot hit an enemy or boss (deals 2 damage!)
-        for (const [id, obj] of this.entityObjects.entries()) {
-          if (id.startsWith('enemy_') || id.startsWith('boss_')) {
-            const sprite = obj as Phaser.GameObjects.Sprite;
-            if (sprite.visible) {
-              const dist = Math.hypot(targetX - sprite.x, targetY - sprite.y);
-              if (dist < 36) {
-                network.sendInteract(id, 'hit_enemy', undefined, undefined, 2);
-                sounds.playEnemyHit();
-                this.showFloatingText(sprite.x, sprite.y - 10, '-2 💥💥', '#ef4444');
-              }
-            }
-          }
-        }
+        this.emitPotShards(data.targetX, data.targetY);
+        sounds.playPotSmash();
+        chronicles.recordStat('potsSmashed', 1);
       }
     });
+
+    this.airbornePots.set(data.potId, {
+      pot,
+      shadow,
+      startX: data.startX,
+      startY: data.startY,
+      targetX: data.targetX,
+      targetY: data.targetY,
+      startTime: this.time.now,
+      duration: data.duration,
+      tween
+    });
+  }
+
+  private handlePotCaught(data: { potId: string; catcherId: string; x: number; y: number }) {
+    const airborne = this.airbornePots.get(data.potId);
+    if (airborne) {
+      airborne.tween.stop();
+      airborne.pot.destroy();
+      airborne.shadow.destroy();
+      this.airbornePots.delete(data.potId);
+    }
+
+    sounds.playPotCatch();
+    this.emitSparkleBurst(data.x, data.y);
+
+    if (this.localPlayer && data.catcherId === network.yourId) {
+      this.localPlayer.liftPot(data.potId);
+      this.showFloatingText(data.x, data.y - 24, "✨ NICE CATCH! ✨", "#facc15");
+      chronicles.recordStat('potsCaught', 1);
+    } else {
+      const other = this.otherPlayers.get(data.catcherId);
+      if (other) {
+        other.setTargetState(other.x, other.y, other.direction, 'carry_idle', data.potId);
+      }
+      this.showFloatingText(data.x, data.y - 24, "✨ CATCH! ✨", "#facc15");
+    }
+  }
+
+  private handleSocialResonance(data: { player1Id: string; player2Id: string; emote: EmoteType; x: number; y: number }) {
+    sounds.playSocialResonance();
+    this.emitSocialResonanceBurst(data.x, data.y);
+    this.showFloatingText(data.x, data.y - 26, "✨ HIGH FIVE RESONANCE! ✨", "#facc15");
+
+    let p1Pos = { x: data.x - 20, y: data.y };
+    let p2Pos = { x: data.x + 20, y: data.y };
+
+    if (this.localPlayer && (data.player1Id === network.yourId || data.player2Id === network.yourId)) {
+      chronicles.recordStat('socialResonances', 1);
+      this.localPlayer.speedMultiplier = 1.35;
+      this.time.delayedCall(4000, () => {
+        if (this.localPlayer) this.localPlayer.speedMultiplier = 1.0;
+      });
+    }
+
+    if (data.player1Id === network.yourId && this.localPlayer) {
+      p1Pos = { x: this.localPlayer.x, y: this.localPlayer.y - 16 };
+    } else if (this.otherPlayers.has(data.player1Id)) {
+      const o = this.otherPlayers.get(data.player1Id)!;
+      p1Pos = { x: o.x, y: o.y - 16 };
+    }
+
+    if (data.player2Id === network.yourId && this.localPlayer) {
+      p2Pos = { x: this.localPlayer.x, y: this.localPlayer.y - 16 };
+    } else if (this.otherPlayers.has(data.player2Id)) {
+      const o = this.otherPlayers.get(data.player2Id)!;
+      p2Pos = { x: o.x, y: o.y - 16 };
+    }
+
+    const beam = this.add.graphics();
+    beam.setDepth(Math.max(p1Pos.y, p2Pos.y) + 15);
+    beam.lineStyle(3, 0xfacc15, 0.85);
+    beam.beginPath();
+    beam.moveTo(p1Pos.x, p1Pos.y);
+    const midX = (p1Pos.x + p2Pos.x) / 2;
+    const midY = Math.min(p1Pos.y, p2Pos.y) - 18;
+    beam.quadraticCurveTo(midX, midY, p2Pos.x, p2Pos.y);
+    beam.strokePath();
+
+    this.tweens.add({
+      targets: beam,
+      alpha: 0,
+      duration: 1200,
+      ease: 'Sine.easeOut',
+      onComplete: () => beam.destroy()
+    });
+  }
+
+  private emitSocialResonanceBurst(x: number, y: number) {
+    for (let i = 0; i < 12; i++) {
+      const isHeart = i % 2 === 0;
+      const p = this.add.sprite(x, y - 10, isHeart ? 'particle_heart' : 'particle_sparkle_gold');
+      p.setDepth(y + 20);
+      const angle = (i / 12) * Math.PI * 2;
+      const speed = 28 + Math.random() * 24;
+      const targetX = x + Math.cos(angle) * speed;
+      const targetY = y - 10 + Math.sin(angle) * speed - 12;
+
+      this.tweens.add({
+        targets: p,
+        x: targetX,
+        y: targetY,
+        alpha: 0,
+        scale: 0.5,
+        duration: 750,
+        ease: 'Quad.easeOut',
+        onComplete: () => p.destroy()
+      });
+    }
   }
 
   public triggerEmote(emote: EmoteType) {
@@ -1946,6 +2116,14 @@ export class WorldScene extends Phaser.Scene {
 
   private getInteractLabel(id: string): { label: string; color: number } {
     if (id.startsWith('pot_')) return { label: '[E] Lift Pot', color: 0xf59e0b };
+    if (id.startsWith('lever_')) return { label: '[E] Pull Ancient Lever', color: 0xf59e0b };
+    if (id === 'chest_duo_vault') {
+      const ent = this.entityObjects.get(id) as any;
+      if (ent && ent.texture?.key === 'chest_opened') {
+        return { label: 'Vault Chest (Empty)', color: 0x94a3b8 };
+      }
+      return { label: '[E] Open Co-Op Vault Chest', color: 0xfacc15 };
+    }
     if (id === 'npc_grandma') return { label: '[E] Talk (Grandma)', color: 0xec4899 };
     if (id === 'npc_barnaby') return { label: '[E] Talk (Barnaby)', color: 0x38bdf8 };
     if (id.startsWith('npc_')) return { label: '[E] Talk', color: 0xfacc15 };
@@ -1967,7 +2145,23 @@ export class WorldScene extends Phaser.Scene {
     let hasTarget = false;
     let isSelf = false;
 
-    if (this.localPlayer.carryingPotId) {
+    // 0. Airborne Pot Catching Prompt
+    let airborneTarget: { x: number; y: number } | null = null;
+    for (const [potId, airborne] of this.airbornePots.entries()) {
+      const dist = Math.hypot(this.localPlayer.x - airborne.pot.x, this.localPlayer.y - airborne.pot.y);
+      if (dist < 52) {
+        airborneTarget = { x: airborne.pot.x, y: airborne.pot.y };
+        break;
+      }
+    }
+
+    if (airborneTarget) {
+      hasTarget = true;
+      targetX = airborneTarget.x;
+      targetY = airborneTarget.y - 12;
+      label = '[E] Catch Pot!';
+      themeColor = 0xfacc15;
+    } else if (this.localPlayer.carryingPotId) {
       hasTarget = true;
       isSelf = true;
       targetX = this.localPlayer.x;

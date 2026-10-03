@@ -983,6 +983,97 @@ export class SoundManager {
     osc.stop(now + dur);
   }
 
+  public playPotCatch() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(740, now + 0.08);
+    gain.gain.setValueAtTime(0.3 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.12);
+  }
+
+  public playSocialResonance() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const freqs = [659.25, 830.61, 987.77, 1318.51];
+    freqs.forEach((freq, idx) => {
+      const now = this.ctx!.currentTime + idx * 0.06;
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.18 * this.sfxVol, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      osc.connect(gain);
+      gain.connect(this.soundDestination);
+      osc.start(now);
+      osc.stop(now + 0.55);
+    });
+  }
+
+  public playLever() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    // Quick metallic click
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(90, now + 0.06);
+    gain.gain.setValueAtTime(0.25 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.08);
+
+    // Spring latch thud
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(340, now + 0.04);
+    osc2.frequency.exponentialRampToValueAtTime(120, now + 0.12);
+    gain2.gain.setValueAtTime(0.2 * this.sfxVol, now + 0.04);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+    osc2.connect(gain2);
+    gain2.connect(this.soundDestination);
+    osc2.start(now + 0.04);
+    osc2.stop(now + 0.14);
+  }
+
+  public playDuoSolveFanfare() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const notes = [
+      { freq: 523.25, time: 0, dur: 0.12 },     // C5
+      { freq: 659.25, time: 0.11, dur: 0.12 },  // E5
+      { freq: 783.99, time: 0.22, dur: 0.12 },  // G5
+      { freq: 1046.50, time: 0.33, dur: 0.45 }  // C6
+    ];
+    notes.forEach(n => {
+      const now = this.ctx!.currentTime + n.time;
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(n.freq, now);
+      gain.gain.setValueAtTime(0.25 * this.sfxVol, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + n.dur);
+      osc.connect(gain);
+      gain.connect(this.soundDestination);
+      osc.start(now);
+      osc.stop(now + n.dur);
+    });
+  }
+
   /**
    * Sound Preset Trigger:
    * Instant trigger for common chiptune sound archetypes.

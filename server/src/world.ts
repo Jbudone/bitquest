@@ -16,12 +16,27 @@ export class WorldManager {
   public onEntityStateChanged?: (entity: EntityData) => void;
   public onWorldFlagChanged?: (key: string, value: boolean) => void;
   public onBossEvent?: (event: ServerPacket) => void;
+  public onSocialResonance?: (player1Id: string, player2Id: string, emote: EmoteType, x: number, y: number) => void;
+  public onPotThrown?: (potId: string, throwerId: string, startX: number, startY: number, targetX: number, targetY: number, duration: number) => void;
+  public onPotCaught?: (potId: string, catcherId: string, x: number, y: number) => void;
+
+  public flyingPots = new Map<string, {
+    potId: string;
+    throwerId: string;
+    startX: number;
+    startY: number;
+    targetX: number;
+    targetY: number;
+    startTime: number;
+    duration: number;
+  }>();
 
   constructor() {
     this.db = new WorldDatabase();
     this.initDefaultEntities();
     this.startRespawnLoop();
     this.startAiLoop();
+    this.startProjectileLoop();
   }
 
   private initDefaultEntities() {
@@ -102,6 +117,38 @@ export class WorldManager {
       name: 'Sunken Gate',
       interactable: false,
       state: { opened: this.db.getFlag('ancient_gate_opened') }
+    });
+
+    // 3b. Co-Op Ancient Duo Levers & Ruined Vault Chest
+    const duoUnlocked = this.db.getFlag('duo_vault_unlocked') || false;
+    this.entities.set('lever_duo_left', {
+      id: 'lever_duo_left',
+      type: 'switch',
+      x: 880,
+      y: 440,
+      name: 'Ancient Duo Lever (West)',
+      interactable: true,
+      state: { activated: false, solved: duoUnlocked }
+    });
+
+    this.entities.set('lever_duo_right', {
+      id: 'lever_duo_right',
+      type: 'switch',
+      x: 1168,
+      y: 440,
+      name: 'Ancient Duo Lever (East)',
+      interactable: true,
+      state: { activated: false, solved: duoUnlocked }
+    });
+
+    this.entities.set('chest_duo_vault', {
+      id: 'chest_duo_vault',
+      type: 'chest',
+      x: 1024,
+      y: 430,
+      name: 'Co-Op Ruin Vault Chest',
+      interactable: duoUnlocked,
+      state: { opened: false, locked: !duoUnlocked }
     });
 
     // 4. Notice Boards & Signs
@@ -298,6 +345,161 @@ export class WorldManager {
         value: 1
       });
     });
+  }
+
+  private startProjectileLoop() {
+    setInterval(() => {
+      const now = Date.now();
+      // 1. Process airborne pots
+      for (const [potId, fp] of this.flyingPots.entries()) {
+        const p = (now - fp.startTime) / fp.duration;
+        if (p >= 1) {
+          this.flyingPots.delete(potId);
+          this.impactPot(potId, fp.targetX, fp.targetY);
+        }
+      }
+
+      // 2. Process duo lever timers
+      for (const leverId of ['lever_duo_left', 'lever_duo_right']) {
+        const lever = this.entities.get(leverId);
+        if (lever && lever.state.activated && !lever.state.solved && lever.state.timerExpires && now > lever.state.timerExpires) {
+          lever.state.activated = false;
+          this.onEntityStateChanged?.(lever);
+        }
+      }
+    }, 40);
+  }
+
+  public throwPot(playerId: string, potId: string, startX: number, startY: number, targetX: number, targetY: number) {
+    const pot = this.entities.get(potId);
+    if (!pot) return;
+    const player = this.players.get(playerId);
+    if (player) {
+      player.carryingItem = null;
+    }
+    pot.state.heldBy = null;
+    const duration = 380;
+    this.flyingPots.set(potId, {
+      potId,
+      throwerId: playerId,
+      startX,
+      startY,
+      targetX,
+      targetY,
+      startTime: Date.now(),
+      duration
+    });
+    this.onPotThrown?.(potId, playerId, startX, startY, targetX, targetY, duration);
+  }
+
+  public catchPot(playerId: string, potId: string): boolean {
+    const fp = this.flyingPots.get(potId);
+    if (!fp) return false;
+    const player = this.players.get(playerId);
+    if (!player) return false;
+
+    // Check catch proximity
+    const now = Date.now();
+    const p = Math.min(1, (now - fp.startTime) / fp.duration);
+    const currX = fp.startX + (fp.targetX - fp.startX) * p;
+    const currY = fp.startY + (fp.targetY - fp.startY) * p;
+    const dist = Math.hypot(player.x - currX, player.y - currY);
+
+    if (dist > 56) return false;
+
+    this.flyingPots.delete(potId);
+    const pot = this.entities.get(potId);
+    if (pot) {
+      pot.state.heldBy = playerId;
+      pot.state.destroyed = false;
+      pot.x = player.x;
+      pot.y = player.y;
+      this.onEntityStateChanged?.(pot);
+    }
+    player.carryingItem = potId;
+    this.onPotCaught?.(potId, playerId, player.x, player.y);
+    return true;
+  }
+
+  public impactPot(potId: string, targetX: number, targetY: number) {
+    const pot = this.entities.get(potId);
+    if (!pot) return;
+    pot.state.heldBy = null;
+    pot.state.destroyed = true;
+    pot.state.respawnAt = Date.now() + 20000;
+    pot.x = targetX;
+    pot.y = targetY;
+    this.onEntityStateChanged?.(pot);
+    this.checkPressureSwitches();
+
+    // Check if pot hit an enemy or boss (deals 2 damage)
+    for (const entity of this.entities.values()) {
+      if ((entity.type === 'enemy' || entity.type === 'boss') && !entity.state.destroyed) {
+        const dist = Math.hypot(targetX - entity.x, targetY - entity.y);
+        if (dist < 36) {
+          this.handleInteract('system', entity.id, 'hit_enemy', undefined, undefined, 2);
+        }
+      }
+    }
+
+    if (Math.random() < 0.6) {
+      const item: ItemDropData = {
+        id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        itemType: Math.random() < 0.3 ? 'strawberry' : 'coin',
+        x: targetX,
+        y: targetY,
+        value: 1
+      };
+      this.items.set(item.id, item);
+      this.onItemSpawned?.(item);
+    }
+  }
+
+  public handleLeverPull(playerId: string, targetId: string) {
+    if (targetId !== 'lever_duo_left' && targetId !== 'lever_duo_right') return;
+    const lever = this.entities.get(targetId);
+    if (!lever || lever.state.solved) return;
+
+    const now = Date.now();
+    lever.state.activated = true;
+    lever.state.timerExpires = now + 4500;
+    this.onEntityStateChanged?.(lever);
+
+    const otherId = targetId === 'lever_duo_left' ? 'lever_duo_right' : 'lever_duo_left';
+    const other = this.entities.get(otherId);
+
+    if (other && other.state.activated && !other.state.solved && other.state.timerExpires && other.state.timerExpires > now) {
+      // Both levers activated within time window!
+      lever.state.solved = true;
+      lever.state.activated = true;
+      other.state.solved = true;
+      other.state.activated = true;
+      this.onEntityStateChanged?.(lever);
+      this.onEntityStateChanged?.(other);
+
+      const chest = this.entities.get('chest_duo_vault');
+      if (chest) {
+        chest.interactable = true;
+        chest.state.locked = false;
+        this.onEntityStateChanged?.(chest);
+      }
+
+      this.db.setFlag('duo_vault_unlocked', true);
+      this.onWorldFlagChanged?.('duo_vault_unlocked', true);
+
+      // Spawn celebratory treasure items
+      for (let i = 0; i < 5; i++) {
+        const item: ItemDropData = {
+          id: `item_vault_${Date.now()}_${i}`,
+          itemType: i === 0 ? 'strawberry' : 'coin',
+          x: 1024 + (i - 2) * 16,
+          y: 446 + (Math.random() * 8 - 4),
+          value: i === 0 ? 1 : 5
+        };
+        this.items.set(item.id, item);
+        this.onItemSpawned?.(item);
+      }
+    }
   }
 
   private startRespawnLoop() {
@@ -532,6 +734,29 @@ export class WorldManager {
   public handleInteract(playerId: string, targetId: string, action: string, x?: number, y?: number, damage?: number) {
     const entity = this.entities.get(targetId);
     if (!entity) return;
+
+    if (action === 'pull_lever' || targetId.startsWith('lever_')) {
+      this.handleLeverPull(playerId, targetId);
+      return;
+    }
+
+    if (entity.type === 'chest' && !entity.state.locked && !entity.state.opened) {
+      entity.state.opened = true;
+      this.onEntityStateChanged?.(entity);
+      // Spawn treasure reward
+      for (let i = 0; i < 5; i++) {
+        const item: ItemDropData = {
+          id: `item_chest_${Date.now()}_${i}`,
+          itemType: i === 0 ? 'strawberry' : (i === 1 ? 'acorn' : 'coin'),
+          x: entity.x + (i - 2) * 14,
+          y: entity.y + 16,
+          value: i === 0 ? 1 : (i === 1 ? 2 : 5)
+        };
+        this.items.set(item.id, item);
+        this.onItemSpawned?.(item);
+      }
+      return;
+    }
 
     if (action === 'cut' && entity.type === 'bush' && !entity.state.destroyed) {
       entity.state.destroyed = true;
@@ -774,14 +999,27 @@ export class WorldManager {
 
   public setPlayerEmote(playerId: string, emote: EmoteType): EmoteEvent {
     const player = this.players.get(playerId);
+    const now = Date.now();
     if (player) {
       player.activeEmote = emote;
-      player.emoteExpiresAt = Date.now() + 3500;
+      player.emoteExpiresAt = now + 3500;
+
+      // Check social resonance with nearby players (<= 84px)
+      for (const other of this.players.values()) {
+        if (other.id !== playerId && other.activeEmote && other.emoteExpiresAt && other.emoteExpiresAt > now) {
+          const dist = Math.hypot(player.x - other.x, player.y - other.y);
+          if (dist <= 84) {
+            // Social resonance!
+            this.onSocialResonance?.(playerId, other.id, emote, (player.x + other.x) / 2, (player.y + other.y) / 2);
+            break;
+          }
+        }
+      }
     }
     return {
       senderId: playerId,
       emote,
-      timestamp: Date.now()
+      timestamp: now
     };
   }
 

@@ -29,6 +29,9 @@ export class NetworkClient {
   public onWorldFlagUpdated?: (key: string, value: boolean) => void;
   public onDialogueEvent?: (data: { npcId: string; speaker: string; portrait: string; text: string; responses?: { text: string; nextKey?: string; action?: string }[] }) => void;
   public onBossEvent?: (event: { action: 'spawn' | 'stomp' | 'spore' | 'charge' | 'crash_stun' | 'defeated'; x?: number; y?: number; targetX?: number; targetY?: number }) => void;
+  public onSocialResonance?: (data: { player1Id: string; player2Id: string; emote: EmoteType; x: number; y: number }) => void;
+  public onPotThrown?: (data: { potId: string; throwerId: string; startX: number; startY: number; targetX: number; targetY: number; duration: number }) => void;
+  public onPotCaught?: (data: { potId: string; catcherId: string; x: number; y: number }) => void;
   public onConnectionChange?: (connected: boolean) => void;
 
   public connect(url?: string) {
@@ -120,6 +123,15 @@ export class NetworkClient {
       case 'boss_event':
         this.onBossEvent?.(packet);
         break;
+      case 'social_resonance':
+        this.onSocialResonance?.(packet);
+        break;
+      case 'pot_thrown':
+        this.onPotThrown?.(packet);
+        break;
+      case 'pot_caught':
+        this.onPotCaught?.(packet);
+        break;
     }
   }
 
@@ -136,8 +148,16 @@ export class NetworkClient {
     this.send({ type: 'move', x, y, direction, anim, carryingItem });
   }
 
-  public sendInteract(targetId: string, action: 'cut' | 'lift' | 'toss' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt', x?: number, y?: number, damage?: number) {
+  public sendInteract(targetId: string, action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever', x?: number, y?: number, damage?: number) {
     this.send({ type: 'interact', targetId, action, x, y, damage });
+  }
+
+  public sendPotThrow(potId: string, startX: number, startY: number, targetX: number, targetY: number) {
+    this.send({ type: 'pot_throw', potId, startX, startY, targetX, targetY });
+  }
+
+  public sendPotCatch(potId: string) {
+    this.send({ type: 'pot_catch', potId });
   }
 
   public sendChat(text: string) {

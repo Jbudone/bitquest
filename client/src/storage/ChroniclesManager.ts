@@ -11,6 +11,8 @@ export interface LifetimeStats {
   bossesDefeated: number;
   questsCompleted: number;
   stepsWalked: number;
+  potsCaught: number;
+  socialResonances: number;
 }
 
 export interface PlayerTitle {
@@ -58,6 +60,20 @@ export const TITLES_CATALOG: PlayerTitle[] = [
     requirement: (s) => s.bossesDefeated >= 1
   },
   {
+    id: 'pot_catcher',
+    name: 'Ace Potcatcher',
+    description: 'Catch an airborne clay pot thrown by an ally mid-flight.',
+    icon: '👐',
+    requirement: (s) => s.potsCaught >= 1
+  },
+  {
+    id: 'kindred_spirit',
+    name: 'Kindred Spirit',
+    description: 'Trigger a high-five social resonance chime with a companion.',
+    icon: '✨',
+    requirement: (s) => s.socialResonances >= 1
+  },
+  {
     id: 'tycoon',
     name: 'Oakhaven Tycoon',
     description: 'Amass 50 silver coins in your pouch.',
@@ -94,7 +110,9 @@ export class ChroniclesManager {
             coinsCollected: parsed.stats.coinsCollected || 0,
             bossesDefeated: parsed.stats.bossesDefeated || 0,
             questsCompleted: parsed.stats.questsCompleted || 0,
-            stepsWalked: parsed.stats.stepsWalked || 0
+            stepsWalked: parsed.stats.stepsWalked || 0,
+            potsCaught: parsed.stats.potsCaught || 0,
+            socialResonances: parsed.stats.socialResonances || 0
           };
         }
       }
@@ -112,7 +130,9 @@ export class ChroniclesManager {
       coinsCollected: 0,
       bossesDefeated: 0,
       questsCompleted: 0,
-      stepsWalked: 0
+      stepsWalked: 0,
+      potsCaught: 0,
+      socialResonances: 0
     };
   }
 

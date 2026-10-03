@@ -14,8 +14,9 @@
     "test:balance": "bun run tools/test_balance.ts",
     "test:perf": "bun run tools/test_perf.ts",
     "test:playthrough": "bun run tools/test_playthrough.ts",
+    "test:coop": "bun run tools/test_coop.ts",
     "ingest:assets": "bun run tools/ingest_assets.ts",
-    "test:all": "bun run check:map && bun run check:quests && bun run check:dialogue && bun run test:balance && bun run test:perf && bun run test:playthrough && bun run ingest:assets"
+    "test:all": "bun run check:map && bun run check:quests && bun run check:dialogue && bun run test:balance && bun run test:perf && bun run test:playthrough && bun run test:coop && bun run ingest:assets"
   },
   "devDependencies": {
     "@types/bun": "latest"

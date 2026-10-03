@@ -780,6 +780,106 @@ export class TextureGenerator {
       scene.textures.addCanvas('switch_down', canvas);
     }
 
+    // 6b. Mechanical Pull-Lever - Up (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Stone/Iron Mount Base
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(8, 20, 16, 9);
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(9, 21, 14, 2);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(9, 28, 14, 1);
+
+      // Pivot Bracket Hub
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(13, 19, 6, 5);
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(14, 20, 4, 3);
+
+      // Angled Brass Shaft (Up-Left)
+      ctx.strokeStyle = '#78350f';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(15, 20);
+      ctx.lineTo(9, 8);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(15, 20);
+      ctx.lineTo(9, 8);
+      ctx.stroke();
+
+      // Ruby Spherical Knob
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath();
+      ctx.arc(8, 7, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fca5a5';
+      ctx.beginPath();
+      ctx.arc(7, 6, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Unlit indicator diode
+      ctx.fillStyle = '#7f1d1d';
+      ctx.fillRect(15, 24, 2, 2);
+
+      scene.textures.addCanvas('prop_lever_up', canvas);
+    }
+
+    // 6c. Mechanical Pull-Lever - Down (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Stone/Iron Mount Base
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(8, 20, 16, 9);
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(9, 21, 14, 2);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(9, 28, 14, 1);
+
+      // Pivot Bracket Hub
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(13, 19, 6, 5);
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(14, 20, 4, 3);
+
+      // Angled Brass Shaft (Down-Right)
+      ctx.strokeStyle = '#78350f';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(15, 20);
+      ctx.lineTo(23, 23);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(15, 20);
+      ctx.lineTo(23, 23);
+      ctx.stroke();
+
+      // Ruby Spherical Knob
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath();
+      ctx.arc(24, 24, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fca5a5';
+      ctx.beginPath();
+      ctx.arc(23, 23, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Lit Green Glowing Indicator Diode
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(14, 24, 4, 3);
+      ctx.fillStyle = '#bbf7d0';
+      ctx.fillRect(15, 25, 2, 1);
+
+      scene.textures.addCanvas('prop_lever_down', canvas);
+    }
+
     // 7. Ancient Gate - Closed (64x48)
     {
       const [canvas, ctx] = this.createCanvas(64, 48);
@@ -1310,6 +1410,37 @@ export class TextureGenerator {
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(6, 6, 4, 4);
       scene.textures.addCanvas('impact_spark', canvas);
+    }
+    {
+      // Particle Heart (14x14) - For cozy social resonance
+      const [canvas, ctx] = this.createCanvas(14, 14);
+      ctx.fillStyle = '#f43f5e';
+      ctx.beginPath();
+      ctx.moveTo(7, 12);
+      ctx.bezierCurveTo(2, 8, 1, 4, 3, 2);
+      ctx.bezierCurveTo(5, 0, 7, 3, 7, 3);
+      ctx.bezierCurveTo(7, 3, 9, 0, 11, 2);
+      ctx.bezierCurveTo(13, 4, 12, 8, 7, 12);
+      ctx.fill();
+      // Highlight shine
+      ctx.fillStyle = '#ffe4e6';
+      ctx.fillRect(3, 3, 2, 2);
+      scene.textures.addCanvas('particle_heart', canvas);
+    }
+    {
+      // Particle Sparkle Gold (16x16) - 4-pointed radiant star
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      ctx.fillStyle = '#fbbf24';
+      ctx.beginPath();
+      ctx.moveTo(8, 0);
+      ctx.quadraticCurveTo(8, 8, 16, 8);
+      ctx.quadraticCurveTo(8, 8, 8, 16);
+      ctx.quadraticCurveTo(8, 8, 0, 8);
+      ctx.quadraticCurveTo(8, 8, 8, 0);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(6, 6, 4, 4);
+      scene.textures.addCanvas('particle_sparkle_gold', canvas);
     }
 
     // 6. Light Glow (128x128)

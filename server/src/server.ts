@@ -75,6 +75,40 @@ world.onBossEvent = (event) => {
   broadcast(event);
 };
 
+world.onSocialResonance = (player1Id, player2Id, emote, x, y) => {
+  broadcast({
+    type: 'social_resonance',
+    player1Id,
+    player2Id,
+    emote,
+    x,
+    y
+  });
+};
+
+world.onPotThrown = (potId, throwerId, startX, startY, targetX, targetY, duration) => {
+  broadcast({
+    type: 'pot_thrown',
+    potId,
+    throwerId,
+    startX,
+    startY,
+    targetX,
+    targetY,
+    duration
+  });
+};
+
+world.onPotCaught = (potId, catcherId, x, y) => {
+  broadcast({
+    type: 'pot_caught',
+    potId,
+    catcherId,
+    x,
+    y
+  });
+};
+
 // 25Hz World Tick Loop for smooth player sync
 setInterval(() => {
   if (world.players.size === 0) return;
@@ -345,6 +379,16 @@ const server = Bun.serve<SocketData>({
               type: 'emote_broadcast',
               emote: emoteEvent
             });
+            break;
+          }
+
+          case 'pot_throw': {
+            world.throwPot(id, msg.potId, msg.startX, msg.startY, msg.targetX, msg.targetY);
+            break;
+          }
+
+          case 'pot_catch': {
+            world.catchPot(id, msg.potId);
             break;
           }
 

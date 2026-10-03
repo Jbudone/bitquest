@@ -168,6 +168,113 @@
       z-index: 200;
       pointer-events: none;
     }
+
+    /* Art Studio Enhanced Components */
+    .art-target-filter {
+      background: #1e293b;
+      color: #94a3b8;
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .art-target-filter:hover { background: #334155; color: #fff; }
+    .art-target-filter.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .art-target-card {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .art-target-card:hover {
+      background: #1e293b;
+      border-color: var(--accent-light);
+    }
+    .art-target-card.active {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(99, 102, 241, 0.25);
+    }
+
+    .art-badge-procedural {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      font-size: 9px;
+      font-weight: 600;
+      padding: 1px 5px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .art-badge-custom {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      font-size: 9px;
+      font-weight: 600;
+      padding: 1px 5px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .art-preset-pill {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: #cbd5e1;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+    .art-preset-pill:hover {
+      background: #1e293b;
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .bg-grid-dark {
+      background-color: #090d16;
+      background-image: linear-gradient(45deg, #111827 25%, transparent 25%), linear-gradient(-45deg, #111827 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #111827 75%), linear-gradient(-45deg, transparent 75%, #111827 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    }
+    .bg-grid-light {
+      background-color: #f1f5f9;
+      background-image: linear-gradient(45deg, #cbd5e1 25%, transparent 25%), linear-gradient(-45deg, #cbd5e1 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #cbd5e1 75%), linear-gradient(-45deg, transparent 75%, #cbd5e1 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    }
+    .bg-grid-grass {
+      background-color: #4f933b;
+      background-image: radial-gradient(#73bf48 15%, transparent 16%), radial-gradient(#367125 15%, transparent 16%);
+      background-size: 16px 16px;
+      background-position: 0 0, 8px 8px;
+    }
+    .bg-grid-black {
+      background-color: #020617;
+      background-image: none;
+    }
+
+    #art-testdrive-canvas:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
+    }
   </style>
 </head>
 <body>
@@ -252,63 +359,130 @@
 
     <!-- Tab 5: Art & Spritesheet Studio -->
     <div id="tab-art" class="tab-content" style="flex-direction: row; height: 100%;">
-      <!-- Left Config Sidebar -->
-      <aside style="width: 320px; background: var(--panel); border-right: 1px solid var(--border); padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;">
-        <h3 style="font-size: 14px;">📤 Import Spritesheet / Tilesheet</h3>
-        
-        <div id="art-dropzone" style="border: 2px dashed var(--accent); border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; background: rgba(99,102,241,0.05); transition: background 0.15s;">
-          <div style="font-size: 24px; margin-bottom: 6px;">📥</div>
-          <div style="font-size: 12px; font-weight: 600;">Drag & Drop PNG here</div>
-          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">or click to browse from disk</div>
+      <!-- Left Config & Comparison Sidebar -->
+      <aside style="width: 380px; background: var(--panel); border-right: 1px solid var(--border); padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="font-size: 14px; margin: 0;">🎨 Spritesheet & Art Studio</h3>
+          <span id="art-progress-status" class="art-badge-procedural">Checking status...</span>
+        </div>
+
+        <!-- Target Before ➔ After Comparison Split Card -->
+        <div style="background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.5px;">Target Comparison</span>
+            <button id="btn-revert-art" class="btn" style="padding: 2px 8px; font-size: 10px; background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);" title="Revert to built-in procedural placeholder">
+              ↺ Revert to Default
+            </button>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center;">
+            <!-- Current In-Game Asset -->
+            <div style="background: #090d16; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 8px; text-align: center; display: flex; flex-direction: column; align-items: center;">
+              <span style="font-size: 10px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px;">CURRENT ASSET</span>
+              <div style="width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 4px; overflow: hidden;">
+                <canvas id="art-current-canvas" width="72" height="72" style="image-rendering: pixelated;"></canvas>
+              </div>
+              <strong id="art-current-label" style="font-size: 11px; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px;">Hero (Azure)</strong>
+              <span id="art-current-badge" class="art-badge-procedural" style="margin-top: 2px;">Procedural</span>
+              <span id="art-current-dims" style="font-size: 9px; color: var(--text-muted); margin-top: 2px;">32×32 • 12 Frames</span>
+            </div>
+
+            <!-- Swap Arrow -->
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--accent); font-weight: bold; font-size: 14px;">
+              <span>➔</span>
+              <span style="font-size: 9px; color: var(--text-muted); writing-mode: vertical-rl; transform: rotate(180deg); margin-top: 2px;">REPLACE</span>
+            </div>
+
+            <!-- Incoming Replacement -->
+            <div style="background: #090d16; border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 6px; padding: 8px; text-align: center; display: flex; flex-direction: column; align-items: center;">
+              <span style="font-size: 10px; color: #a5b4fc; font-weight: 600; margin-bottom: 4px;">INCOMING ART</span>
+              <div style="width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 4px; overflow: hidden;">
+                <canvas id="art-incoming-canvas" width="72" height="72" style="image-rendering: pixelated;"></canvas>
+              </div>
+              <strong id="art-incoming-label" style="font-size: 11px; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px;">None Loaded</strong>
+              <span id="art-incoming-badge" style="font-size: 9px; color: var(--text-muted); margin-top: 2px;">Drop image below</span>
+              <span id="art-incoming-dims" style="font-size: 9px; color: var(--text-muted); margin-top: 2px;">-- × --px</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Target Catalog & Filter Chips -->
+        <div>
+          <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; display: block;">🎯 Select Target to Replace:</label>
+          <div style="display: flex; gap: 4px; margin-bottom: 6px; overflow-x: auto; padding-bottom: 2px;">
+            <button class="art-target-filter active" data-filter="all">All (13)</button>
+            <button class="art-target-filter" data-filter="Heroes">Heroes (3)</button>
+            <button class="art-target-filter" data-filter="Enemies">Enemies (3)</button>
+            <button class="art-target-filter" data-filter="NPCs & Props">NPCs/Props (4)</button>
+            <button class="art-target-filter" data-filter="Tiles">Tiles (3)</button>
+          </div>
+
+          <!-- Target Card List -->
+          <div id="art-target-shelf" style="display: flex; flex-direction: column; gap: 4px; max-height: 150px; overflow-y: auto; padding-right: 4px; border: 1px solid var(--border); border-radius: 6px; padding: 6px; background: #090d16;">
+            <!-- Rendered dynamically -->
+          </div>
+          <!-- Hidden synced select -->
+          <select id="art-target-select" style="display: none;"></select>
+        </div>
+
+        <!-- File Ingestion Dropzone -->
+        <div id="art-dropzone" style="border: 2px dashed var(--accent); border-radius: 8px; padding: 14px; text-align: center; cursor: pointer; background: rgba(99,102,241,0.05); transition: background 0.15s;">
+          <div style="font-size: 20px; margin-bottom: 4px;">📥</div>
+          <div style="font-size: 12px; font-weight: 600;">Drag & Drop PNG / JPG here</div>
+          <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">or click to browse from disk</div>
           <input type="file" id="art-file-input" accept="image/png,image/jpeg" style="display: none;" />
         </div>
 
+        <!-- Category & Presets -->
         <div>
-          <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">Asset Category:</label>
-          <select id="art-category-select" style="width: 100%; background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 12px;">
-            <option value="character">Character (4-Direction 3-Frame Sheet)</option>
-            <option value="monster">Monster / Critter (Animated Sheet)</option>
-            <option value="tile">Tilesheet Grid (Environment Tiles)</option>
-            <option value="item">Single Item / Prop Icon</option>
-          </select>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <label style="font-size: 11px; font-weight: 600;">Asset Category:</label>
+            <select id="art-category-select" style="background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 4px 6px; border-radius: 4px; font-size: 11px;">
+              <option value="character">Character (4-Direction 3-Frame Sheet)</option>
+              <option value="monster">Monster / Critter (Animated Sheet)</option>
+              <option value="tile">Tilesheet Grid (Environment Tiles)</option>
+              <option value="item">Single Item / Prop Icon</option>
+            </select>
+          </div>
+
+          <!-- Presets -->
+          <div style="margin-top: 6px;">
+            <label style="font-size: 10px; color: var(--text-muted); display: block; margin-bottom: 4px;">Slicing Presets:</label>
+            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+              <button class="art-preset-pill" data-preset="rpg3x4">3×4 Character</button>
+              <button class="art-preset-pill" data-preset="grid4x4">4×4 Grid</button>
+              <button class="art-preset-pill" data-preset="strip1x4">1×4 Strip</button>
+              <button class="art-preset-pill" data-preset="tile16">16×16 Tile</button>
+              <button class="art-preset-pill" data-preset="tile32">32×32 Tile</button>
+            </div>
+          </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <!-- Frame Dimensions & Offsets -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
           <div>
-            <label style="font-size: 11px; color: var(--text-muted);">Frame Width (px):</label>
-            <input type="number" id="art-frame-w" value="32" min="8" max="256" step="8" style="width: 100%; background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 6px; border-radius: 6px; font-size: 12px;" />
+            <label style="font-size: 10px; color: var(--text-muted);">Frame Width (px):</label>
+            <input type="number" id="art-frame-w" value="32" min="8" max="256" step="8" style="width: 100%; background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 4px 6px; border-radius: 4px; font-size: 11px;" />
           </div>
           <div>
-            <label style="font-size: 11px; color: var(--text-muted);">Frame Height (px):</label>
-            <input type="number" id="art-frame-h" value="32" min="8" max="256" step="8" style="width: 100%; background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 6px; border-radius: 6px; font-size: 12px;" />
+            <label style="font-size: 10px; color: var(--text-muted);">Frame Height (px):</label>
+            <input type="number" id="art-frame-h" value="32" min="8" max="256" step="8" style="width: 100%; background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 4px 6px; border-radius: 4px; font-size: 11px;" />
           </div>
         </div>
 
-        <div>
-          <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">🎯 Replace Placeholder Target:</label>
-          <select id="art-target-select" style="width: 100%; background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 12px;">
-            <optgroup label="Hero Palettes">
-              <option value="player_0">Hero (Default Azure)</option>
-              <option value="player_1">Hero (Rose Pink)</option>
-              <option value="player_2">Hero (Golden Knight)</option>
-            </optgroup>
-            <optgroup label="Enemies & Bosses">
-              <option value="enemy_slime_blue">Bouncy Meadow Slime</option>
-              <option value="enemy_slime_red">Fiery Spore Slime</option>
-              <option value="boss_fungor">Spore King Fungor</option>
-            </optgroup>
-            <optgroup label="NPCs & Props">
-              <option value="npc_grandma">Grandma Bramble</option>
-              <option value="npc_barnaby">Barnaby the Pelican</option>
-              <option value="prop_pot">Clay Pot</option>
-              <option value="prop_chest">Treasure Chest</option>
-            </optgroup>
-            <optgroup label="Tiles">
-              <option value="tile_grass">Meadow Grass</option>
-              <option value="tile_cobble">Town Cobble</option>
-              <option value="tile_water">River Water</option>
-            </optgroup>
-          </select>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+          <div>
+            <label style="font-size: 10px; color: var(--text-muted);">Offset X:</label>
+            <input type="number" id="art-frame-ox" value="0" min="0" max="64" style="width: 100%; background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 4px 6px; border-radius: 4px; font-size: 11px;" />
+          </div>
+          <div>
+            <label style="font-size: 10px; color: var(--text-muted);">Offset Y:</label>
+            <input type="number" id="art-frame-oy" value="0" min="0" max="64" style="width: 100%; background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 4px 6px; border-radius: 4px; font-size: 11px;" />
+          </div>
+          <div>
+            <label style="font-size: 10px; color: var(--text-muted);">Spacing:</label>
+            <input type="number" id="art-frame-spacing" value="0" min="0" max="32" style="width: 100%; background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 4px 6px; border-radius: 4px; font-size: 11px;" />
+          </div>
         </div>
 
         <button id="btn-save-art" class="btn btn-primary" style="padding: 10px; font-size: 13px; margin-top: auto;">
@@ -317,23 +491,62 @@
       </aside>
 
       <!-- Center Slice Visualizer -->
-      <div style="flex: 1; position: relative; background: #090d16; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 20px;">
-        <div id="art-empty-notice" style="text-align: center; color: var(--text-muted); font-size: 13px;">
-          <div style="font-size: 32px; margin-bottom: 8px;">🖼️</div>
-          Drag an image into the left panel or click to upload.<br>
-          We'll slice it into frames and preview it live!
+      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #090d16;">
+        <!-- Top Visualizer Toolbar -->
+        <div style="background: var(--panel); border-bottom: 1px solid var(--border); padding: 8px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span style="font-size: 11px; font-weight: 600; color: var(--text-muted);">Background:</span>
+          <div style="display: flex; gap: 4px;">
+            <button class="btn bg-btn active" data-bg="dark" style="font-size: 11px; padding: 4px 8px;">⬛ Dark Grid</button>
+            <button class="btn bg-btn" data-bg="light" style="font-size: 11px; padding: 4px 8px;">⬜ Light Grid</button>
+            <button class="btn bg-btn" data-bg="grass" style="font-size: 11px; padding: 4px 8px;">🟩 Meadow Grass</button>
+            <button class="btn bg-btn" data-bg="black" style="font-size: 11px; padding: 4px 8px;">🌑 Black</button>
+          </div>
+
+          <div style="height: 16px; width: 1px; background: var(--border); margin: 0 4px;"></div>
+
+          <span style="font-size: 11px; font-weight: 600; color: var(--text-muted);">Zoom:</span>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <button id="btn-zoom-out" class="btn" style="padding: 3px 8px; font-size: 11px;">−</button>
+            <span id="zoom-val" style="font-size: 11px; min-width: 44px; text-align: center; color: #fff;">100%</span>
+            <button id="btn-zoom-in" class="btn" style="padding: 3px 8px; font-size: 11px;">+</button>
+            <button id="btn-zoom-fit" class="btn" style="padding: 3px 8px; font-size: 11px;">Fit</button>
+          </div>
+
+          <span id="art-slice-status" style="font-size: 11px; color: #a5b4fc; margin-left: auto;">Hover a frame to inspect</span>
         </div>
-        <canvas id="art-slice-canvas" style="display: none; image-rendering: pixelated; box-shadow: 0 0 20px rgba(0,0,0,0.8); border: 1px solid var(--border);"></canvas>
+
+        <!-- Canvas Viewport -->
+        <div id="art-viewport" class="bg-grid-dark" style="flex: 1; position: relative; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 24px;">
+          <div id="art-empty-notice" style="text-align: center; color: var(--text-muted); font-size: 13px;">
+            <div style="font-size: 36px; margin-bottom: 8px;">🖼️</div>
+            Drag an image into the left panel or click to upload.<br>
+            We'll slice it into frames and preview it live!
+          </div>
+          <canvas id="art-slice-canvas" style="display: none; image-rendering: pixelated; box-shadow: 0 0 25px rgba(0,0,0,0.8); border: 1px solid var(--border); transform-origin: center center; cursor: crosshair;"></canvas>
+        </div>
       </div>
 
-      <!-- Right Live Animation Preview -->
-      <aside style="width: 260px; background: var(--panel); border-left: 1px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 14px;">
-        <h3 style="font-size: 14px;">🎞️ Live Animation Preview</h3>
-        <div style="background: #090d16; border: 1px solid var(--border); border-radius: 8px; height: 160px; display: flex; align-items: center; justify-content: center;">
-          <canvas id="art-preview-canvas" width="96" height="96" style="image-rendering: pixelated;"></canvas>
+      <!-- Right Live Animation & Test Drive Playground -->
+      <aside style="width: 320px; background: var(--panel); border-left: 1px solid var(--border); padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="font-size: 14px; margin: 0;">🎞️ Animation Studio</h3>
+          <!-- Mode Toggle -->
+          <div style="display: flex; gap: 4px;">
+            <button class="btn anim-mode-btn active" data-mode="single" style="font-size: 10px; padding: 3px 7px;">Single</button>
+            <button class="btn anim-mode-btn" data-mode="matrix" style="font-size: 10px; padding: 3px 7px;">4-Way Matrix</button>
+          </div>
         </div>
 
-        <div>
+        <!-- Preview Viewport -->
+        <div id="art-preview-viewport" style="background: #090d16; border: 1px solid var(--border); border-radius: 8px; height: 160px; display: flex; align-items: center; justify-content: center; position: relative;">
+          <!-- Single View Canvas -->
+          <canvas id="art-preview-canvas" width="96" height="96" style="image-rendering: pixelated;"></canvas>
+          <!-- 4-Way Matrix Canvas -->
+          <canvas id="art-matrix-canvas" width="160" height="140" style="display: none; image-rendering: pixelated;"></canvas>
+        </div>
+
+        <!-- Direction Controls (For Single View) -->
+        <div id="art-direction-panel">
           <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">Facing Direction:</label>
           <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
             <button class="btn anim-dir-btn active" data-dir="0">Down</button>
@@ -343,16 +556,46 @@
           </div>
         </div>
 
+        <!-- Playback & Loop Controls -->
         <div>
-          <label style="font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between;">
-            <span>Playback Speed:</span>
-            <span id="anim-fps-val">8 FPS</span>
-          </label>
-          <input type="range" id="anim-fps-slider" min="1" max="24" value="8" style="width: 100%; margin-top: 6px;" />
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <label style="font-size: 11px; color: var(--text-muted);">Loop Mode:</label>
+            <div style="display: flex; gap: 4px;">
+              <button class="btn loop-mode-btn active" data-loop="pingpong" style="font-size: 10px; padding: 2px 6px;">🔀 Ping-Pong</button>
+              <button class="btn loop-mode-btn" data-loop="standard" style="font-size: 10px; padding: 2px 6px;">🔁 Standard</button>
+            </div>
+          </div>
+
+          <!-- Play / Pause / Step Controls -->
+          <div style="display: flex; align-items: center; gap: 6px; margin-top: 6px;">
+            <button id="btn-anim-prev" class="btn" style="padding: 4px 8px; font-size: 11px;" title="Step Back">⏮️</button>
+            <button id="btn-anim-play" class="btn btn-primary" style="padding: 4px 10px; font-size: 11px;" title="Play/Pause">⏸️</button>
+            <button id="btn-anim-next" class="btn" style="padding: 4px 8px; font-size: 11px;" title="Step Forward">⏭️</button>
+            <span id="anim-frame-counter" style="font-size: 11px; color: var(--text-muted); margin-left: 6px;">Frame 1/3</span>
+          </div>
+
+          <!-- Speed Slider -->
+          <div style="margin-top: 8px;">
+            <label style="font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between;">
+              <span>Speed:</span>
+              <span id="anim-fps-val" style="color: #fff; font-weight: 600;">8 FPS</span>
+            </label>
+            <input type="range" id="anim-fps-slider" min="1" max="24" value="8" style="width: 100%; margin-top: 4px;" />
+          </div>
         </div>
 
-        <div style="font-size: 11px; color: var(--text-muted); line-height: 1.5; background: #0f172a; padding: 10px; border-radius: 6px; margin-top: auto;">
-          💡 <strong>Tip:</strong> Slices are verified against the sprite grid and immediately saved to <code>assets/raw/</code> when you click Hot-Swap!
+        <!-- Interactive Walk Test Drive Playground -->
+        <div style="border-top: 1px solid var(--border); padding-top: 10px; display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; font-weight: 700; color: #a5b4fc;">🎮 Walk Test Drive</span>
+            <span style="font-size: 10px; color: var(--text-muted);">WASD / Arrows</span>
+          </div>
+          <div style="position: relative; background: #090d16; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; display: flex; justify-content: center;">
+            <canvas id="art-testdrive-canvas" width="280" height="120" tabindex="0" style="image-rendering: pixelated; outline: none; cursor: grab;"></canvas>
+            <div id="testdrive-focus-hint" style="position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); font-size: 9px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 8px; pointer-events: none; color: #a5b4fc; white-space: nowrap;">
+              Click canvas to move with WASD
+            </div>
+          </div>
         </div>
       </aside>
     </div>

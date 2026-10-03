@@ -172,6 +172,52 @@ const server = Bun.serve<SocketData>({
       })();
     }
 
+    // Asset Status Endpoint for Dev Suite
+    if (url.pathname === '/api/asset-status' && req.method === 'GET') {
+      const spritesDir = path.resolve(import.meta.dir, '../../assets/raw/sprites');
+      const tilesDir = path.resolve(import.meta.dir, '../../assets/raw/tiles');
+      const customSprites = fs.existsSync(spritesDir)
+        ? fs.readdirSync(spritesDir).filter(f => f.endsWith('.png')).map(f => path.parse(f).name)
+        : [];
+      const customTiles = fs.existsSync(tilesDir)
+        ? fs.readdirSync(tilesDir).filter(f => f.endsWith('.png')).map(f => path.parse(f).name)
+        : [];
+      return new Response(JSON.stringify({ customSprites, customTiles }), {
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      });
+    }
+
+    // Asset Revert Endpoint (Restore procedural placeholder)
+    if (url.pathname === '/api/revert-asset' && req.method === 'POST') {
+      return (async () => {
+        try {
+          const body: any = await req.json();
+          const { name, category } = body;
+          const subDir = category === 'tile' ? 'tiles' : 'sprites';
+          const rawPath = path.resolve(import.meta.dir, `../../assets/raw/${subDir}/${name}.png`);
+          const clientPath = path.resolve(import.meta.dir, `../../client/public/assets/${subDir}/${name}.png`);
+          if (fs.existsSync(rawPath)) fs.unlinkSync(rawPath);
+          if (fs.existsSync(clientPath)) fs.unlinkSync(clientPath);
+
+          try {
+            runAssetIngestion();
+          } catch (e) {
+            console.error('[Asset Importer] Failed to run asset ingestion on revert:', e);
+          }
+
+          console.log(`[Asset Importer] Reverted asset "${name}" to procedural default.`);
+          return new Response(JSON.stringify({ success: true, name }), {
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          });
+        } catch (err: any) {
+          return new Response(JSON.stringify({ error: err.message }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          });
+        }
+      })();
+    }
+
     const clientId = `p_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
     const upgraded = s.upgrade(req, {
       data: {

@@ -224,6 +224,17 @@ export class Player extends Phaser.GameObjects.Container {
     network.sendMove(this.x, this.y, this.direction, animState, this.carryingPotId);
   }
 
+  public enterPushStance(dir: Direction) {
+    this.direction = dir;
+    this.idleStartTime = this.scene.time.now;
+    this.sprite.setTexture(`player_${this.paletteIndex}_${dir}_slash`);
+    this.sprite.setScale(1.12, 0.92);
+    this.scene.time.delayedCall(240, () => {
+      this.sprite.setScale(1.0, 1.0);
+      this.sprite.setTexture(`player_${this.paletteIndex}_${dir}_idle`);
+    });
+  }
+
   private emitFootstep() {
     const surface = (this.scene as any).getSurfaceAt?.(this.x, this.y + 4) || 'grass';
     sounds.playFootstep(surface);

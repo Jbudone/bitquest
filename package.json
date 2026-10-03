@@ -18,8 +18,9 @@
     "test:vfx": "bun run tools/test_vfx.ts",
     "test:foliage": "bun run tools/test_foliage.ts",
     "test:ambient_ai": "bun run tools/test_ambient_ai.ts",
+    "test:blocks": "bun run tools/test_blocks.ts",
     "ingest:assets": "bun run tools/ingest_assets.ts",
-    "test:all": "bun run check:map && bun run check:quests && bun run check:dialogue && bun run test:balance && bun run test:perf && bun run test:playthrough && bun run test:coop && bun run test:vfx && bun run test:foliage && bun run test:ambient_ai && bun run ingest:assets"
+    "test:all": "bun run check:map && bun run check:quests && bun run check:dialogue && bun run test:balance && bun run test:perf && bun run test:playthrough && bun run test:coop && bun run test:vfx && bun run test:foliage && bun run test:ambient_ai && bun run test:blocks && bun run ingest:assets"
   },
   "devDependencies": {
     "@types/bun": "latest"

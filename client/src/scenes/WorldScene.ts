@@ -756,6 +756,13 @@ export class WorldScene extends Phaser.Scene {
       shadow.setVisible(!ent.state.destroyed);
       this.entityShadows.set(ent.id, shadow);
       obj = sprite;
+    } else if (ent.type === 'block') {
+      const sprite = this.obstacles.create(ent.x, ent.y, 'ent_block_stone');
+      sprite.body.setSize(28, 28);
+      sprite.setDepth(ent.y);
+      const shadow = this.add.sprite(ent.x + 2, ent.y + 12, 'shadow_directional_45').setAlpha(0.65).setDepth(ent.y - 2);
+      this.entityShadows.set(ent.id, shadow);
+      obj = sprite;
     } else {
       obj = this.add.rectangle(ent.x, ent.y, 20, 20, 0xffffff);
     }
@@ -806,7 +813,44 @@ export class WorldScene extends Phaser.Scene {
         }
       } else {
         const isDown = !!ent.state.activated;
-        obj.setTexture(isDown ? 'switch_down' : 'switch_up');
+        const newTex = isDown ? 'switch_down' : 'switch_up';
+        if (obj.texture?.key !== newTex) {
+          obj.setTexture(newTex);
+          if (isDown) {
+            sounds.playMechanicalClunk();
+            this.triggerCameraShake(80, 0.003);
+            this.emitSparkleBurst(ent.x, ent.y);
+          }
+        }
+      }
+    } else if (ent.type === 'block') {
+      const sprite = obj as Phaser.Physics.Arcade.Sprite;
+      if (Math.abs(sprite.x - ent.x) > 1 || Math.abs(sprite.y - ent.y) > 1) {
+        sounds.playStoneScrape();
+        for (let i = 0; i < 4; i++) {
+          const spark = this.add.image(ent.x + (Math.random() * 20 - 10), ent.y + 10, 'particle_stone_spark');
+          spark.setDepth(ent.y + 5);
+          this.tweens.add({
+            targets: spark,
+            x: spark.x + (Math.random() * 16 - 8),
+            y: spark.y + (Math.random() * 8 - 4),
+            alpha: 0,
+            duration: 250,
+            onComplete: () => spark.destroy()
+          });
+        }
+        this.tweens.add({
+          targets: sprite,
+          x: ent.x,
+          y: ent.y,
+          duration: 180,
+          ease: 'Linear',
+          onUpdate: () => {
+            sprite.setDepth(sprite.y);
+            const shadow = this.entityShadows.get(ent.id);
+            if (shadow) shadow.setPosition(sprite.x + 2, sprite.y + 12);
+          }
+        });
       }
     } else if (ent.type === 'chest') {
       const isOpened = !!ent.state.opened;
@@ -1499,6 +1543,41 @@ export class WorldScene extends Phaser.Scene {
     } else if (closestId.startsWith('lever_')) {
       network.sendInteract(closestId, 'pull_lever');
       sounds.playLever();
+    } else if (closestId.startsWith('block_')) {
+      const block = this.entityObjects.get(closestId) as Phaser.GameObjects.Sprite;
+      const dx = block.x - px;
+      const dy = block.y - py;
+      let pushDir: Direction = 'right';
+      let targetX = block.x;
+      let targetY = block.y;
+      const PUSH_DIST = 32;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx > 0) {
+          pushDir = 'right';
+          targetX += PUSH_DIST;
+        } else {
+          pushDir = 'left';
+          targetX -= PUSH_DIST;
+        }
+      } else {
+        if (dy > 0) {
+          pushDir = 'down';
+          targetY += PUSH_DIST;
+        } else {
+          pushDir = 'up';
+          targetY -= PUSH_DIST;
+        }
+      }
+
+      // Restrict within Ruins courtyard area
+      targetX = Phaser.Math.Clamp(targetX, 840, 1200);
+      targetY = Phaser.Math.Clamp(targetY, 500, 680);
+
+      this.localPlayer.enterPushStance(pushDir);
+      sounds.playStoneScrape();
+      this.triggerCameraShake(80, 0.002);
+      network.sendInteract(closestId, 'push_block', targetX, targetY);
     } else if (closestId.startsWith('chest_')) {
       network.sendInteract(closestId, 'open');
       sounds.playChestOpen();
@@ -2348,6 +2427,7 @@ export class WorldScene extends Phaser.Scene {
 
   private getInteractLabel(id: string): { label: string; color: number } {
     if (id.startsWith('pot_')) return { label: '[E] Lift Pot', color: 0xf59e0b };
+    if (id.startsWith('block_')) return { label: '[E] Push Heavy Stone', color: 0x94a3b8 };
     if (id.startsWith('lever_')) return { label: '[E] Pull Ancient Lever', color: 0xf59e0b };
     if (id === 'chest_duo_vault') {
       const ent = this.entityObjects.get(id) as any;

@@ -836,7 +836,33 @@ export class TextureGenerator {
       scene.textures.addCanvas('switch_down', canvas);
     }
 
-    // 6b. Mechanical Pull-Lever - Up (32x32)
+    // 6b. Heavy Pushable Ancient Stone Block (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Dark border & base shadow
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(1, 1, 30, 30);
+      // Main ancient carved stone body
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(2, 2, 28, 28);
+      // Top bevel highlight
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(2, 2, 28, 4);
+      ctx.fillRect(2, 2, 4, 28);
+      // Bottom bevel shadow
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(2, 26, 28, 4);
+      ctx.fillRect(26, 2, 4, 28);
+      // Inner ancient geometric carved glyph (diamond & sun cross)
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(14, 10, 4, 12);
+      ctx.fillRect(10, 14, 12, 4);
+      ctx.fillStyle = '#fde047'; // ancient golden inlaid gem in center
+      ctx.fillRect(14, 14, 4, 4);
+      scene.textures.addCanvas('ent_block_stone', canvas);
+    }
+
+    // 6c. Mechanical Pull-Lever - Up (32x32)
     {
       const [canvas, ctx] = this.createCanvas(32, 32);
       // Stone/Iron Mount Base

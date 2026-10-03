@@ -119,6 +119,27 @@ export class WorldManager {
       state: { opened: this.db.getFlag('ancient_gate_opened') }
     });
 
+    // 3b. Heavy Pushable Ancient Stone Blocks
+    this.entities.set('block_ruins_1', {
+      id: 'block_ruins_1',
+      type: 'block',
+      name: 'Sun-Carved Rune Block',
+      x: 920,
+      y: 600,
+      interactable: true,
+      state: {}
+    });
+
+    this.entities.set('block_ruins_2', {
+      id: 'block_ruins_2',
+      type: 'block',
+      name: 'Moon-Carved Rune Block',
+      x: 1128,
+      y: 600,
+      interactable: true,
+      state: {}
+    });
+
     // 3b. Co-Op Ancient Duo Levers & Ruined Vault Chest
     const duoUnlocked = this.db.getFlag('duo_vault_unlocked') || false;
     this.entities.set('lever_duo_left', {
@@ -757,6 +778,14 @@ export class WorldManager {
         if (distL < 24) leftOccupied = true;
         if (distR < 24) rightOccupied = true;
       }
+
+      // Check heavy blocks pushed onto switches
+      if (entity.type === 'block') {
+        const distL = Math.hypot(entity.x - switchLeft.x, entity.y - switchLeft.y);
+        const distR = Math.hypot(entity.x - switchRight.x, entity.y - switchRight.y);
+        if (distL < 28) leftOccupied = true;
+        if (distR < 28) rightOccupied = true;
+      }
     }
 
     if (switchLeft.state.activated !== leftOccupied) {
@@ -780,6 +809,16 @@ export class WorldManager {
   public handleInteract(playerId: string, targetId: string, action: string, x?: number, y?: number, damage?: number) {
     const entity = this.entities.get(targetId);
     if (!entity) return;
+
+    if (action === 'push_block' && entity.type === 'block') {
+      if (typeof x === 'number' && typeof y === 'number') {
+        entity.x = x;
+        entity.y = y;
+        this.onEntityStateChanged?.(entity);
+        this.checkPressureSwitches();
+      }
+      return;
+    }
 
     if (action === 'pull_lever' || targetId.startsWith('lever_')) {
       this.handleLeverPull(playerId, targetId);

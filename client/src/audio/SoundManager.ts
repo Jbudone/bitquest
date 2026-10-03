@@ -579,6 +579,71 @@ export class SoundManager {
     osc.stop(now + duration);
   }
 
+  public playMechanicalClunk() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Stage 1: Deep stone plate floor thud
+    const osc1 = this.ctx.createOscillator();
+    const gain1 = this.ctx.createGain();
+    osc1.type = 'triangle';
+    osc1.frequency.setValueAtTime(140, now);
+    osc1.frequency.exponentialRampToValueAtTime(45, now + 0.09);
+    gain1.gain.setValueAtTime(0.25 * this.sfxVol, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+    osc1.connect(gain1);
+    gain1.connect(this.soundDestination);
+    osc1.start(now);
+    osc1.stop(now + 0.09);
+
+    // Stage 2: Heavy iron latch lock clunk
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+    osc2.type = 'square';
+    osc2.frequency.setValueAtTime(420, now + 0.025);
+    osc2.frequency.exponentialRampToValueAtTime(120, now + 0.075);
+    gain2.gain.setValueAtTime(0.18 * this.sfxVol, now + 0.025);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.075);
+    osc2.connect(gain2);
+    gain2.connect(this.soundDestination);
+    osc2.start(now + 0.025);
+    osc2.stop(now + 0.075);
+  }
+
+  public playStoneScrape() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Noise buffer grating friction
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.12);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.7;
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(280, now);
+    filter.Q.setValueAtTime(3.5, now);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.20 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.soundDestination);
+
+    noise.start(now);
+    noise.stop(now + 0.12);
+  }
+
   public playEmoteSound(emote?: string) {
     this.ensureContext();
     if (!this.ctx) return;

@@ -30,6 +30,7 @@ import { DUNGEON_CONSTANTS, MALAKOR_SPECS, DungeonManager, CATACOMBS_FLOORS, typ
 import { FishingEngine, FISH_SPECIES, type FishSpecies, type PlayerFishLog } from '../../shared/src/fishing';
 import { WeatherEngine, CAMPFIRES, type WeatherType, type WeatherState, type DayPhase, type CampfireDefinition } from '../../shared/src/weather';
 import { ShopEngine, MERCHANTS, SHOP_ITEMS, type ShopItem, type MerchantDefinition, type CurrencyType } from '../../shared/src/shop';
+import { PetEngine, PET_DEFINITIONS, MOUNT_DEFINITIONS, type PetDefinition, type MountDefinition } from '../../shared/src/pets';
 
 function pointToSegmentDistance(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
   const dx = x2 - x1;
@@ -82,6 +83,9 @@ export class WorldManager {
   public onCampfireRest?: (playerId: string, campfireId: string, healedHp: number, restoredMana: number) => void;
   public onShopSync?: (playerId: string, merchantId: string, merchantName: string, merchantTitle: string, portrait: string, greeting: string, wares: ShopItem[], playerCoins: number, playerAcorns: number, inventory: string[]) => void;
   public onShopTransactionResult?: (playerId: string, success: boolean, message: string, newCoins: number, newAcorns: number, inventory: string[], wares?: ShopItem[]) => void;
+  public onMountToggle?: (playerId: string, mountId: string | null, x: number, y: number) => void;
+  public onPetAlert?: (petId: string, alertType: 'secret' | 'enemy', x: number, y: number, text: string) => void;
+  private petAlertCooldown = 0;
 
   public weatherState: WeatherState = {
     current: 'clear',
@@ -270,6 +274,16 @@ export class WorldManager {
       state: { opened: false, locked: !duoUnlocked }
     });
 
+    this.entities.set('chest_meadow_cache', {
+      id: 'chest_meadow_cache',
+      type: 'chest',
+      x: 1480,
+      y: 920,
+      name: 'Hidden Meadow Cache',
+      interactable: true,
+      state: { opened: false, locked: false }
+    });
+
     // 4. Notice Boards & Signs
     this.entities.set('sign_square', {
       id: 'sign_square',
@@ -360,7 +374,19 @@ export class WorldManager {
       x: 1080,
       y: 1180,
       interactable: true,
-      state: { dialogueKey: 'dog_buster', direction: 'down', petCount: 0, behavior: 'idle', behaviorTimer: 0 }
+      state: { dialogueKey: 'dog_buster', direction: 'down', petCount: 0, behavior: 'idle', behaviorTimer: 0, ownerId: null, petState: 'wild' }
+    });
+
+    const frogDef = MOUNT_DEFINITIONS.mount_frog_mossy!;
+    this.entities.set(frogDef.id, {
+      id: frogDef.id,
+      type: 'mount',
+      subtype: 'frog',
+      name: frogDef.name,
+      x: frogDef.initialX,
+      y: frogDef.initialY,
+      interactable: true,
+      state: { mountedBy: null, direction: 'down' }
     });
 
     this.entities.set('wildlife_duck_1', {
@@ -1255,6 +1281,71 @@ export class WorldManager {
     );
   }
 
+  public mountWildlife(playerId: string, mountId: string): boolean {
+    const player = this.players.get(playerId);
+    if (!player) return false;
+    if ((player as any).mountedEntityId) return false;
+
+    const mount = this.entities.get(mountId);
+    if (!mount || mount.type !== 'mount' || mount.state.mountedBy) return false;
+
+    if (!PetEngine.canMount(player.x, player.y, mount.x, mount.y, 64)) return false;
+
+    mount.state.mountedBy = playerId;
+    (player as any).mountedEntityId = mountId;
+    mount.x = player.x;
+    mount.y = player.y;
+
+    this.spatialGrid.update(mount);
+    this.onEntityStateChanged?.(mount);
+    this.onMountToggle?.(playerId, mountId, player.x, player.y);
+    return true;
+  }
+
+  public dismountWildlife(playerId: string): boolean {
+    const player = this.players.get(playerId);
+    if (!player) return false;
+    const mountId = (player as any).mountedEntityId;
+    if (!mountId) return false;
+
+    (player as any).mountedEntityId = null;
+    const mount = this.entities.get(mountId);
+    if (mount) {
+      mount.state.mountedBy = null;
+      mount.x = player.x;
+      mount.y = player.y;
+      this.spatialGrid.update(mount);
+      this.onEntityStateChanged?.(mount);
+    }
+
+    this.onMountToggle?.(playerId, null, player.x, player.y);
+    return true;
+  }
+
+  public commandPet(playerId: string, petId: string, action: 'follow' | 'stay' | 'pet'): boolean {
+    const pet = this.entities.get(petId);
+    if (!pet) return false;
+
+    if (action === 'pet') {
+      pet.state.petCount = (pet.state.petCount || 0) + 1;
+      if (!pet.state.ownerId || pet.state.ownerId !== playerId) {
+        pet.state.ownerId = playerId;
+        pet.state.petState = 'following';
+      } else {
+        pet.state.petState = pet.state.petState === 'following' ? 'staying' : 'following';
+      }
+    } else if (action === 'follow') {
+      pet.state.ownerId = playerId;
+      pet.state.petState = 'following';
+    } else if (action === 'stay') {
+      pet.state.petState = 'staying';
+      pet.state.behavior = 'nap';
+    }
+
+    this.onEntityStateChanged?.(pet);
+    return true;
+  }
+
   public handleLeverPull(playerId: string, targetId: string) {
     const lever = this.entities.get(targetId);
     if (!lever || lever.state.solved) return;
@@ -1397,38 +1488,103 @@ export class WorldManager {
           this.onEntityStateChanged?.(entity);
         }
 
-        // 2c. Buster the Dog organic ambient micro-behaviors (sniffing, napping, idle wagging)
+        // 2c. Buster the Dog (Companion Pet & Ambient AI)
         if (entity.id === 'wildlife_buster') {
-          let playerNear = false;
-          for (const player of this.players.values()) {
-            if (Math.hypot(player.x - entity.x, player.y - entity.y) < 64) {
-              playerNear = true;
-              break;
+          const now = Date.now();
+          const owner = entity.state.ownerId ? this.players.get(entity.state.ownerId) : null;
+
+          if (owner && entity.state.petState === 'following') {
+            // Secret Sniffing Check (within 120px)
+            const secret = PetEngine.detectNearbySecrets(entity.x, entity.y, this.entities.values(), 120);
+            // Hostile Enemy Threat Check (within 110px)
+            const enemy = PetEngine.detectNearbyEnemies(entity.x, entity.y, this.entities.values(), 110);
+
+            if (secret && Math.hypot(secret.x - entity.x, secret.y - entity.y) < 120) {
+              const dx = secret.x - entity.x;
+              const dy = secret.y - entity.y;
+              const d = Math.hypot(dx, dy);
+              if (d > 16) {
+                entity.x += (dx / d) * 4;
+                entity.y += (dy / d) * 4;
+                entity.state.behavior = 'run';
+              } else {
+                entity.state.behavior = 'sniff';
+              }
+              if (!this.petAlertCooldown || now > this.petAlertCooldown) {
+                this.petAlertCooldown = now + 4000;
+                this.onPetAlert?.(entity.id, 'secret', secret.x, secret.y, '🐾 Found Something!');
+              }
+              this.spatialGrid.update(entity);
+              this.onEntityStateChanged?.(entity);
+            } else if (enemy && Math.hypot(enemy.x - entity.x, enemy.y - entity.y) < 110) {
+              entity.state.behavior = 'bark';
+              if (!this.petAlertCooldown || now > this.petAlertCooldown) {
+                this.petAlertCooldown = now + 3500;
+                this.onPetAlert?.(entity.id, 'enemy', enemy.x, enemy.y, '⚠️ GRRR! WOOF!');
+              }
+              this.onEntityStateChanged?.(entity);
+            } else {
+              // Distance Spring Following behind owner
+              const target = PetEngine.calculateTargetPosition(owner.x, owner.y, owner.direction, 36);
+              const spring = PetEngine.stepSpringFollow(entity.x, entity.y, target.x, target.y, 0.14, 580);
+              if (spring.moved) {
+                entity.x = Math.round(spring.x);
+                entity.y = Math.round(spring.y);
+                entity.state.behavior = spring.state;
+                this.spatialGrid.update(entity);
+                this.onEntityStateChanged?.(entity);
+              } else if (entity.state.behavior !== 'idle') {
+                entity.state.behavior = 'idle';
+                this.onEntityStateChanged?.(entity);
+              }
+            }
+          } else {
+            let playerNear = false;
+            for (const player of this.players.values()) {
+              if (Math.hypot(player.x - entity.x, player.y - entity.y) < 64) {
+                playerNear = true;
+                break;
+              }
+            }
+
+            if (playerNear) {
+              if (entity.state.behavior !== 'idle') {
+                entity.state.behavior = 'idle';
+                entity.state.behaviorTimer = now + 4000;
+                this.onEntityStateChanged?.(entity);
+              }
+            } else {
+              if (!entity.state.behaviorTimer || now > entity.state.behaviorTimer) {
+                const roll = Math.random();
+                if (roll < 0.40) {
+                  entity.state.behavior = 'sniff';
+                  entity.state.behaviorTimer = now + 4000 + Math.random() * 2000;
+                } else if (roll < 0.75) {
+                  entity.state.behavior = 'nap';
+                  entity.state.behaviorTimer = now + 6000 + Math.random() * 4000;
+                } else {
+                  entity.state.behavior = 'idle';
+                  entity.state.behaviorTimer = now + 3500 + Math.random() * 2000;
+                }
+                this.onEntityStateChanged?.(entity);
+              }
             }
           }
+        }
 
-          const now = Date.now();
-          if (playerNear) {
-            if (entity.state.behavior !== 'idle') {
-              entity.state.behavior = 'idle';
-              entity.state.behaviorTimer = now + 4000;
+        // 2c-2. Mount Wildlife Position Sync
+        if (entity.type === 'mount' && entity.state.mountedBy) {
+          const rider = this.players.get(entity.state.mountedBy);
+          if (rider) {
+            if (entity.x !== rider.x || entity.y !== rider.y) {
+              entity.x = rider.x;
+              entity.y = rider.y;
+              this.spatialGrid.update(entity);
               this.onEntityStateChanged?.(entity);
             }
           } else {
-            if (!entity.state.behaviorTimer || now > entity.state.behaviorTimer) {
-              const roll = Math.random();
-              if (roll < 0.40) {
-                entity.state.behavior = 'sniff';
-                entity.state.behaviorTimer = now + 4000 + Math.random() * 2000;
-              } else if (roll < 0.75) {
-                entity.state.behavior = 'nap';
-                entity.state.behaviorTimer = now + 6000 + Math.random() * 4000;
-              } else {
-                entity.state.behavior = 'idle';
-                entity.state.behaviorTimer = now + 3500 + Math.random() * 2000;
-              }
-              this.onEntityStateChanged?.(entity);
-            }
+            entity.state.mountedBy = null;
+            this.onEntityStateChanged?.(entity);
           }
         }
 
@@ -2047,6 +2203,14 @@ export class WorldManager {
   }
 
   public removePlayer(id: string): void {
+    this.dismountWildlife(id);
+    const buster = this.entities.get('wildlife_buster');
+    if (buster && buster.state.ownerId === id) {
+      buster.state.ownerId = null;
+      buster.state.petState = 'staying';
+      this.onEntityStateChanged?.(buster);
+    }
+
     for (const entity of this.entities.values()) {
       if (entity.state.heldBy === id) {
         entity.state.heldBy = null;
@@ -2066,6 +2230,16 @@ export class WorldManager {
     p.direction = direction;
     p.anim = anim;
     p.carryingItem = carryingItem;
+
+    if ((p as any).mountedEntityId) {
+      const mount = this.entities.get((p as any).mountedEntityId);
+      if (mount) {
+        mount.x = x;
+        mount.y = y;
+        mount.state.direction = direction;
+        this.spatialGrid.update(mount);
+      }
+    }
 
     this.checkPressureSwitches();
   }
@@ -2374,6 +2548,26 @@ export class WorldManager {
     if (action === 'browse_shop' || entity.type === 'merchant') {
       const merchantId = entity.state.merchantId || entity.id;
       this.openShop(playerId, merchantId);
+      return;
+    }
+
+    if (action === 'mount' || entity.type === 'mount') {
+      const player = this.players.get(playerId);
+      if (player && (player as any).mountedEntityId) {
+        this.dismountWildlife(playerId);
+      } else {
+        this.mountWildlife(playerId, entity.id);
+      }
+      return;
+    }
+
+    if (action === 'dismount') {
+      this.dismountWildlife(playerId);
+      return;
+    }
+
+    if (action === 'pet_command') {
+      this.commandPet(playerId, entity.id, 'pet');
       return;
     }
 

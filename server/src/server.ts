@@ -347,6 +347,27 @@ world.onShopTransactionResult = (playerId, success, message, newCoins, newAcorns
   }
 };
 
+world.onMountToggle = (playerId, mountId, x, y) => {
+  broadcast({
+    type: 'mount_toggle',
+    playerId,
+    mountId,
+    x,
+    y
+  });
+};
+
+world.onPetAlert = (petId, alertType, x, y, text) => {
+  broadcast({
+    type: 'pet_alert',
+    petId,
+    alertType,
+    x,
+    y,
+    text
+  });
+};
+
 // 25Hz World Tick Loop with Delta State Compression
 const deltaSync = new DeltaSyncEngine();
 let tickCounter = 0;

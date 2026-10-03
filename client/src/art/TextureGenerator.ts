@@ -2039,6 +2039,178 @@ export class TextureGenerator {
 
       scene.textures.addCanvas('wildlife_dog_nap', canvas);
     }
+    {
+      // Buster Alert Barking (24x24)
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(12, 20, 7, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Body upright and braced
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(5, 10, 11, 8);
+      ctx.fillStyle = '#fef3c7';
+      ctx.fillRect(11, 10, 5, 6);
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(6, 17, 3, 4);
+      ctx.fillRect(13, 17, 3, 4);
+      // Head raised high barking
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(11, 3, 9, 8);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(12, 4, 7, 6);
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(12, 1, 3, 4);
+      ctx.fillRect(16, 1, 3, 4);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(14, 5, 2, 2);
+      // Open barking mouth with pink tongue
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(18, 7, 4, 3);
+      ctx.fillStyle = '#f43f5e';
+      ctx.fillRect(19, 8, 2, 2);
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(3, 5, 3, 6);
+
+      scene.textures.addCanvas('wildlife_dog_alert', canvas);
+      scene.textures.addCanvas('wildlife_dog_bark', canvas);
+    }
+    {
+      // Barnaby's Boghopper Giant Moss Frog - Idle (28x24)
+      const [canvas, ctx] = this.createCanvas(28, 24);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(14, 21, 11, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Muscular folded hind legs
+      ctx.fillStyle = '#14532d';
+      ctx.fillRect(3, 13, 6, 8);
+      ctx.fillRect(19, 13, 6, 8);
+      ctx.fillStyle = '#16a34a';
+      ctx.fillRect(4, 14, 4, 6);
+      ctx.fillRect(20, 14, 4, 6);
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(2, 20, 4, 2);
+      ctx.fillRect(22, 20, 4, 2);
+
+      // Main plump frog body
+      ctx.fillStyle = '#16a34a';
+      ctx.beginPath();
+      ctx.ellipse(14, 14, 9, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Creamy pale throat
+      ctx.fillStyle = '#bbf7d0';
+      ctx.beginPath();
+      ctx.ellipse(14, 16, 6, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Camouflage spots
+      ctx.fillStyle = '#14532d';
+      ctx.fillRect(9, 10, 2, 2);
+      ctx.fillRect(17, 11, 2, 2);
+      ctx.fillRect(12, 8, 3, 2);
+
+      // Golden eyes with horizontal pupils
+      ctx.fillStyle = '#15803d';
+      ctx.beginPath();
+      ctx.arc(8, 6, 4, 0, Math.PI * 2);
+      ctx.arc(20, 6, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.arc(8, 6, 2.5, 0, Math.PI * 2);
+      ctx.arc(20, 6, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(6, 6, 4, 1.5);
+      ctx.fillRect(18, 6, 4, 1.5);
+
+      // Stitched leather riding saddle
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(10, 10, 8, 6);
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(11, 11, 6, 4);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(13, 12, 2, 2);
+
+      // Front hands
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(8, 19, 3, 3);
+      ctx.fillRect(17, 19, 3, 3);
+
+      scene.textures.addCanvas('mount_frog_mossy', canvas);
+      scene.textures.addCanvas('mount_frog_mossy_idle', canvas);
+    }
+    {
+      // Barnaby's Boghopper Giant Moss Frog - Leaping Hop (28x28)
+      const [canvas, ctx] = this.createCanvas(28, 28);
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.beginPath();
+      ctx.ellipse(14, 26, 7, 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Extended hind legs
+      ctx.fillStyle = '#14532d';
+      ctx.fillRect(6, 15, 3, 9);
+      ctx.fillRect(19, 15, 3, 9);
+      ctx.fillStyle = '#16a34a';
+      ctx.fillRect(7, 16, 2, 8);
+      ctx.fillRect(19, 16, 2, 8);
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(5, 23, 4, 3);
+      ctx.fillRect(19, 23, 4, 3);
+
+      // Torso
+      ctx.fillStyle = '#16a34a';
+      ctx.beginPath();
+      ctx.ellipse(14, 11, 8, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Throat
+      ctx.fillStyle = '#bbf7d0';
+      ctx.beginPath();
+      ctx.ellipse(14, 12, 5, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Front limbs
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(6, 7, 3, 5);
+      ctx.fillRect(19, 7, 3, 5);
+
+      // Eyes
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.arc(9, 4, 2.5, 0, Math.PI * 2);
+      ctx.arc(19, 4, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(7, 4, 4, 1.5);
+      ctx.fillRect(17, 4, 4, 1.5);
+
+      // Saddle
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(10, 8, 8, 5);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(13, 10, 2, 2);
+
+      scene.textures.addCanvas('mount_frog_mossy_hop', canvas);
+    }
+    {
+      // Scent Sparkle (12x12)
+      const [canvas, ctx] = this.createCanvas(12, 12);
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(5, 1, 2, 10);
+      ctx.fillRect(1, 5, 10, 2);
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(4, 4, 4, 4);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(5, 5, 2, 2);
+
+      scene.textures.addCanvas('prop_scent_sparkle', canvas);
+    }
 
     // 5. Duck (20x20)
     {

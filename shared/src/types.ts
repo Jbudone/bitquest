@@ -5,6 +5,7 @@ export * from './dungeon';
 export * from './fishing';
 export * from './weather';
 export * from './shop';
+export * from './pets';
 import type { 
   Direction, 
   PlayerAnimState, 
@@ -30,7 +31,7 @@ import type { ShopItem } from './shop';
 export type ClientPacket =
   | { type: 'join'; name: string; color: string; paletteIndex: number }
   | { type: 'move'; x: number; y: number; direction: Direction; anim: PlayerAnimState; carryingItem: string | null; seq?: number }
-  | { type: 'interact'; targetId: string; action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever' | 'light_torch' | 'enter_dungeon' | 'warp_floor' | 'sit_campfire' | 'browse_shop'; x?: number; y?: number; damage?: number }
+  | { type: 'interact'; targetId: string; action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever' | 'light_torch' | 'enter_dungeon' | 'warp_floor' | 'sit_campfire' | 'browse_shop' | 'mount' | 'dismount' | 'pet_command'; x?: number; y?: number; damage?: number }
   | { type: 'cast_spell'; spellId: SpellId; x: number; y: number; direction: Direction }
   | { type: 'equip_item'; slot: EquipmentSlot; itemId: string | null }
   | { type: 'set_vanity'; slot: VanitySlot; vanityId: string | null }
@@ -88,7 +89,9 @@ export type ServerPacket =
   | { type: 'lightning_strike'; x: number; y: number }
   | { type: 'campfire_rest'; playerId: string; campfireId: string; healedHp: number; restoredMana: number }
   | { type: 'shop_sync'; merchantId: string; merchantName: string; merchantTitle: string; portrait: string; greeting: string; wares: ShopItem[]; playerCoins: number; playerAcorns: number; inventory: string[] }
-  | { type: 'shop_transaction_result'; success: boolean; message: string; newCoins: number; newAcorns: number; inventory: string[]; wares?: ShopItem[] };
+  | { type: 'shop_transaction_result'; success: boolean; message: string; newCoins: number; newAcorns: number; inventory: string[]; wares?: ShopItem[] }
+  | { type: 'mount_toggle'; playerId: string; mountId: string | null; x: number; y: number }
+  | { type: 'pet_alert'; petId: string; alertType: 'secret' | 'enemy'; x: number; y: number; text: string };
 
 
 

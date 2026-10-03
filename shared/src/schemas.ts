@@ -21,7 +21,8 @@ export const PlayerAnimStateSchema = z.enum([
   'cast',
   'fishing_cast',
   'fishing_wait',
-  'fishing_reel'
+  'fishing_reel',
+  'ride'
 ]);
 export type PlayerAnimState = z.infer<typeof PlayerAnimStateSchema>;
 
@@ -124,7 +125,9 @@ export const PlayerDataSchema = z.object({
     maxSizeCm: z.number(),
     firstCaughtAt: z.number()
   })).default({}),
-  inventory: z.array(z.string()).default(['Wooden Practice Stick'])
+  inventory: z.array(z.string()).default(['Wooden Practice Stick']),
+  mountedEntityId: z.string().nullable().default(null),
+  petId: z.string().nullable().default(null)
 });
 export type PlayerData = z.infer<typeof PlayerDataSchema>;
 
@@ -148,7 +151,8 @@ export const EntityTypeSchema = z.enum([
   'torch',
   'platform',
   'campfire',
-  'merchant'
+  'merchant',
+  'mount'
 ]);
 export type EntityType = z.infer<typeof EntityTypeSchema>;
 

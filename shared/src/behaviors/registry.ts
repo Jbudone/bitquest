@@ -197,11 +197,27 @@ export class BehaviorRegistry {
     this.interactables.set('wildlife', {
       action: 'pet',
       promptText: '[E] Pet',
-      interactionRadius: 44,
+      interactionRadius: 48,
       priorityWeight: 50,
       canInteract: () => true,
-      onInteract: (ent) => {
+      onInteract: (ent, ctx, world) => {
         ent.state.petCount = (ent.state.petCount || 0) + 1;
+        if (ent.id === 'wildlife_buster') {
+          world.commandPet?.(ctx.playerId, ent.id, 'pet');
+        }
+        return { handled: true, stateChanged: true };
+      }
+    });
+
+    // 7b. Mountable Wildlife (Giant Frog / Boghopper)
+    this.interactables.set('mount', {
+      action: 'mount',
+      promptText: '[E] Mount Boghopper',
+      interactionRadius: 56,
+      priorityWeight: 85,
+      canInteract: (ent, player) => !ent.state.mountedBy && (!player || !(player as any).mountedEntityId),
+      onInteract: (ent, ctx, world) => {
+        world.mountWildlife?.(ctx.playerId, ent.id);
         return { handled: true, stateChanged: true };
       }
     });

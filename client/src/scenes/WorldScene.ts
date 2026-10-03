@@ -1125,6 +1125,40 @@ export class WorldScene extends Phaser.Scene {
       (window as any).BitQuestUI?.shopModal?.handleTransactionResult(data);
     };
 
+    // Companion Pets & Mountable Wildlife (Issue #26 / Task 7.8)
+    network.onMountToggle = (data) => {
+      if (data.playerId === this.localPlayer?.id) {
+        this.localPlayer.setMounted(data.mountId);
+        if (data.mountId) {
+          sounds.playMountUp();
+          this.showFloatingText(this.localPlayer.x, this.localPlayer.y - 28, "🐸 MOUNTED BOGHOPPER!", "#22c55e", true);
+        } else {
+          sounds.playDismount();
+          this.showFloatingText(this.localPlayer.x, this.localPlayer.y - 20, "Dismounted", "#94a3b8");
+        }
+      } else {
+        const other = this.otherPlayers.get(data.playerId);
+        if (other) {
+          other.setMounted(data.mountId);
+        }
+      }
+      const mountEnt = this.worldEntities.get(data.mountId || 'mount_frog_mossy');
+      if (mountEnt) {
+        mountEnt.state.mountedBy = data.mountId ? data.playerId : null;
+        this.updateEntityVisuals(mountEnt);
+      }
+    };
+
+    network.onPetAlert = (data) => {
+      sounds.playDogBark();
+      if (data.alertType === 'secret') {
+        this.showFloatingText(data.x, data.y - 22, data.text, "#facc15", true);
+        this.emitGoldSparkles(data.x, data.y);
+      } else {
+        this.showFloatingText(data.x, data.y - 22, data.text, "#ef4444", true);
+      }
+    };
+
     network.connect();
 
     const tryJoin = () => {
@@ -1290,6 +1324,14 @@ export class WorldScene extends Phaser.Scene {
       if (ent.subtype === 'duck') texture = 'wildlife_duck';
       const sprite = this.add.sprite(ent.x, ent.y, texture);
       const shadow = this.add.sprite(ent.x + 1, ent.y + 4, 'shadow_small').setAlpha(0.55).setDepth(ent.y - 1);
+      this.entityShadows.set(ent.id, shadow);
+      obj = sprite;
+    } else if (ent.type === 'mount') {
+      const sprite = this.add.sprite(ent.x, ent.y, 'mount_frog_mossy_idle');
+      const isMounted = !!ent.state.mountedBy;
+      sprite.setVisible(!isMounted);
+      const shadow = this.add.sprite(ent.x + 2, ent.y + 6, 'shadow_directional_45').setAlpha(0.6).setDepth(ent.y - 1);
+      shadow.setVisible(!isMounted);
       this.entityShadows.set(ent.id, shadow);
       obj = sprite;
     } else if (ent.type === 'enemy') {
@@ -1480,9 +1522,21 @@ export class WorldScene extends Phaser.Scene {
         this.emitHeartBurst(ent.x, ent.y);
       }
       const b = ent.state.behavior || 'idle';
-      const targetTex = b === 'sniff' ? 'wildlife_dog_sniff' : b === 'nap' ? 'wildlife_dog_nap' : 'wildlife_dog_idle';
+      const targetTex = (b === 'bark' || b === 'alert') ? 'wildlife_dog_alert' : b === 'sniff' ? 'wildlife_dog_sniff' : b === 'nap' ? 'wildlife_dog_nap' : 'wildlife_dog_idle';
       if (obj.texture?.key !== targetTex) {
         obj.setTexture(targetTex);
+      }
+      obj.setPosition(ent.x, ent.y);
+      const shadow = this.entityShadows.get(ent.id);
+      if (shadow) shadow.setPosition(ent.x + 1, ent.y + 4);
+    } else if (ent.type === 'mount') {
+      const isMounted = !!ent.state.mountedBy;
+      obj.setVisible(!isMounted);
+      obj.setPosition(ent.x, ent.y);
+      const shadow = this.entityShadows.get(ent.id);
+      if (shadow) {
+        shadow.setVisible(!isMounted);
+        shadow.setPosition(ent.x + 2, ent.y + 6);
       }
     } else if (ent.type === 'enemy') {
       const wasVisible = obj.visible;
@@ -2464,6 +2518,12 @@ export class WorldScene extends Phaser.Scene {
   private handleActionInteract() {
     if (!this.localPlayer) return;
 
+    // 0. Dismount if currently riding a wildlife mount
+    if (this.localPlayer.mountedEntityId) {
+      network.sendMountToggle(null);
+      return;
+    }
+
     const px = this.localPlayer.x;
     const py = this.localPlayer.y;
 
@@ -2485,9 +2545,17 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    // 3. Dungeon interactions: unlit torches, stairs triggers, relic chest
+    // 3. Dungeon interactions: unlit torches, stairs triggers, relic chest, mount, pet
     for (const ent of this.worldEntities.values()) {
-      if (Math.hypot(px - ent.x, py - ent.y) < 52) {
+      if (Math.hypot(px - ent.x, py - ent.y) < 56) {
+        if (ent.type === 'mount') {
+          network.sendMountToggle(ent.id);
+          return;
+        }
+        if (ent.id === 'wildlife_buster') {
+          network.sendPetCommand(ent.id, 'pet');
+          return;
+        }
         if (ent.type === 'torch' && !ent.state.lit) {
           network.sendInteract(ent.id, 'light_torch');
           sounds.playTorchIgnite();
@@ -4274,7 +4342,15 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
-    if (airborneTarget) {
+    // 0a. Mounted Wildlife Dismount Prompt
+    if (this.localPlayer.mountedEntityId) {
+      hasTarget = true;
+      isSelf = true;
+      targetX = this.localPlayer.x;
+      targetY = this.localPlayer.y - 18;
+      label = '[E] Dismount';
+      themeColor = 0x22c55e;
+    } else if (airborneTarget) {
       hasTarget = true;
       targetX = airborneTarget.x;
       targetY = airborneTarget.y - 12;
@@ -4304,7 +4380,7 @@ export class WorldScene extends Phaser.Scene {
           px,
           py,
           this.worldEntities.values(),
-          48,
+          52,
           this.localPlayer as any
         );
 
@@ -4313,7 +4389,16 @@ export class WorldScene extends Phaser.Scene {
           targetX = prioritized.entity.x;
           targetY = prioritized.entity.y;
           label = prioritized.promptText;
-          themeColor = prioritized.trait.priorityWeight > 75 ? 0xf59e0b : 0x38bdf8;
+          if (prioritized.entity.id === 'wildlife_buster') {
+            const isFollowing = prioritized.entity.state.ownerId === this.localPlayer.id && prioritized.entity.state.petState === 'following';
+            label = isFollowing ? '[E] Pet / Stay' : '[E] Whistle (Follow)';
+            themeColor = 0xf59e0b;
+          } else if (prioritized.entity.type === 'mount') {
+            label = '[E] Mount Boghopper';
+            themeColor = 0x22c55e;
+          } else {
+            themeColor = prioritized.trait.priorityWeight > 75 ? 0xf59e0b : 0x38bdf8;
+          }
         }
       }
     }

@@ -61,6 +61,8 @@ export class NetworkClient {
   public onCampfireRest?: (data: { playerId: string; campfireId: string; healedHp: number; restoredMana: number }) => void;
   public onShopSync?: (data: { merchantId: string; merchantName: string; merchantTitle: string; portrait: string; greeting: string; wares: any[]; playerCoins: number; playerAcorns: number; inventory: string[] }) => void;
   public onShopTransactionResult?: (data: { success: boolean; message: string; newCoins: number; newAcorns: number; inventory: string[]; wares?: any[] }) => void;
+  public onMountToggle?: (data: { playerId: string; mountId: string | null; x: number; y: number }) => void;
+  public onPetAlert?: (data: { petId: string; alertType: 'secret' | 'enemy'; x: number; y: number; text: string }) => void;
   public onReconcile?: (ackSeq: number, x: number, y: number) => void;
   public onConnectionChange?: (connected: boolean) => void;
 
@@ -236,6 +238,12 @@ export class NetworkClient {
       case 'shop_transaction_result':
         this.onShopTransactionResult?.(packet);
         break;
+      case 'mount_toggle':
+        this.onMountToggle?.(packet);
+        break;
+      case 'pet_alert':
+        this.onPetAlert?.(packet);
+        break;
       case 'reconcile':
         this.onReconcile?.(packet.ackSeq, packet.x, packet.y);
         break;
@@ -345,6 +353,22 @@ export class NetworkClient {
 
   public sendShopSell(merchantId: string, inventoryIndex: number, quantity: number = 1) {
     this.send({ type: 'shop_sell', merchantId, inventoryIndex, quantity });
+  }
+
+  public sendMountToggle(mountId: string | null) {
+    this.send({
+      type: 'interact',
+      targetId: mountId || 'mount_frog_mossy',
+      action: mountId ? 'mount' : 'dismount'
+    });
+  }
+
+  public sendPetCommand(petId: string, action: 'follow' | 'stay' | 'pet') {
+    this.send({
+      type: 'interact',
+      targetId: petId,
+      action: 'pet_command'
+    });
   }
 }
 

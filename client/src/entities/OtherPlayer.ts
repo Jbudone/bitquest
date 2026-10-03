@@ -24,6 +24,8 @@ export class OtherPlayer extends Phaser.GameObjects.Container {
   public vanityArmorSprite: Phaser.GameObjects.Sprite;
   public vanityHeadSprite: Phaser.GameObjects.Sprite;
   public weaponSprite: Phaser.GameObjects.Sprite;
+  public mountSprite: Phaser.GameObjects.Sprite;
+  public mountedEntityId: string | null = null;
   private carriedPotSprite: Phaser.GameObjects.Sprite;
   private nameText: Phaser.GameObjects.Text;
   private emoteSprite: Phaser.GameObjects.Sprite | null = null;
@@ -44,6 +46,12 @@ export class OtherPlayer extends Phaser.GameObjects.Container {
     this.shadowSprite.setOrigin(0.5, 0.5);
     this.shadowSprite.setAlpha(0.65);
     this.add(this.shadowSprite);
+
+    // Mountable Wildlife Sprite (above shadow, beneath body)
+    this.mountSprite = scene.add.sprite(0, 6, 'mount_frog_mossy_idle');
+    this.mountSprite.setOrigin(0.5, 0.6);
+    this.mountSprite.setVisible(false);
+    this.add(this.mountSprite);
 
     // Vanity Armor / Cape (behind body)
     this.vanityArmorSprite = scene.add.sprite(0, -4, 'vanity_cape_hero');
@@ -173,6 +181,22 @@ export class OtherPlayer extends Phaser.GameObjects.Container {
     }
   }
 
+  public setMounted(mountId: string | null) {
+    this.mountedEntityId = mountId;
+    if (mountId) {
+      this.mountSprite.setVisible(true);
+      this.mountSprite.setTexture('mount_frog_mossy_idle');
+      this.sprite.y = -6;
+      this.vanityArmorSprite.y = -10;
+      this.vanityHeadSprite.y = -24;
+    } else {
+      this.mountSprite.setVisible(false);
+      this.sprite.y = 0;
+      this.vanityArmorSprite.y = -4;
+      this.vanityHeadSprite.y = -18;
+    }
+  }
+
   public setTargetState(x: number, y: number, direction: Direction, anim: PlayerAnimState, carryingItem: string | null) {
     this.targetX = x;
     this.targetY = y;
@@ -184,14 +208,20 @@ export class OtherPlayer extends Phaser.GameObjects.Container {
     this.carriedPotSprite.setVisible(isCarrying);
     this.nameText.setY(isCarrying ? -38 : -28);
 
+    if (anim === 'ride') {
+      if (!this.mountedEntityId) this.setMounted('mount_frog_mossy');
+    } else if (this.mountedEntityId && anim !== 'ride') {
+      this.setMounted(null);
+    }
+
     if (anim === 'roll') {
       this.sprite.setTexture(`player_${this.paletteIndex}_roll`);
       this.sprite.setY(-10);
       this.shadowSprite.setScale(0.65).setAlpha(0.35);
     } else {
-      this.sprite.setY(0);
+      this.sprite.setY(this.mountedEntityId ? -6 : 0);
       this.shadowSprite.setScale(1.0).setAlpha(0.65);
-      if (anim === 'walk') {
+      if (anim === 'walk' || (anim === 'ride' && (this.targetX !== x || this.targetY !== y))) {
         this.sprite.play(`player_${this.paletteIndex}_walk_${direction}`, true);
       } else if (anim === 'carry_walk' || anim === 'carry_idle') {
         this.sprite.setTexture(`player_${this.paletteIndex}_${direction}_carry`);

@@ -1,6 +1,6 @@
 {
   "worldFlags": {
-    "ancient_gate_opened": true,
+    "ancient_gate_opened": false,
     "fountain_jam_discovered": false,
     "first_scone_eaten": false,
     "crown_reclaimed": true,
@@ -315,6 +315,28 @@
         "weapon": null
       },
       "lastSeen": 1791052458614
+    },
+    "p_muss39a9_lwvq": {
+      "name": "Adventurer",
+      "color": "#2e9939",
+      "paletteIndex": 0,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "classId": "archer",
+      "equipment": {
+        "weapon": "sword_wood",
+        "offhand": null,
+        "armor": null,
+        "relic": null
+      },
+      "vanity": {
+        "head": null,
+        "armor": null,
+        "weapon": null
+      },
+      "lastSeen": 1791055319172
     }
   }
 }

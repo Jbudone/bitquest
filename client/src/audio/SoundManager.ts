@@ -1908,6 +1908,143 @@ export class SoundManager {
     osc.start(now);
     osc.stop(now + 0.17);
   }
+
+  /**
+   * Cheerful alert dog bark (dual tone arpeggio).
+   */
+  public playDogBark() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(440, now);
+    osc.frequency.exponentialRampToValueAtTime(780, now + 0.04);
+    osc.frequency.exponentialRampToValueAtTime(320, now + 0.11);
+    gain.gain.setValueAtTime(0.20 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.13);
+  }
+
+  /**
+   * Soft sniffing rustle sound.
+   */
+  public playDogSniff() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(280, now);
+    osc.frequency.linearRampToValueAtTime(360, now + 0.05);
+    gain.gain.setValueAtTime(0.08 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.09);
+  }
+
+  /**
+   * Deep guttural bouncy chiptune frog ribbit.
+   */
+  public playFrogRibbit() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(130, now);
+    osc.frequency.linearRampToValueAtTime(175, now + 0.04);
+    osc.frequency.linearRampToValueAtTime(95, now + 0.12);
+    gain.gain.setValueAtTime(0.18 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.15);
+  }
+
+  /**
+   * Springy boing hop sound for giant moss frog.
+   */
+  public playFrogHop() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(380, now + 0.07);
+    osc.frequency.exponentialRampToValueAtTime(210, now + 0.14);
+    gain.gain.setValueAtTime(0.14 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.16);
+  }
+
+  /**
+   * Cheerful ascending mount-up flourish.
+   */
+  public playMountUp() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const notes = [261.6, 329.6, 392.0];
+    notes.forEach((freq, idx) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      const startTime = now + idx * 0.05;
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, startTime);
+      gain.gain.setValueAtTime(0.16 * this.sfxVol, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.10);
+      osc.connect(gain);
+      gain.connect(this.soundDestination!);
+      osc.start(startTime);
+      osc.stop(startTime + 0.11);
+    });
+  }
+
+  /**
+   * Soft landing dismount thud.
+   */
+  public playDismount() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(120, now);
+    osc.frequency.exponentialRampToValueAtTime(55, now + 0.09);
+    gain.gain.setValueAtTime(0.15 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.10);
+
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.11);
+  }
 }
 
 export const sounds = new SoundManager();

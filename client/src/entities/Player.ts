@@ -24,6 +24,9 @@ export class Player extends Phaser.GameObjects.Container {
   public speedMultiplier = 1;
   public speedBuffMultiplier = 1;
   public speedBuffExpiresAt = 0;
+  public mountedEntityId: string | null = null;
+  public mountSprite: Phaser.GameObjects.Sprite;
+  private mountHopTimer = 0;
   public godMode = false;
   public health = 3;
   public maxHealth = 3;
@@ -85,6 +88,12 @@ export class Player extends Phaser.GameObjects.Container {
     this.shadowSprite.setOrigin(0.5, 0.5);
     this.shadowSprite.setAlpha(0.65);
     this.add(this.shadowSprite);
+
+    // Mountable Wildlife Sprite (above shadow, beneath player body)
+    this.mountSprite = scene.add.sprite(0, 6, 'mount_frog_mossy_idle');
+    this.mountSprite.setOrigin(0.5, 0.6);
+    this.mountSprite.setVisible(false);
+    this.add(this.mountSprite);
 
     // Vanity Armor / Cape (behind body)
     this.vanityArmorSprite = scene.add.sprite(0, -4, 'vanity_cape_hero');
@@ -264,6 +273,22 @@ export class Player extends Phaser.GameObjects.Container {
     }
   }
 
+  public setMounted(mountId: string | null) {
+    this.mountedEntityId = mountId;
+    if (mountId) {
+      this.mountSprite.setVisible(true);
+      this.mountSprite.setTexture('mount_frog_mossy_idle');
+      this.sprite.y = -6;
+      this.vanityArmorSprite.y = -10;
+      this.vanityHeadSprite.y = -24;
+    } else {
+      this.mountSprite.setVisible(false);
+      this.sprite.y = 0;
+      this.vanityArmorSprite.y = -4;
+      this.vanityHeadSprite.y = -18;
+    }
+  }
+
   public updateMovement(cursors: Phaser.Types.Input.Keyboard.CursorKeys, keys: Record<string, Phaser.Input.Keyboard.Key>, delta = 16.67) {
     const now = this.scene.time.now;
 
@@ -301,11 +326,12 @@ export class Player extends Phaser.GameObjects.Container {
       vy *= 0.7071;
     }
 
-    const currentSpeed = this.speed * this.speedMultiplier * this.speedBuffMultiplier;
+    const mountMult = this.mountedEntityId ? 1.55 : 1.0;
+    const currentSpeed = this.speed * this.speedMultiplier * this.speedBuffMultiplier * mountMult;
     body.setVelocity(vx * currentSpeed, vy * currentSpeed);
 
     // Update Facing Direction & Animation
-    let animState: PlayerAnimState = 'idle';
+    let animState: PlayerAnimState = this.mountedEntityId ? 'ride' : 'idle';
     if (vx !== 0 || vy !== 0) {
       if (Math.abs(vx) > Math.abs(vy)) {
         this.direction = vx > 0 ? 'right' : 'left';
@@ -313,19 +339,42 @@ export class Player extends Phaser.GameObjects.Container {
         this.direction = vy > 0 ? 'down' : 'up';
       }
 
-      animState = this.carryingPotId ? 'carry_walk' : 'walk';
+      animState = this.mountedEntityId ? 'ride' : (this.carryingPotId ? 'carry_walk' : 'walk');
 
       if (this.carryingPotId) {
         this.sprite.setTexture(`player_${this.paletteIndex}_${this.direction}_carry`);
       } else {
         this.sprite.play(`player_${this.paletteIndex}_walk_${this.direction}`, true);
       }
+
+      if (this.mountedEntityId) {
+        if (now - this.mountHopTimer > 340) {
+          this.mountHopTimer = now;
+          sounds.playFrogHop();
+          this.mountSprite.setTexture('mount_frog_mossy_hop');
+          this.scene.tweens.add({
+            targets: [this.sprite, this.mountSprite, this.vanityArmorSprite, this.vanityHeadSprite],
+            y: '-=6',
+            duration: 130,
+            yoyo: true,
+            ease: 'Quad.easeOut',
+            onComplete: () => {
+              if (this.mountedEntityId) {
+                this.mountSprite.setTexture('mount_frog_mossy_idle');
+              }
+            }
+          });
+        }
+      }
     } else {
-      animState = this.carryingPotId ? 'carry_idle' : 'idle';
+      animState = this.mountedEntityId ? 'ride' : (this.carryingPotId ? 'carry_idle' : 'idle');
       if (this.carryingPotId) {
         this.sprite.setTexture(`player_${this.paletteIndex}_${this.direction}_carry`);
       } else {
         this.sprite.setTexture(`player_${this.paletteIndex}_${this.direction}_idle`);
+      }
+      if (this.mountedEntityId) {
+        this.mountSprite.setTexture('mount_frog_mossy_idle');
       }
     }
 
@@ -627,6 +676,12 @@ export class Player extends Phaser.GameObjects.Container {
       return;
     }
     if (this.scene.time.now < this.rollCooldown) return;
+
+    if (this.mountedEntityId) {
+      this.setMounted(null);
+      network.sendMountToggle(null);
+      sounds.playDismount();
+    }
 
     this.isRolling = true;
     this.isInvulnerable = true;

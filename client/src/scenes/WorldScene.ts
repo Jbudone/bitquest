@@ -105,6 +105,20 @@ export class WorldScene extends Phaser.Scene {
   }> = [];
   private decalIndex = 0;
 
+  // Elevation Ledge Mechanics & Pitfalls
+  private cliffLedges: Array<{
+    bounds: Phaser.Geom.Rectangle;
+    landingY: number;
+  }> = [];
+
+  private pitfalls: Array<{
+    x: number;
+    y: number;
+    safeX: number;
+    safeY: number;
+    radius: number;
+  }> = [];
+
   constructor() {
     super({ key: 'WorldScene' });
   }
@@ -388,6 +402,42 @@ export class WorldScene extends Phaser.Scene {
       });
 
       this.pointLights.push({ x: pos.x, y: pos.y, glow });
+    }
+
+    // 9. Whispering Meadow Elevation Cliff Ledges (tileX: 45 to 50, tileY: 22)
+    for (let x = 45; x <= 50; x++) {
+      const ledgeImg = this.add.image(x * TILE + 16, 22 * TILE + 16, 'tile_cliff_ledge');
+      ledgeImg.setDepth(22 * TILE + 16);
+
+      // Solid obstacle body on lower half preventing lower enemies / players from walking UP
+      const col = this.obstacles.create(x * TILE + 16, 22 * TILE + 24, undefined);
+      col.setVisible(false);
+      col.body.setSize(32, 16);
+      col.body.immovable = true;
+
+      // Trigger bounds on upper lip for spring jumping down
+      this.cliffLedges.push({
+        bounds: new Phaser.Geom.Rectangle(x * TILE, 22 * TILE, 32, 14),
+        landingY: 22 * TILE + 50
+      });
+    }
+
+    // 10. Bottomless Pitfall Chasm Holes (North Sanctuary Terrace & Ruins)
+    const pitPositions = [
+      { tileX: 25, tileY: 10, safeX: 25 * TILE + 16, safeY: 12 * TILE },
+      { tileX: 38, tileY: 10, safeX: 38 * TILE + 16, safeY: 12 * TILE }
+    ];
+
+    for (const pit of pitPositions) {
+      const pitImg = this.add.image(pit.tileX * TILE + 16, pit.tileY * TILE + 16, 'tile_pit_void');
+      pitImg.setDepth(1);
+      this.pitfalls.push({
+        x: pit.tileX * TILE + 16,
+        y: pit.tileY * TILE + 16,
+        safeX: pit.safeX,
+        safeY: pit.safeY,
+        radius: 14
+      });
     }
   }
 
@@ -2260,6 +2310,29 @@ export class WorldScene extends Phaser.Scene {
 
       // 8. Environmental Decals & Persistent World Scars
       this.updateDecals(time);
+
+      // 9. Cliff Ledge Elevation Jump Triggers
+      const body = this.localPlayer.body as Phaser.Physics.Arcade.Body;
+      if (body && body.velocity.y > 0 && !this.localPlayer.isJumpingLedge) {
+        for (let i = 0; i < this.cliffLedges.length; i++) {
+          const ledge = this.cliffLedges[i];
+          if (Phaser.Geom.Rectangle.Contains(ledge.bounds, px, py)) {
+            this.triggerLedgeJump(ledge);
+            break;
+          }
+        }
+      }
+
+      // 10. Pitfall Chasm Hazard Checks
+      if (!this.localPlayer.isJumpingLedge && !this.localPlayer.isRolling && !this.playerInvulnerable) {
+        for (let i = 0; i < this.pitfalls.length; i++) {
+          const pit = this.pitfalls[i];
+          if (Math.hypot(px - pit.x, py - pit.y) < pit.radius) {
+            this.triggerPitfall(pit);
+            break;
+          }
+        }
+      }
     }
 
     for (const other of this.otherPlayers.values()) {
@@ -2501,6 +2574,24 @@ export class WorldScene extends Phaser.Scene {
         d.image.setAlpha(d.initialAlpha * (1 - p));
       }
     }
+  }
+
+  private triggerLedgeJump(ledge: { bounds: Phaser.Geom.Rectangle; landingY: number }) {
+    if (!this.localPlayer || this.localPlayer.isJumpingLedge) return;
+    sounds.playLedgeHop();
+    this.localPlayer.jumpLedge(ledge.landingY, 340, () => {
+      sounds.playFootstep('dirt');
+      this.stampFootprintDecal(this.localPlayer.x, this.localPlayer.y, 'down');
+    });
+  }
+
+  private triggerPitfall(pit: { x: number; y: number; safeX: number; safeY: number; radius: number }) {
+    if (!this.localPlayer || this.localPlayer.isJumpingLedge) return;
+    sounds.playPitfall();
+    this.triggerCameraShake(200, 0.008);
+    this.localPlayer.fallIntoPit(pit.safeX, pit.safeY, () => {
+      this.hurtPlayer(1);
+    });
   }
 
   private setupInteractionPrompt() {

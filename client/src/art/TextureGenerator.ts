@@ -528,6 +528,55 @@ export class TextureGenerator {
       ctx.fillRect(11, 5, 2, 3);
       scene.textures.addCanvas('prop_grass_tuft', canvas);
     }
+
+    // 13. Cliff Ledge Elevation Lip (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Top upper grass elevation
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(0, 0, 32, 14);
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(0, 0, 32, 6);
+      // Grassy fringe overhang blades
+      ctx.fillStyle = '#16a34a';
+      for (let x = 0; x < 32; x += 4) {
+        ctx.fillRect(x, 12, 2, 4);
+      }
+      // Exposed rocky cliff face strata
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(0, 16, 32, 16);
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(0, 22, 32, 10);
+      // Crisp stone ledge lip highlight
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(0, 15, 32, 2);
+      // Dark bottom ground shadow
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+      ctx.fillRect(0, 29, 32, 3);
+      scene.textures.addCanvas('tile_cliff_ledge', canvas);
+    }
+
+    // 14. Bottomless Pit / Void Chasm (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Dark deep bottomless void
+      ctx.fillStyle = '#050508';
+      ctx.fillRect(0, 0, 32, 32);
+      // Cracked abyss rim
+      ctx.strokeStyle = '#1e1b4b';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(1, 1, 30, 30);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(2, 2, 28, 4);
+      ctx.fillRect(2, 2, 4, 28);
+      // Faint ethereal depth glow in center
+      const grad = ctx.createRadialGradient(16, 16, 2, 16, 16, 14);
+      grad.addColorStop(0, '#1e1b4b');
+      grad.addColorStop(1, '#050508');
+      ctx.fillStyle = grad;
+      ctx.fillRect(4, 4, 24, 24);
+      scene.textures.addCanvas('tile_pit_void', canvas);
+    }
   }
 
   private static createPlayerTextures(scene: Phaser.Scene) {

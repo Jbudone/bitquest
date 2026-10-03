@@ -38,6 +38,7 @@ export class Player extends Phaser.GameObjects.Container {
   private chatTimer: Phaser.Time.TimerEvent | null = null;
   private idleStartTime = 0;
   private idleZzzTimer = 0;
+  public isJumpingLedge = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number, id: string, name: string, paletteIndex: number) {
     super(scene, x, y);
@@ -106,7 +107,7 @@ export class Player extends Phaser.GameObjects.Container {
   }
 
   public updateMovement(cursors: Phaser.Types.Input.Keyboard.CursorKeys, keys: Record<string, Phaser.Input.Keyboard.Key>) {
-    if (this.isAttacking || this.isRolling) return;
+    if (this.isAttacking || this.isRolling || this.isJumpingLedge) return;
 
     const body = this.body as Phaser.Physics.Arcade.Body;
     let vx = 0;
@@ -232,6 +233,62 @@ export class Player extends Phaser.GameObjects.Container {
     this.scene.time.delayedCall(240, () => {
       this.sprite.setScale(1.0, 1.0);
       this.sprite.setTexture(`player_${this.paletteIndex}_${dir}_idle`);
+    });
+  }
+
+  public jumpLedge(targetY: number, duration = 340, onComplete?: () => void) {
+    if (this.isJumpingLedge) return;
+    this.isJumpingLedge = true;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setVelocity(0, 0);
+
+    const startY = this.y;
+    this.direction = 'down';
+    this.sprite.setTexture(`player_${this.paletteIndex}_down_slash`);
+    this.shadowSprite.setScale(0.65).setAlpha(0.35);
+
+    this.scene.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration,
+      onUpdate: (tw) => {
+        const p = tw.getValue();
+        this.y = Phaser.Math.Linear(startY, targetY, p);
+        const arc = Math.sin(p * Math.PI) * 26;
+        this.sprite.setY(-arc);
+        this.shadowSprite.setScale(1.0 - (arc / 26) * 0.45);
+      },
+      onComplete: () => {
+        this.sprite.setY(0);
+        this.sprite.setTexture(`player_${this.paletteIndex}_down_idle`);
+        this.shadowSprite.setScale(1.0).setAlpha(0.65);
+        this.isJumpingLedge = false;
+        onComplete?.();
+      }
+    });
+  }
+
+  public fallIntoPit(safeX: number, safeY: number, onRespawn?: () => void) {
+    if (this.isJumpingLedge) return;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setVelocity(0, 0);
+    this.isJumpingLedge = true;
+
+    this.scene.tweens.add({
+      targets: [this.sprite, this.shadowSprite],
+      scaleX: 0,
+      scaleY: 0,
+      angle: 360,
+      duration: 450,
+      ease: 'Cubic.easeIn',
+      onComplete: () => {
+        this.setPosition(safeX, safeY);
+        this.sprite.setScale(1.0, 1.0);
+        this.sprite.setAngle(0);
+        this.shadowSprite.setScale(1.0).setAlpha(0.65);
+        this.isJumpingLedge = false;
+        onRespawn?.();
+      }
     });
   }
 

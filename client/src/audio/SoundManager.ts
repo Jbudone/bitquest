@@ -644,6 +644,46 @@ export class SoundManager {
     noise.stop(now + 0.12);
   }
 
+  public playLedgeHop() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(240, now);
+    osc.frequency.exponentialRampToValueAtTime(560, now + 0.16);
+
+    gain.gain.setValueAtTime(0.20 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.18);
+  }
+
+  public playPitfall() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(380, now);
+    osc.frequency.exponentialRampToValueAtTime(50, now + 0.38);
+
+    gain.gain.setValueAtTime(0.25 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.40);
+
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.40);
+  }
+
   public playEmoteSound(emote?: string) {
     this.ensureContext();
     if (!this.ctx) return;

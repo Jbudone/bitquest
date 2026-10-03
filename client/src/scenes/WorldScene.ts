@@ -93,6 +93,18 @@ export class WorldScene extends Phaser.Scene {
   private lastDuckRippleTime = 0;
   private lastBusterZzzTime = 0;
 
+  // Environmental Decals & Persistent World Scars
+  private static readonly MAX_DECALS = 120;
+  private decalPool: Array<{
+    image: Phaser.GameObjects.Image;
+    spawnTime: number;
+    lingerDuration: number;
+    fadeDuration: number;
+    initialAlpha: number;
+    active: boolean;
+  }> = [];
+  private decalIndex = 0;
+
   constructor() {
     super({ key: 'WorldScene' });
   }
@@ -103,6 +115,9 @@ export class WorldScene extends Phaser.Scene {
 
     // 1. Build the Multi-Zone World Tiles & Environment
     this.buildWorld();
+
+    // 1a. Pre-Allocated Environmental Decal Pool
+    this.setupDecalPool();
 
     // 1b. Interaction Prompt & Reticle
     this.setupInteractionPrompt();
@@ -869,9 +884,13 @@ export class WorldScene extends Phaser.Scene {
         obj.setTexture(targetTex);
       }
     } else if (ent.type === 'enemy') {
+      const wasVisible = obj.visible;
       obj.setVisible(!ent.state.destroyed);
       const shadow = this.entityShadows.get(ent.id);
       if (shadow) shadow.setVisible(!ent.state.destroyed);
+      if (wasVisible && ent.state.destroyed) {
+        this.stampSlimeDecal(ent.x, ent.y);
+      }
       if (!ent.state.destroyed) {
         // Smooth lerp to new position
         this.tweens.add({
@@ -1276,12 +1295,14 @@ export class WorldScene extends Phaser.Scene {
     this.triggerCameraShake(70, 0.003);
     chronicles.recordStat('bushesCut', 1);
     this.particles?.emitLeaves(x, y, 8);
+    this.stampFoliageDecals(x, y);
   }
 
   private emitPotShards(x: number, y: number) {
     sounds.playPotShatter();
     chronicles.recordStat('potsSmashed', 1);
     this.particles?.emitPotShards(x, y, 8);
+    this.stampPotShardDecals(x, y);
   }
 
   private emitSparkleBurst(x: number, y: number) {
@@ -2236,6 +2257,9 @@ export class WorldScene extends Phaser.Scene {
 
       // 7. Living World Ambient AI, Gaze Tracking & Micro-Behaviors
       this.updateAmbientMicroBehaviors(time, delta);
+
+      // 8. Environmental Decals & Persistent World Scars
+      this.updateDecals(time);
     }
 
     for (const other of this.otherPlayers.values()) {
@@ -2399,6 +2423,84 @@ export class WorldScene extends Phaser.Scene {
       ease: 'Sine.easeOut',
       onComplete: () => zzz.destroy()
     });
+  }
+
+  private setupDecalPool() {
+    for (let i = 0; i < WorldScene.MAX_DECALS; i++) {
+      const img = this.add.image(0, 0, 'decal_pot_shard');
+      img.setDepth(2);
+      img.setVisible(false);
+      this.decalPool.push({
+        image: img,
+        spawnTime: 0,
+        lingerDuration: 0,
+        fadeDuration: 1500,
+        initialAlpha: 1.0,
+        active: false
+      });
+    }
+  }
+
+  public stampDecal(key: string, x: number, y: number, lingerMs: number, alpha = 0.85, rotation = 0) {
+    if (this.decalPool.length === 0) return;
+    const decal = this.decalPool[this.decalIndex];
+    this.decalIndex = (this.decalIndex + 1) % WorldScene.MAX_DECALS;
+
+    decal.image.setTexture(key);
+    decal.image.setPosition(x, y);
+    decal.image.setRotation(rotation);
+    decal.image.setAlpha(alpha);
+    decal.image.setVisible(true);
+    decal.spawnTime = this.time.now;
+    decal.lingerDuration = lingerMs;
+    decal.fadeDuration = 1500;
+    decal.initialAlpha = alpha;
+    decal.active = true;
+  }
+
+  public stampPotShardDecals(x: number, y: number) {
+    for (let i = 0; i < 3; i++) {
+      const ox = x + (Math.random() * 18 - 9);
+      const oy = y + (Math.random() * 12 - 6);
+      this.stampDecal('decal_pot_shard', ox, oy, 15000, 0.85, Math.random() * Math.PI * 2);
+    }
+  }
+
+  public stampFoliageDecals(x: number, y: number) {
+    for (let i = 0; i < 3; i++) {
+      const ox = x + (Math.random() * 16 - 8);
+      const oy = y + (Math.random() * 12 - 6);
+      this.stampDecal('decal_leaf_clipping', ox, oy, 12000, 0.75, Math.random() * Math.PI * 2);
+    }
+  }
+
+  public stampFootprintDecal(x: number, y: number, dir: Direction) {
+    let rot = 0;
+    if (dir === 'up') rot = 0;
+    else if (dir === 'down') rot = Math.PI;
+    else if (dir === 'left') rot = -Math.PI / 2;
+    else if (dir === 'right') rot = Math.PI / 2;
+    this.stampDecal('decal_footprint_mud', x, y, 8000, 0.45, rot);
+  }
+
+  public stampSlimeDecal(x: number, y: number) {
+    this.stampDecal('decal_slime_splatter', x, y, 10000, 0.65, Math.random() * Math.PI * 2);
+  }
+
+  private updateDecals(time: number) {
+    for (let i = 0; i < this.decalPool.length; i++) {
+      const d = this.decalPool[i];
+      if (!d.active) continue;
+
+      const age = time - d.spawnTime;
+      if (age > d.lingerDuration + d.fadeDuration) {
+        d.active = false;
+        d.image.setVisible(false);
+      } else if (age > d.lingerDuration) {
+        const p = (age - d.lingerDuration) / d.fadeDuration;
+        d.image.setAlpha(d.initialAlpha * (1 - p));
+      }
+    }
   }
 
   private setupInteractionPrompt() {

@@ -11,6 +11,7 @@ export class TextureGenerator {
     this.createNPCTextures(scene);
     this.createEmoteTextures(scene);
     this.createPortraitTextures(scene);
+    this.createDecalTextures(scene);
   }
 
   private static createCanvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -2342,5 +2343,63 @@ export class TextureGenerator {
         }
       });
     });
+  }
+
+  private static createDecalTextures(scene: Phaser.Scene) {
+    // 1. Ceramic Pot Shard Decal (12x12)
+    {
+      const [canvas, ctx] = this.createCanvas(12, 12);
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(2, 4, 8, 5);
+      ctx.fillRect(4, 2, 4, 8);
+      // Highlights & cracked edge
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(3, 4, 3, 2);
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(7, 6, 2, 2);
+      scene.textures.addCanvas('decal_pot_shard', canvas);
+    }
+
+    // 2. Leaf Clipping Decal (12x12)
+    {
+      const [canvas, ctx] = this.createCanvas(12, 12);
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(2, 5, 4, 3);
+      ctx.fillRect(5, 3, 3, 4);
+      ctx.fillRect(7, 6, 3, 3);
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(3, 5, 2, 1);
+      ctx.fillRect(6, 4, 1, 2);
+      scene.textures.addCanvas('decal_leaf_clipping', canvas);
+    }
+
+    // 3. Muddy Footprint Track (10x10)
+    {
+      const [canvas, ctx] = this.createCanvas(10, 10);
+      ctx.fillStyle = 'rgba(67, 40, 24, 0.45)';
+      ctx.beginPath();
+      ctx.ellipse(5, 4, 3.5, 2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(5, 8, 2.5, 1.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      scene.textures.addCanvas('decal_footprint_mud', canvas);
+    }
+
+    // 4. Slime Splatter Decal (16x16)
+    {
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.65)';
+      ctx.beginPath();
+      ctx.arc(8, 8, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(2, 6, 2, 2);
+      ctx.fillRect(12, 5, 2, 2);
+      ctx.fillRect(7, 13, 2, 2);
+      ctx.fillRect(5, 2, 2, 2);
+      ctx.fillStyle = '#6ee7b7';
+      ctx.fillRect(6, 6, 3, 2);
+      scene.textures.addCanvas('decal_slime_splatter', canvas);
+    }
   }
 }

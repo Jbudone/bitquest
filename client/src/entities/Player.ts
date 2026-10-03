@@ -257,6 +257,7 @@ export class Player extends Phaser.GameObjects.Container {
         onComplete: () => rip.destroy()
       });
     } else if (surface === 'dirt') {
+      (this.scene as any).stampFootprintDecal?.(this.x, this.y + 4, this.direction);
       const dust = this.scene.add.image(px, py, 'particle_dirt');
       dust.setScale(0.8);
       dust.setAlpha(0.7);

@@ -8,12 +8,14 @@ import { chronicles } from '../storage/ChroniclesManager';
 import { ParticlePipeline } from '../vfx/ParticlePipeline';
 import type { EntityData, PlayerData, Direction, EmoteType, ItemDropData } from '../../../shared/src/types';
 import { SpatialGrid } from '../../../shared/src/spatialGrid';
+import { BehaviorRegistry } from '../../../shared/src/behaviors/registry';
 
 export class WorldScene extends Phaser.Scene {
   public localPlayer: Player | null = null;
   public otherPlayers = new Map<string, OtherPlayer>();
   public entityObjects = new Map<string, Phaser.GameObjects.GameObject>();
   public entityShadows = new Map<string, Phaser.GameObjects.Sprite>();
+  public worldEntities = new Map<string, EntityData>();
   public itemObjects = new Map<string, { sprite: Phaser.GameObjects.Sprite; shapeText?: Phaser.GameObjects.Text; data: ItemDropData }>();
   public playerGlow?: Phaser.GameObjects.Image;
   public particles!: ParticlePipeline;
@@ -731,6 +733,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private renderEntity(ent: EntityData) {
+    this.worldEntities.set(ent.id, ent);
     if (this.entityObjects.has(ent.id)) {
       this.updateEntityVisuals(ent);
       return;
@@ -1625,30 +1628,22 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    let closestId: string | null = null;
-    let closestDist = 38;
+    const interaction = BehaviorRegistry.getPrioritizedInteraction(px, py, this.worldEntities.values(), 44, this.localPlayer as any);
+    if (!interaction) return;
 
-    for (const [id, obj] of this.entityObjects.entries()) {
-      const sprite = obj as Phaser.GameObjects.Sprite;
-      const dist = Math.hypot(px - sprite.x, py - sprite.y);
-      if (dist < closestDist) {
-        closestDist = dist;
-        closestId = id;
-      }
-    }
+    const closestId = interaction.entity.id;
+    const action = interaction.trait.action;
 
-    if (!closestId) return;
-
-    if (closestId.startsWith('pot_')) {
+    if (action === 'lift') {
       const potSprite = this.entityObjects.get(closestId) as Phaser.GameObjects.Sprite;
-      if (potSprite.visible) {
+      if (potSprite && potSprite.visible) {
         this.localPlayer.liftPot(closestId);
         network.sendInteract(closestId, 'lift');
       }
-    } else if (closestId.startsWith('lever_')) {
+    } else if (action === 'pull_lever') {
       network.sendInteract(closestId, 'pull_lever');
       sounds.playLever();
-    } else if (closestId.startsWith('block_')) {
+    } else if (action === 'push_block') {
       const block = this.entityObjects.get(closestId) as Phaser.GameObjects.Sprite;
       const dx = block.x - px;
       const dy = block.y - py;
@@ -1683,11 +1678,15 @@ export class WorldScene extends Phaser.Scene {
       sounds.playStoneScrape();
       this.triggerCameraShake(80, 0.002);
       network.sendInteract(closestId, 'push_block', targetX, targetY);
-    } else if (closestId.startsWith('chest_')) {
+    } else if (action === 'open_chest') {
       network.sendInteract(closestId, 'open');
       sounds.playChestOpen();
-    } else if (closestId.startsWith('npc_') || closestId.startsWith('sign_') || closestId.startsWith('wildlife_') || closestId.startsWith('boss_')) {
+    } else if (action === 'talk') {
       network.sendInteract(closestId, 'talk');
+    } else if (action === 'pet') {
+      network.sendInteract(closestId, 'pet');
+      this.emitHeartBurst(interaction.entity.x, interaction.entity.y);
+      sounds.playCoin();
     }
   }
 
@@ -2699,28 +2698,6 @@ export class WorldScene extends Phaser.Scene {
     this.promptContainer.add(this.promptActionText);
   }
 
-  private getInteractLabel(id: string): { label: string; color: number } {
-    if (id.startsWith('pot_')) return { label: '[E] Lift Pot', color: 0xf59e0b };
-    if (id.startsWith('block_')) return { label: '[E] Push Heavy Stone', color: 0x94a3b8 };
-    if (id.startsWith('lever_')) return { label: '[E] Pull Ancient Lever', color: 0xf59e0b };
-    if (id === 'chest_duo_vault') {
-      const ent = this.entityObjects.get(id) as any;
-      if (ent && ent.texture?.key === 'chest_opened') {
-        return { label: 'Vault Chest (Empty)', color: 0x94a3b8 };
-      }
-      return { label: '[E] Open Co-Op Vault Chest', color: 0xfacc15 };
-    }
-    if (id === 'npc_grandma') return { label: '[E] Talk (Grandma)', color: 0xec4899 };
-    if (id === 'npc_barnaby') return { label: '[E] Talk (Barnaby)', color: 0x38bdf8 };
-    if (id.startsWith('npc_')) return { label: '[E] Talk', color: 0xfacc15 };
-    if (id.startsWith('sign_')) return { label: '[E] Read Sign', color: 0x94a3b8 };
-    if (id === 'ancient_gate') return { label: '[E] Inspect Gate', color: 0xa855f7 };
-    if (id.startsWith('switch_')) return { label: '[E] Sun Stone Switch', color: 0xfacc15 };
-    if (id.startsWith('chest_')) return { label: '[E] Open Chest', color: 0xeab308 };
-    if (id.startsWith('wildlife_')) return { label: '[E] Pet', color: 0x4ade80 };
-    return { label: '[E] Interact', color: 0x38bdf8 };
-  }
-
   private updateInteractionPrompt(time: number) {
     if (!this.localPlayer || !this.promptContainer) return;
 
@@ -2757,28 +2734,20 @@ export class WorldScene extends Phaser.Scene {
     } else {
       const px = this.localPlayer.x;
       const py = this.localPlayer.y;
-      let closestId: string | null = null;
-      let closestDist = 48;
-      let closestSprite: Phaser.GameObjects.Sprite | null = null;
+      const prioritized = BehaviorRegistry.getPrioritizedInteraction(
+        px,
+        py,
+        this.worldEntities.values(),
+        48,
+        this.localPlayer as any
+      );
 
-      for (const [id, obj] of this.entityObjects.entries()) {
-        const sprite = obj as Phaser.GameObjects.Sprite;
-        if (!sprite || !sprite.visible) continue;
-        const dist = Math.hypot(px - sprite.x, py - sprite.y);
-        if (dist < closestDist) {
-          closestDist = dist;
-          closestId = id;
-          closestSprite = sprite;
-        }
-      }
-
-      if (closestId && closestSprite) {
+      if (prioritized) {
         hasTarget = true;
-        targetX = closestSprite.x;
-        targetY = closestSprite.y;
-        const info = this.getInteractLabel(closestId);
-        label = info.label;
-        themeColor = info.color;
+        targetX = prioritized.entity.x;
+        targetY = prioritized.entity.y;
+        label = prioritized.promptText;
+        themeColor = prioritized.trait.priorityWeight > 75 ? 0xf59e0b : 0x38bdf8;
       }
     }
 

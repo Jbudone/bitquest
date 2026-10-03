@@ -3,6 +3,7 @@ import { WorldDatabase } from './db';
 import { STARTER_DIALOGUES } from '../../content/dialogues';
 import { NavigationEngine, NavAgent } from '../../shared/src/navigation';
 import { SpatialGrid } from '../../shared/src/spatialGrid';
+import { BehaviorRegistry } from '../../shared/src/behaviors/registry';
 
 export class WorldManager {
   public db: WorldDatabase;
@@ -835,175 +836,91 @@ export class WorldManager {
   }
 
   public handleInteract(playerId: string, targetId: string, action: string, x?: number, y?: number, damage?: number) {
-    const entity = this.entities.get(targetId);
-    if (!entity) return;
-
-    if (action === 'push_block' && entity.type === 'block') {
-      if (typeof x === 'number' && typeof y === 'number') {
-        entity.x = x;
-        entity.y = y;
-        this.onEntityStateChanged?.(entity);
-        this.checkPressureSwitches();
-      }
-      return;
-    }
-
-    if (action === 'pull_lever' || targetId.startsWith('lever_')) {
-      this.handleLeverPull(playerId, targetId);
-      return;
-    }
-
-    if (entity.type === 'chest' && !entity.state.locked && !entity.state.opened) {
-      entity.state.opened = true;
-      this.onEntityStateChanged?.(entity);
-      // Spawn treasure reward
-      for (let i = 0; i < 5; i++) {
-        const item: ItemDropData = {
-          id: `item_chest_${Date.now()}_${i}`,
-          itemType: i === 0 ? 'strawberry' : (i === 1 ? 'acorn' : 'coin'),
-          x: entity.x + (i - 2) * 14,
-          y: entity.y + 16,
-          value: i === 0 ? 1 : (i === 1 ? 2 : 5)
-        };
-        this.items.set(item.id, item);
-        this.onItemSpawned?.(item);
-      }
-      return;
-    }
-
-    if (action === 'cut' && entity.type === 'bush' && !entity.state.destroyed) {
-      entity.state.destroyed = true;
-      entity.state.respawnAt = Date.now() + 25000;
-      this.onEntityStateChanged?.(entity);
-
-      const types: Array<'coin' | 'strawberry' | 'acorn'> = ['coin', 'coin', 'coin', 'strawberry', 'acorn'];
-      const chosen = types[Math.floor(Math.random() * types.length)];
-      const item: ItemDropData = {
-        id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        itemType: chosen,
-        x: entity.x + (Math.random() * 12 - 6),
-        y: entity.y + (Math.random() * 12 - 6),
-        value: chosen === 'coin' ? (Math.random() > 0.4 ? 5 : 1) : 1
-      };
-      this.items.set(item.id, item);
-      this.onItemSpawned?.(item);
-    } else if (action === 'lift' && entity.type === 'pot' && !entity.state.destroyed && !entity.state.heldBy) {
-      entity.state.heldBy = playerId;
-      this.onEntityStateChanged?.(entity);
-    } else if (action === 'toss' && entity.type === 'pot' && entity.state.heldBy === playerId) {
-      entity.state.heldBy = null;
-      if (typeof x === 'number' && typeof y === 'number') {
-        entity.x = x;
-        entity.y = y;
-      }
-      entity.state.destroyed = true;
-      entity.state.respawnAt = Date.now() + 20000;
-      this.onEntityStateChanged?.(entity);
-      this.checkPressureSwitches();
-
-      if (Math.random() < 0.6) {
-        const item: ItemDropData = {
-          id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-          itemType: Math.random() < 0.3 ? 'strawberry' : 'coin',
-          x: entity.x,
-          y: entity.y,
-          value: 1
-        };
-        this.items.set(item.id, item);
-        this.onItemSpawned?.(item);
-      }
-    } else if (action === 'pet' && entity.type === 'wildlife') {
-      entity.state.petCount = (entity.state.petCount || 0) + 1;
-      this.onEntityStateChanged?.(entity);
-    } else if (action === 'hit_enemy') {
-      // Sword or Pot strike on Enemy / Boss
-      let dmg = damage || 1;
-      if (entity.type === 'boss' && entity.state.stunnedUntil && Date.now() < entity.state.stunnedUntil) {
-        dmg += 1; // Bonus critical strike damage on stunned boss
-      }
-      entity.state.hp = Math.max(0, (entity.state.hp || 1) - dmg);
-
-      if (entity.state.hp <= 0) {
-        entity.state.destroyed = true;
-        entity.state.respawnAt = Date.now() + (entity.type === 'boss' ? 60000 : 25000);
-
-        if (entity.type === 'boss') {
-          // Boss defeated!
-          this.onBossEvent?.({
-            type: 'boss_event',
-            action: 'defeated',
-            x: entity.x,
-            y: entity.y
-          });
-
-          // Drop the legendary Golden Acorn Crown!
-          const crownItem: ItemDropData = {
-            id: `item_crown_${Date.now()}`,
-            itemType: 'crown',
-            x: entity.x,
-            y: entity.y + 10,
-            value: 100
-          };
-          this.items.set(crownItem.id, crownItem);
-          this.onItemSpawned?.(crownItem);
-
-          // Massive coin & strawberry fountain
-          for (let i = 0; i < 6; i++) {
-            const coinItem: ItemDropData = {
-              id: `item_loot_coin_${Date.now()}_${i}`,
-              itemType: 'coin',
-              x: entity.x + (Math.random() * 60 - 30),
-              y: entity.y + (Math.random() * 60 - 30),
-              value: 10
-            };
-            this.items.set(coinItem.id, coinItem);
-            this.onItemSpawned?.(coinItem);
-          }
-          for (let i = 0; i < 3; i++) {
-            const berryItem: ItemDropData = {
-              id: `item_loot_berry_${Date.now()}_${i}`,
-              itemType: 'strawberry',
-              x: entity.x + (Math.random() * 50 - 25),
-              y: entity.y + (Math.random() * 50 - 25),
-              value: 1
-            };
-            this.items.set(berryItem.id, berryItem);
-            this.onItemSpawned?.(berryItem);
-          }
-        } else if (entity.subtype === 'sproutling') {
-          // Drops strawberry or acorn
-          const dropType = Math.random() < 0.6 ? 'strawberry' : 'acorn';
-          const drop: ItemDropData = {
-            id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-            itemType: dropType,
-            x: entity.x,
-            y: entity.y,
-            value: 1
-          };
-          this.items.set(drop.id, drop);
-          this.onItemSpawned?.(drop);
-        } else if (entity.subtype === 'grumble') {
-          // Drops coin, acorn, or rare sweet jam!
-          const roll = Math.random();
-          const dropType = roll < 0.5 ? 'coin' : roll < 0.85 ? 'acorn' : 'jam';
-          const drop: ItemDropData = {
-            id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-            itemType: dropType,
-            x: entity.x,
-            y: entity.y,
-            value: dropType === 'coin' ? 5 : 1
-          };
-          this.items.set(drop.id, drop);
-          this.onItemSpawned?.(drop);
-        }
-      }
-
-      this.onEntityStateChanged?.(entity);
-    } else if (action === 'player_hurt') {
+    if (action === 'player_hurt') {
       const player = this.players.get(playerId);
       if (player && player.health > 0) {
         player.health = Math.max(0, player.health - (damage || 1));
         this.onPlayerStatsUpdated?.(player);
+      }
+      return;
+    }
+
+    const entity = this.entities.get(targetId);
+    if (!entity) return;
+
+    if (action === 'hit_enemy') {
+      const healthPool = BehaviorRegistry.getHealthPool(entity);
+      if (healthPool) {
+        let dmg = damage || 1;
+        const res = healthPool.onHurt(entity, dmg);
+        if (res.isDestroyed) {
+          if (entity.type === 'boss') {
+            this.onBossEvent?.({
+              type: 'boss_event',
+              action: 'defeated',
+              x: entity.x,
+              y: entity.y
+            });
+            const crownItem: ItemDropData = {
+              id: `item_crown_${Date.now()}`,
+              itemType: 'crown',
+              x: entity.x,
+              y: entity.y + 10,
+              value: 100
+            };
+            this.items.set(crownItem.id, crownItem);
+            this.onItemSpawned?.(crownItem);
+            for (let i = 0; i < 6; i++) {
+              const coinItem: ItemDropData = {
+                id: `item_loot_coin_${Date.now()}_${i}`,
+                itemType: 'coin',
+                x: entity.x + (Math.random() * 60 - 30),
+                y: entity.y + (Math.random() * 60 - 30),
+                value: 10
+              };
+              this.items.set(coinItem.id, coinItem);
+              this.onItemSpawned?.(coinItem);
+            }
+            for (let i = 0; i < 3; i++) {
+              const berryItem: ItemDropData = {
+                id: `item_loot_berry_${Date.now()}_${i}`,
+                itemType: 'strawberry',
+                x: entity.x + (Math.random() * 50 - 25),
+                y: entity.y + (Math.random() * 50 - 25),
+                value: 1
+              };
+              this.items.set(berryItem.id, berryItem);
+              this.onItemSpawned?.(berryItem);
+            }
+          } else {
+            const dropType = entity.subtype === 'sproutling' ? (Math.random() < 0.6 ? 'strawberry' : 'acorn') : (Math.random() < 0.5 ? 'coin' : 'acorn');
+            const drop: ItemDropData = {
+              id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+              itemType: dropType,
+              x: entity.x,
+              y: entity.y,
+              value: dropType === 'coin' ? 5 : 1
+            };
+            this.items.set(drop.id, drop);
+            this.onItemSpawned?.(drop);
+          }
+        }
+        this.onEntityStateChanged?.(entity);
+      }
+      return;
+    }
+
+    const result = BehaviorRegistry.handleInteraction(entity, { playerId, action, x, y, damage }, this);
+    if (result.handled) {
+      if (result.stateChanged) {
+        this.spatialGrid.update(entity);
+        this.onEntityStateChanged?.(entity);
+      }
+      if (result.spawnItems) {
+        for (const item of result.spawnItems) {
+          this.items.set(item.id, item);
+          this.onItemSpawned?.(item);
+        }
       }
     }
   }

@@ -119,6 +119,8 @@ export class WorldScene extends Phaser.Scene {
     radius: number;
   }> = [];
 
+  private enemyConfusedIcons = new Map<string, Phaser.GameObjects.Image>();
+
   constructor() {
     super({ key: 'WorldScene' });
   }
@@ -941,6 +943,29 @@ export class WorldScene extends Phaser.Scene {
       if (wasVisible && ent.state.destroyed) {
         this.stampSlimeDecal(ent.x, ent.y);
       }
+
+      // Overhead Question Mark for Confused / Leashing State
+      let confIcon = this.enemyConfusedIcons.get(ent.id);
+      if (ent.state.aiState === 'confused' && !ent.state.destroyed) {
+        if (!confIcon) {
+          confIcon = this.add.image(ent.x, ent.y - 18, 'particle_question');
+          confIcon.setDepth(ent.y + 100);
+          this.tweens.add({
+            targets: confIcon,
+            y: ent.y - 23,
+            duration: 380,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+          });
+          this.enemyConfusedIcons.set(ent.id, confIcon);
+        } else {
+          confIcon.setVisible(true);
+        }
+      } else {
+        if (confIcon) confIcon.setVisible(false);
+      }
+
       if (!ent.state.destroyed) {
         // Smooth lerp to new position
         this.tweens.add({
@@ -955,6 +980,14 @@ export class WorldScene extends Phaser.Scene {
             targets: shadow,
             x: ent.x + 2,
             y: ent.y + 8,
+            duration: 300,
+            ease: 'Sine.easeOut'
+          });
+        }
+        if (confIcon && confIcon.visible) {
+          this.tweens.add({
+            targets: confIcon,
+            x: ent.x,
             duration: 300,
             ease: 'Sine.easeOut'
           });

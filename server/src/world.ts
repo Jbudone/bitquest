@@ -1,9 +1,11 @@
 import { PlayerData, EntityData, Direction, PlayerAnimState, EmoteType, ChatMessage, EmoteEvent, ItemDropData, ServerPacket } from '../../shared/src/types';
 import { WorldDatabase } from './db';
 import { STARTER_DIALOGUES } from '../../content/dialogues';
+import { NavigationEngine, NavAgent } from '../../shared/src/navigation';
 
 export class WorldManager {
   public db: WorldDatabase;
+  public navEngine = new NavigationEngine();
   public players = new Map<string, PlayerData>();
   public entities = new Map<string, EntityData>();
   public items = new Map<string, ItemDropData>();
@@ -33,6 +35,7 @@ export class WorldManager {
 
   constructor() {
     this.db = new WorldDatabase();
+    this.navEngine.setGateOpened(this.db.getFlag('ancient_gate_opened'));
     this.initDefaultEntities();
     this.startRespawnLoop();
     this.startAiLoop();
@@ -547,43 +550,50 @@ export class WorldManager {
   private startAiLoop() {
     // 1Hz gentle creature wandering & boss combat tick
     setInterval(() => {
-      // 1. Sproutlings hop slightly around their home
+      // 1 & 2. Smart Enemy Pathfinding (A*), Boids Flocking Separation & Leashing
+      const activeEnemies = Array.from(this.entities.values()).filter(
+        e => e.type === 'enemy' && !e.state.destroyed
+      );
+      const playerList = Array.from(this.players.values()).map(p => ({ x: p.x, y: p.y }));
+      const now = Date.now();
+
+      for (const enemy of activeEnemies) {
+        const isSproutling = enemy.subtype === 'sproutling';
+        const aggroRadius = isSproutling ? 110 : 140;
+        const leashRadius = isSproutling ? 180 : 230;
+        const speed = isSproutling ? 16 : 20;
+
+        const agent: NavAgent = {
+          id: enemy.id,
+          x: enemy.x,
+          y: enemy.y,
+          homeX: enemy.state.homeX ?? enemy.x,
+          homeY: enemy.state.homeY ?? enemy.y,
+          aiState: enemy.state.aiState || 'idle',
+          confusedUntil: enemy.state.confusedUntil,
+          aggroRadius,
+          leashRadius,
+          speed
+        };
+
+        const otherEnemies = activeEnemies
+          .filter(o => o.id !== enemy.id)
+          .map(o => ({ id: o.id, x: o.x, y: o.y }));
+
+        const { changed } = this.navEngine.updateAgent(agent, playerList, otherEnemies, now);
+
+        if (changed) {
+          enemy.x = agent.x;
+          enemy.y = agent.y;
+          enemy.state.aiState = agent.aiState;
+          enemy.state.confusedUntil = agent.confusedUntil;
+          this.onEntityStateChanged?.(enemy);
+        }
+      }
+
+      // 2b & 2c. Wildlife Ambient AI
       for (const entity of this.entities.values()) {
-        if (entity.type === 'enemy' && entity.subtype === 'sproutling' && !entity.state.destroyed) {
-          const homeX = entity.state.homeX || entity.x;
-          const homeY = entity.state.homeY || entity.y;
-          const dx = (Math.random() - 0.5) * 28;
-          const dy = (Math.random() - 0.5) * 28;
-          entity.x = Math.max(homeX - 48, Math.min(homeX + 48, entity.x + dx));
-          entity.y = Math.max(homeY - 48, Math.min(homeY + 48, entity.y + dy));
-          this.onEntityStateChanged?.(entity);
-        }
-
-        // 2. Grumble Shrooms chase nearby player (<100px)
-        if (entity.type === 'enemy' && entity.subtype === 'grumble' && !entity.state.destroyed) {
-          let closestDist = 110;
-          let targetX: number | null = null;
-          let targetY: number | null = null;
-
-          for (const player of this.players.values()) {
-            const dist = Math.hypot(player.x - entity.x, player.y - entity.y);
-            if (dist < closestDist) {
-              closestDist = dist;
-              targetX = player.x;
-              targetY = player.y;
-            }
-          }
-
-          if (targetX !== null && targetY !== null) {
-            // Step towards player with grumpy charge
-            const angle = Math.atan2(targetY - entity.y, targetX - entity.x);
-            entity.x += Math.cos(angle) * 14;
-            entity.y += Math.sin(angle) * 14;
-            this.onEntityStateChanged?.(entity);
-          }
-        }
-
-        // 2b. Crystal Lake Ducks gentle paddling wander
+        // Crystal Lake Ducks gentle paddling wander
         if (entity.type === 'wildlife' && entity.subtype === 'duck') {
           const dx = (Math.random() - 0.5) * 14;
           const dy = (Math.random() - 0.5) * 10;
@@ -801,6 +811,7 @@ export class WorldManager {
     if (gate.state.opened !== shouldOpen) {
       gate.state.opened = shouldOpen;
       this.db.setFlag('ancient_gate_opened', shouldOpen);
+      this.navEngine.setGateOpened(shouldOpen);
       this.onEntityStateChanged?.(gate);
       this.onWorldFlagChanged?.('ancient_gate_opened', shouldOpen);
     }
@@ -1010,6 +1021,7 @@ export class WorldManager {
         const next = !gate.state.opened;
         gate.state.opened = next;
         this.db.setFlag('ancient_gate_opened', next);
+        this.navEngine.setGateOpened(next);
         this.onEntityStateChanged?.(gate);
         this.onWorldFlagChanged?.('ancient_gate_opened', next);
       }
@@ -1038,6 +1050,7 @@ export class WorldManager {
         switchRight.state.activated = true;
         gate.state.opened = true;
         this.db.setFlag('ancient_gate_opened', true);
+        this.navEngine.setGateOpened(true);
         this.onEntityStateChanged?.(switchLeft);
         this.onEntityStateChanged?.(switchRight);
         this.onEntityStateChanged?.(gate);

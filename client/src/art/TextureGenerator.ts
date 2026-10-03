@@ -1646,6 +1646,24 @@ export class TextureGenerator {
       scene.textures.addCanvas('particle_zzz', canvas);
     }
 
+    // 5b. Confused Question Mark Particle (14x14)
+    {
+      const [canvas, ctx] = this.createCanvas(14, 14);
+      // Dark outline / shadow
+      ctx.fillStyle = '#1e1b4b';
+      ctx.fillRect(3, 1, 8, 4);
+      ctx.fillRect(8, 4, 4, 3);
+      ctx.fillRect(5, 6, 4, 3);
+      ctx.fillRect(5, 10, 4, 3);
+      // Crisp pixel art question mark
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(4, 2, 6, 2);
+      ctx.fillRect(8, 3, 3, 3);
+      ctx.fillRect(6, 6, 2, 2);
+      ctx.fillRect(6, 10, 2, 2);
+      scene.textures.addCanvas('particle_question', canvas);
+    }
+
     // 6. Light Glow (128x128)
     {
       const [canvas, ctx] = this.createCanvas(128, 128);

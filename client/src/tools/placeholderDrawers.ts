@@ -552,3 +552,101 @@ export function drawPlaceholderPreview(
 
   ctx.restore();
 }
+
+/**
+ * Generates ready-to-test sample spritesheets directly in the browser
+ */
+export function generateSampleSheetDataUrl(type: 'hero' | 'slime' | 'tiles' | 'props'): {
+  dataUrl: string;
+  name: string;
+  frameW: number;
+  frameH: number;
+  category: string;
+} {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d')!;
+  ctx.imageSmoothingEnabled = false;
+
+  if (type === 'hero') {
+    canvas.width = 96;
+    canvas.height = 128;
+    for (let d = 0; d < 4; d++) {
+      for (let f = 0; f < 3; f++) {
+        ctx.save();
+        ctx.translate(f * 32, d * 32);
+        drawPlaceholderPreview('player_0', ctx, 32, 32, d, f);
+        ctx.restore();
+      }
+    }
+    return {
+      dataUrl: canvas.toDataURL('image/png'),
+      name: 'sample_hero_adventurer.png',
+      frameW: 32,
+      frameH: 32,
+      category: 'character'
+    };
+  }
+
+  if (type === 'slime') {
+    canvas.width = 96;
+    canvas.height = 128;
+    for (let d = 0; d < 4; d++) {
+      for (let f = 0; f < 3; f++) {
+        ctx.save();
+        ctx.translate(f * 32, d * 32);
+        drawPlaceholderPreview('enemy_slime_blue', ctx, 32, 32, d, f);
+        ctx.restore();
+      }
+    }
+    return {
+      dataUrl: canvas.toDataURL('image/png'),
+      name: 'sample_meadow_slime.png',
+      frameW: 32,
+      frameH: 32,
+      category: 'monster'
+    };
+  }
+
+  if (type === 'tiles') {
+    canvas.width = 96;
+    canvas.height = 64;
+    const tiles = ['tile_grass', 'tile_cobble', 'tile_water'];
+    for (let r = 0; r < 4; r++) {
+      for (let c = 0; c < 6; c++) {
+        ctx.save();
+        ctx.translate(c * 16, r * 16);
+        const t = tiles[(r + c) % tiles.length]!;
+        drawPlaceholderPreview(t, ctx, 16, 16, 0, (r * 6 + c) % 4);
+        ctx.restore();
+      }
+    }
+    return {
+      dataUrl: canvas.toDataURL('image/png'),
+      name: 'sample_meadow_tileset.png',
+      frameW: 16,
+      frameH: 16,
+      category: 'tile'
+    };
+  }
+
+  // props
+  canvas.width = 64;
+  canvas.height = 64;
+  const props = ['prop_pot', 'prop_chest', 'prop_pot', 'prop_chest'];
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 2; c++) {
+      ctx.save();
+      ctx.translate(c * 32, r * 32);
+      const p = props[r * 2 + c]!;
+      drawPlaceholderPreview(p, ctx, 32, 32, 0, 0);
+      ctx.restore();
+    }
+  }
+  return {
+    dataUrl: canvas.toDataURL('image/png'),
+    name: 'sample_dungeon_props.png',
+    frameW: 32,
+    frameH: 32,
+    category: 'item'
+  };
+}

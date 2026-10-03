@@ -433,6 +433,17 @@
           <input type="file" id="art-file-input" accept="image/png,image/jpeg" style="display: none;" />
         </div>
 
+        <!-- Quick Demo Sheets -->
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 10px; color: var(--text-muted); font-weight: 600;">⚡ Quick Demo Sheets (Test without uploading):</span>
+          <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+            <button class="art-preset-pill art-demo-btn" data-demo="hero" style="border-color: #6366f1;">🧙 Hero</button>
+            <button class="art-preset-pill art-demo-btn" data-demo="slime" style="border-color: #38bdf8;">👾 Slime</button>
+            <button class="art-preset-pill art-demo-btn" data-demo="tiles" style="border-color: #22c55e;">🌿 16px Tiles</button>
+            <button class="art-preset-pill art-demo-btn" data-demo="props" style="border-color: #f59e0b;">📦 Props</button>
+          </div>
+        </div>
+
         <!-- Category & Presets -->
         <div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
@@ -447,7 +458,10 @@
 
           <!-- Presets -->
           <div style="margin-top: 6px;">
-            <label style="font-size: 10px; color: var(--text-muted); display: block; margin-bottom: 4px;">Slicing Presets:</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label style="font-size: 10px; color: var(--text-muted);">Slicing Presets:</label>
+              <button id="btn-auto-slice" class="art-preset-pill" style="border-color: #a855f7; color: #d8b4fe; font-weight: 700; padding: 2px 6px;">🪄 Auto-Detect</button>
+            </div>
             <div style="display: flex; gap: 4px; flex-wrap: wrap;">
               <button class="art-preset-pill" data-preset="rpg3x4">3×4 Character</button>
               <button class="art-preset-pill" data-preset="grid4x4">4×4 Grid</button>
@@ -512,6 +526,9 @@
             <button id="btn-zoom-fit" class="btn" style="padding: 3px 8px; font-size: 11px;">Fit</button>
           </div>
 
+          <div style="height: 16px; width: 1px; background: var(--border); margin: 0 4px;"></div>
+          <button id="btn-slice-mode" class="btn" style="font-size: 11px; padding: 3px 8px;" title="Drag to define slice dimensions">📐 Drag Box</button>
+
           <span id="art-slice-status" style="font-size: 11px; color: #a5b4fc; margin-left: auto;">Hover a frame to inspect</span>
         </div>
 
@@ -574,7 +591,7 @@
             <span id="anim-frame-counter" style="font-size: 11px; color: var(--text-muted); margin-left: 6px;">Frame 1/3</span>
           </div>
 
-          <!-- Speed Slider -->
+          <!-- Speed Slider & Palette Tint -->
           <div style="margin-top: 8px;">
             <label style="font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between;">
               <span>Speed:</span>
@@ -582,19 +599,38 @@
             </label>
             <input type="range" id="anim-fps-slider" min="1" max="24" value="8" style="width: 100%; margin-top: 4px;" />
           </div>
+
+          <!-- Palette Tint Row -->
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px; background: rgba(0,0,0,0.25); padding: 4px 8px; border-radius: 4px;">
+            <span style="font-size: 10px; color: var(--text-muted); font-weight: 600;">Palette Tint:</span>
+            <div style="display: flex; gap: 5px;">
+              <button class="art-tint-btn active" data-tint="none" style="width: 16px; height: 16px; border-radius: 3px; background: #64748b; border: 1.5px solid #fff; cursor: pointer;" title="Original"></button>
+              <button class="art-tint-btn" data-tint="gold" style="width: 16px; height: 16px; border-radius: 3px; background: #facc15; border: 1px solid rgba(255,255,255,0.4); cursor: pointer;" title="Warm Gold"></button>
+              <button class="art-tint-btn" data-tint="emerald" style="width: 16px; height: 16px; border-radius: 3px; background: #22c55e; border: 1px solid rgba(255,255,255,0.4); cursor: pointer;" title="Emerald"></button>
+              <button class="art-tint-btn" data-tint="violet" style="width: 16px; height: 16px; border-radius: 3px; background: #a855f7; border: 1px solid rgba(255,255,255,0.4); cursor: pointer;" title="Violet"></button>
+              <button class="art-tint-btn" data-tint="crimson" style="width: 16px; height: 16px; border-radius: 3px; background: #ef4444; border: 1px solid rgba(255,255,255,0.4); cursor: pointer;" title="Crimson"></button>
+            </div>
+          </div>
         </div>
 
         <!-- Interactive Walk Test Drive Playground -->
         <div style="border-top: 1px solid var(--border); padding-top: 10px; display: flex; flex-direction: column; gap: 6px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 11px; font-weight: 700; color: #a5b4fc;">🎮 Walk Test Drive</span>
-            <span style="font-size: 10px; color: var(--text-muted);">WASD / Arrows</span>
+            <span style="font-size: 11px; font-weight: 700; color: #a5b4fc;">🎮 Walk & Combat Test Drive</span>
+            <span style="font-size: 9px; color: var(--text-muted);">WASD • Space • Shift</span>
           </div>
           <div style="position: relative; background: #090d16; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; display: flex; justify-content: center;">
             <canvas id="art-testdrive-canvas" width="280" height="120" tabindex="0" style="image-rendering: pixelated; outline: none; cursor: grab;"></canvas>
             <div id="testdrive-focus-hint" style="position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); font-size: 9px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 8px; pointer-events: none; color: #a5b4fc; white-space: nowrap;">
-              Click canvas to move with WASD
+              Click canvas • WASD Walk • Space Slash • Shift Roll
             </div>
+          </div>
+
+          <!-- Combat Action Buttons -->
+          <div style="display: flex; gap: 6px; margin-top: 2px;">
+            <button id="btn-td-attack" class="btn btn-primary" style="flex: 1; font-size: 10px; padding: 5px;">⚔️ Slash (Space)</button>
+            <button id="btn-td-roll" class="btn" style="flex: 1; font-size: 10px; padding: 5px;">💨 Roll (Shift)</button>
+            <button id="btn-td-reset-pot" class="btn" style="font-size: 10px; padding: 5px;" title="Spawn / reset training pot">🏺 Reset Pot</button>
           </div>
         </div>
       </aside>

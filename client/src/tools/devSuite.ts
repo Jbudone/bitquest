@@ -1,5 +1,5 @@
 import { DataRegistry } from '../../../shared/src/dataRegistry';
-import { TARGET_REGISTRY, drawPlaceholderPreview, type TargetMeta } from './placeholderDrawers';
+import { TARGET_REGISTRY, drawPlaceholderPreview, generateSampleSheetDataUrl, type TargetMeta } from './placeholderDrawers';
 
 interface Command {
   name: string;
@@ -471,6 +471,26 @@ function initInspectors() {
 // ----------------------------------------------------------------------
 // Art Ingestion & Spritesheet Studio
 // ----------------------------------------------------------------------
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  color: string;
+  size: number;
+}
+
+interface FloatingText {
+  text: string;
+  x: number;
+  y: number;
+  vy: number;
+  life: number;
+  color: string;
+}
+
 interface ArtStudioState {
   loadedImage: HTMLImageElement | null;
   dataUrl: string | null;
@@ -485,6 +505,10 @@ interface ArtStudioState {
   isPlaying: boolean;
   loopMode: 'pingpong' | 'standard';
   viewMode: 'single' | 'matrix';
+  sliceMode: 'grid' | 'drag';
+  dragStart: { x: number; y: number } | null;
+  dragCurrent: { x: number; y: number } | null;
+  isDragging: boolean;
   currentFrameIdx: number;
   pingPongStep: number;
   animTimer: any;
@@ -495,6 +519,7 @@ interface ArtStudioState {
   currentCustomImage: HTMLImageElement | null;
   currentPlaceholderFrame: number;
   currentPlaceholderTimer: any;
+  activeTint: string;
   testDrive: {
     x: number;
     y: number;
@@ -502,7 +527,15 @@ interface ArtStudioState {
     moving: boolean;
     step: number;
     stepAccum: number;
+    isAttacking: boolean;
+    attackTimer: number;
+    isRolling: boolean;
+    rollTimer: number;
+    rollFacing: number;
     keys: Set<string>;
+    particles: Particle[];
+    floatingTexts: FloatingText[];
+    pot: { x: number; y: number; hp: number; maxHp: number; wobble: number };
     animReq: number | null;
   };
 }
@@ -521,6 +554,10 @@ const artState: ArtStudioState = {
   isPlaying: true,
   loopMode: 'pingpong',
   viewMode: 'single',
+  sliceMode: 'grid',
+  dragStart: null,
+  dragCurrent: null,
+  isDragging: false,
   currentFrameIdx: 0,
   pingPongStep: 0,
   animTimer: null,
@@ -531,14 +568,23 @@ const artState: ArtStudioState = {
   currentCustomImage: null,
   currentPlaceholderFrame: 0,
   currentPlaceholderTimer: null,
+  activeTint: 'none',
   testDrive: {
-    x: 140,
+    x: 90,
     y: 60,
     facing: 0,
     moving: false,
     step: 0,
     stepAccum: 0,
+    isAttacking: false,
+    attackTimer: 0,
+    isRolling: false,
+    rollTimer: 0,
+    rollFacing: 0,
     keys: new Set<string>(),
+    particles: [],
+    floatingTexts: [],
+    pot: { x: 210, y: 60, hp: 3, maxHp: 3, wobble: 0 },
     animReq: null
   }
 };
@@ -569,6 +615,8 @@ function initArtStudio() {
   const sliceCanvas = document.getElementById('art-slice-canvas') as HTMLCanvasElement | null;
   const sliceViewport = document.getElementById('art-viewport');
   const sliceStatus = document.getElementById('art-slice-status');
+  const btnAutoSlice = document.getElementById('btn-auto-slice');
+  const btnSliceMode = document.getElementById('btn-slice-mode') as HTMLButtonElement | null;
   const previewCanvas = document.getElementById('art-preview-canvas') as HTMLCanvasElement | null;
   const matrixCanvas = document.getElementById('art-matrix-canvas') as HTMLCanvasElement | null;
   const dirPanel = document.getElementById('art-direction-panel');
@@ -581,6 +629,9 @@ function initArtStudio() {
   const animCounter = document.getElementById('anim-frame-counter');
   const testDriveCanvas = document.getElementById('art-testdrive-canvas') as HTMLCanvasElement | null;
   const testDriveHint = document.getElementById('testdrive-focus-hint');
+  const btnTdAttack = document.getElementById('btn-td-attack');
+  const btnTdRoll = document.getElementById('btn-td-roll');
+  const btnTdResetPot = document.getElementById('btn-td-reset-pot');
   const zoomInBtn = document.getElementById('btn-zoom-in');
   const zoomOutBtn = document.getElementById('btn-zoom-out');
   const zoomFitBtn = document.getElementById('btn-zoom-fit');
@@ -702,7 +753,6 @@ function initArtStudio() {
 
     const meta = TARGET_REGISTRY[key];
     if (meta) {
-      // Suggest frame dimensions if category matches
       if (categorySelect) categorySelect.value = meta.category === 'tile' ? 'tile' : (meta.category === 'prop' ? 'item' : 'character');
       if (frameWInput && !artState.loadedImage) frameWInput.value = String(meta.width);
       if (frameHInput && !artState.loadedImage) frameHInput.value = String(meta.height);
@@ -710,7 +760,6 @@ function initArtStudio() {
       artState.frameHeight = parseInt(frameHInput?.value || '32', 10);
     }
 
-    // Check if custom image exists
     if (artState.customAssets.has(key)) {
       const sub = meta?.category === 'tile' ? 'tiles' : 'sprites';
       const img = new Image();
@@ -764,7 +813,7 @@ function initArtStudio() {
       const fh = meta ? meta.height : 32;
       const cols = Math.max(1, Math.floor(img.width / fw));
       const col = artState.currentPlaceholderFrame % cols;
-      const row = 0; // Down direction
+      const row = 0;
 
       const scale = Math.max(1, Math.min(Math.floor(64 / fw), Math.floor(64 / fh), 3));
       const dw = fw * scale;
@@ -779,13 +828,12 @@ function initArtStudio() {
         ctx,
         currentCanvas.width,
         currentCanvas.height,
-        0, // Down
+        0,
         artState.currentPlaceholderFrame
       );
     }
   }
 
-  // Current placeholder animation ticker (walks/wobbles)
   if (artState.currentPlaceholderTimer) clearInterval(artState.currentPlaceholderTimer);
   artState.currentPlaceholderTimer = setInterval(() => {
     artState.currentPlaceholderFrame = (artState.currentPlaceholderFrame + 1) % 4;
@@ -880,6 +928,73 @@ function initArtStudio() {
     });
   });
 
+  // Drag-to-Slice Mode Toggle
+  btnSliceMode?.addEventListener('click', () => {
+    artState.sliceMode = artState.sliceMode === 'grid' ? 'drag' : 'grid';
+    if (btnSliceMode) {
+      if (artState.sliceMode === 'drag') {
+        btnSliceMode.classList.add('btn-primary');
+        btnSliceMode.innerText = '📐 Box: Dragging';
+        showToast('📐 Drag Marquee Mode: Click and drag on the sheet to define frame size!');
+      } else {
+        btnSliceMode.classList.remove('btn-primary');
+        btnSliceMode.innerText = '📐 Drag Box';
+      }
+    }
+    renderSliceCanvas();
+  });
+
+  // Auto-Detect Slices (Alpha Scanner)
+  btnAutoSlice?.addEventListener('click', () => {
+    if (!artState.loadedImage) {
+      showToast('⚠️ Load an image or demo sheet first before auto-detecting slices!');
+      return;
+    }
+    const img = artState.loadedImage;
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = img.width;
+    tempCanvas.height = img.height;
+    const tctx = tempCanvas.getContext('2d')!;
+    tctx.drawImage(img, 0, 0);
+
+    const candidates = [16, 24, 32, 48, 64];
+    let bestW = 32;
+    let bestH = 32;
+    let bestScore = -1;
+
+    for (const c of candidates) {
+      if (img.width % c === 0 && img.height % c === 0) {
+        const cols = img.width / c;
+        const rows = img.height / c;
+        let score = 10;
+        if (cols === 3 && rows === 4) score += 50; // Standard 4-dir 3-frame sheet
+        if (cols === 4 && rows === 4) score += 40;
+        if (cols === 8 && rows === 1) score += 30;
+        if (score > bestScore) {
+          bestScore = score;
+          bestW = c;
+          bestH = c;
+        }
+      }
+    }
+
+    artState.frameWidth = bestW;
+    artState.frameHeight = bestH;
+    artState.offsetX = 0;
+    artState.offsetY = 0;
+    artState.spacing = 0;
+    if (frameWInput) frameWInput.value = String(bestW);
+    if (frameHInput) frameHInput.value = String(bestH);
+    if (frameOxInput) frameOxInput.value = '0';
+    if (frameOyInput) frameOyInput.value = '0';
+    if (frameSpacingInput) frameSpacingInput.value = '0';
+
+    renderSliceCanvas();
+    renderIncomingCard();
+    renderPreview();
+    showToast(`🪄 Auto-Slice detected: ${bestW}×${bestH}px grid (${Math.floor(img.width / bestW)}×${Math.floor(img.height / bestH)} frames)!`);
+  });
+
   function renderSliceCanvas() {
     if (!sliceCanvas || !artState.loadedImage) return;
     const img = artState.loadedImage;
@@ -948,7 +1063,7 @@ function initArtStudio() {
     }
 
     // Neon Hover Frame Indicator
-    if (artState.hoverFrame) {
+    if (artState.hoverFrame && artState.sliceMode === 'grid') {
       const { col, row } = artState.hoverFrame;
       if (col < cols && row < rows) {
         const hx = ox + col * (fw + sp);
@@ -958,9 +1073,73 @@ function initArtStudio() {
         ctx.strokeRect(hx, hy, fw, fh);
       }
     }
+
+    // Live Marquee Drag Box
+    if (artState.isDragging && artState.dragStart && artState.dragCurrent) {
+      const dx = Math.min(artState.dragStart.x, artState.dragCurrent.x);
+      const dy = Math.min(artState.dragStart.y, artState.dragCurrent.y);
+      const dw = Math.abs(artState.dragCurrent.x - artState.dragStart.x);
+      const dh = Math.abs(artState.dragCurrent.y - artState.dragStart.y);
+
+      ctx.fillStyle = 'rgba(250, 204, 21, 0.25)';
+      ctx.fillRect(dx, dy, dw, dh);
+      ctx.strokeStyle = '#facc15';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(dx, dy, dw, dh);
+
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(dx, dy - 14, 60, 12);
+      ctx.fillStyle = '#facc15';
+      ctx.font = 'bold 9px monospace';
+      ctx.fillText(`${Math.round(dw)}×${Math.round(dh)}px`, dx + 3, dy - 5);
+    }
   }
 
-  // Hover frame interaction on slice canvas
+  // Interactive mouse handlers on slice canvas
+  sliceCanvas.addEventListener('mousedown', (e) => {
+    if (!artState.loadedImage) return;
+    const rect = sliceCanvas.getBoundingClientRect();
+    const scaleX = sliceCanvas.width / rect.width;
+    const scaleY = sliceCanvas.height / rect.height;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleY;
+
+    if (artState.sliceMode === 'drag') {
+      artState.isDragging = true;
+      artState.dragStart = { x: mx, y: my };
+      artState.dragCurrent = { x: mx, y: my };
+      renderSliceCanvas();
+    }
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (artState.isDragging && artState.dragStart && artState.dragCurrent) {
+      const dw = Math.abs(artState.dragCurrent.x - artState.dragStart.x);
+      const dh = Math.abs(artState.dragCurrent.y - artState.dragStart.y);
+
+      if (dw >= 8 && dh >= 8) {
+        artState.frameWidth = Math.round(dw);
+        artState.frameHeight = Math.round(dh);
+        artState.offsetX = Math.round(Math.min(artState.dragStart.x, artState.dragCurrent.x));
+        artState.offsetY = Math.round(Math.min(artState.dragStart.y, artState.dragCurrent.y));
+
+        if (frameWInput) frameWInput.value = String(artState.frameWidth);
+        if (frameHInput) frameHInput.value = String(artState.frameHeight);
+        if (frameOxInput) frameOxInput.value = String(artState.offsetX);
+        if (frameOyInput) frameOyInput.value = String(artState.offsetY);
+
+        showToast(`📐 Marquee Box Applied: ${artState.frameWidth}×${artState.frameHeight}px!`);
+      }
+
+      artState.isDragging = false;
+      artState.dragStart = null;
+      artState.dragCurrent = null;
+      renderSliceCanvas();
+      renderIncomingCard();
+      renderPreview();
+    }
+  });
+
   sliceCanvas.addEventListener('mousemove', (e) => {
     if (!artState.loadedImage) return;
     const rect = sliceCanvas.getBoundingClientRect();
@@ -968,6 +1147,12 @@ function initArtStudio() {
     const scaleY = sliceCanvas.height / rect.height;
     const mx = (e.clientX - rect.left) * scaleX;
     const my = (e.clientY - rect.top) * scaleY;
+
+    if (artState.isDragging && artState.dragStart) {
+      artState.dragCurrent = { x: mx, y: my };
+      renderSliceCanvas();
+      return;
+    }
 
     const fw = artState.frameWidth;
     const fh = artState.frameHeight;
@@ -991,13 +1176,15 @@ function initArtStudio() {
   });
 
   sliceCanvas.addEventListener('mouseleave', () => {
-    artState.hoverFrame = null;
-    if (sliceStatus) sliceStatus.innerText = 'Hover a frame to inspect';
-    renderSliceCanvas();
+    if (!artState.isDragging) {
+      artState.hoverFrame = null;
+      if (sliceStatus) sliceStatus.innerText = 'Hover a frame to inspect';
+      renderSliceCanvas();
+    }
   });
 
   sliceCanvas.addEventListener('click', () => {
-    if (artState.hoverFrame) {
+    if (artState.hoverFrame && artState.sliceMode === 'grid') {
       artState.direction = Math.min(3, artState.hoverFrame.row);
       artState.currentFrameIdx = artState.hoverFrame.col;
       dirButtons.forEach(b => {
@@ -1058,7 +1245,25 @@ function initArtStudio() {
     }
   }
 
-  // File loading
+  // Load image helper
+  function loadImageFromDataUrl(dataUrl: string, name: string) {
+    const img = new Image();
+    img.onload = () => {
+      artState.loadedImage = img;
+      artState.dataUrl = dataUrl;
+      artState.fileName = name;
+
+      if (emptyNotice) emptyNotice.style.display = 'none';
+      if (sliceCanvas) sliceCanvas.style.display = 'block';
+
+      renderSliceCanvas();
+      renderIncomingCard();
+      renderPreview();
+    };
+    img.src = dataUrl;
+  }
+
+  // File loading from disk
   function handleFile(file: File) {
     if (!file || !file.type.startsWith('image/')) {
       showToast('⚠️ Please select a valid PNG or JPG image');
@@ -1117,6 +1322,30 @@ function initArtStudio() {
     reader.readAsDataURL(file);
   }
 
+  // Quick Demo Buttons
+  document.querySelectorAll<HTMLButtonElement>('.art-demo-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const demo = (e.currentTarget as HTMLElement).getAttribute('data-demo') as 'hero' | 'slime' | 'tiles' | 'props';
+      const sample = generateSampleSheetDataUrl(demo);
+
+      artState.frameWidth = sample.frameW;
+      artState.frameHeight = sample.frameH;
+      artState.offsetX = 0;
+      artState.offsetY = 0;
+      artState.spacing = 0;
+
+      if (categorySelect) categorySelect.value = sample.category;
+      if (frameWInput) frameWInput.value = String(sample.frameW);
+      if (frameHInput) frameHInput.value = String(sample.frameH);
+      if (frameOxInput) frameOxInput.value = '0';
+      if (frameOyInput) frameOyInput.value = '0';
+      if (frameSpacingInput) frameSpacingInput.value = '0';
+
+      loadImageFromDataUrl(sample.dataUrl, sample.name);
+      showToast(`⚡ Loaded sample "${demo}" sheet (${sample.frameW}×${sample.frameH}px)!`);
+    });
+  });
+
   if (dropzone && fileInput) {
     dropzone.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', () => {
@@ -1145,6 +1374,7 @@ function initArtStudio() {
   document.querySelectorAll<HTMLButtonElement>('.art-preset-pill').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const preset = (e.currentTarget as HTMLElement).getAttribute('data-preset');
+      if (!preset) return;
       const img = artState.loadedImage;
       if (!img) {
         if (preset === 'tile16') {
@@ -1227,7 +1457,6 @@ function initArtStudio() {
   // --------------------------------------------------------------------
   // 3. Animation Studio (Single View & 4-Way Matrix)
   // --------------------------------------------------------------------
-  // View mode switcher
   document.querySelectorAll<HTMLButtonElement>('.anim-mode-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       document.querySelectorAll('.anim-mode-btn').forEach(b => b.classList.remove('active'));
@@ -1250,7 +1479,6 @@ function initArtStudio() {
     });
   });
 
-  // Loop mode switcher
   document.querySelectorAll<HTMLButtonElement>('.loop-mode-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       document.querySelectorAll('.loop-mode-btn').forEach(b => b.classList.remove('active'));
@@ -1260,7 +1488,28 @@ function initArtStudio() {
     });
   });
 
-  // Direction buttons
+  // Palette Tinting
+  document.querySelectorAll<HTMLButtonElement>('.art-tint-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.art-tint-btn').forEach(b => b.classList.remove('active'));
+      const target = e.currentTarget as HTMLElement;
+      target.classList.add('active');
+      artState.activeTint = target.getAttribute('data-tint') || 'none';
+
+      const filterMap: Record<string, string> = {
+        none: 'none',
+        gold: 'sepia(0.6) hue-rotate(15deg) saturate(2)',
+        emerald: 'hue-rotate(90deg) saturate(1.5)',
+        violet: 'hue-rotate(240deg) saturate(1.4)',
+        crimson: 'hue-rotate(320deg) saturate(2)'
+      };
+
+      const cssFilter = filterMap[artState.activeTint] || 'none';
+      if (previewCanvas) previewCanvas.style.filter = cssFilter;
+      if (matrixCanvas) matrixCanvas.style.filter = cssFilter;
+    });
+  });
+
   dirButtons.forEach(btn => {
     btn.addEventListener('click', (e) => {
       dirButtons.forEach(b => b.classList.remove('active'));
@@ -1273,7 +1522,6 @@ function initArtStudio() {
     });
   });
 
-  // Playback controls
   btnAnimPlay?.addEventListener('click', () => {
     artState.isPlaying = !artState.isPlaying;
     if (btnAnimPlay) {
@@ -1396,16 +1644,13 @@ function initArtStudio() {
       const sx = ox + col * (fw + sp);
       const sy = oy + row * (fh + sp);
 
-      // Frame box
       ctx.fillStyle = 'rgba(255,255,255,0.03)';
       ctx.fillRect(d.x, d.y, 65, 60);
 
-      // Label
       ctx.fillStyle = '#64748b';
       ctx.font = '8px monospace';
       ctx.fillText(d.name, d.x + 4, d.y + 10);
 
-      // Draw sprite frame
       const scale = Math.max(1, Math.min(Math.floor(48 / fw), Math.floor(48 / fh), 2));
       const dw = fw * scale;
       const dh = fh * scale;
@@ -1434,14 +1679,12 @@ function initArtStudio() {
       const cols = Math.max(1, Math.floor((img.width - ox) / (fw + sp)));
 
       if (artState.loopMode === 'pingpong' && cols > 2) {
-        // Ping-pong sequence: 0 -> 1 -> 2 -> 1 -> 0
         const totalSteps = (cols - 1) * 2;
         artState.pingPongStep = (artState.pingPongStep + 1) % totalSteps;
         artState.currentFrameIdx = artState.pingPongStep < cols 
           ? artState.pingPongStep 
           : totalSteps - artState.pingPongStep;
       } else {
-        // Standard loop: 0 -> 1 -> 2 -> 0
         artState.currentFrameIdx = (artState.currentFrameIdx + 1) % cols;
       }
 
@@ -1451,8 +1694,81 @@ function initArtStudio() {
   }
 
   // --------------------------------------------------------------------
-  // 4. Interactive Walk Test Drive Playground
+  // 4. Interactive Walk & Combat Test Drive Playground
   // --------------------------------------------------------------------
+  function triggerSlashAttack() {
+    if (artState.testDrive.isAttacking || artState.testDrive.isRolling) return;
+    artState.testDrive.isAttacking = true;
+    artState.testDrive.attackTimer = 220;
+
+    // Check hit on training pot
+    const p = artState.testDrive;
+    const pot = p.pot;
+    const dist = Math.hypot(p.x - pot.x, p.y - pot.y);
+
+    if (dist < 42 && pot.hp > 0) {
+      pot.wobble = 18;
+      pot.hp -= 1;
+
+      // Spawn damage text
+      p.floatingTexts.push({
+        text: '-1 💥',
+        x: pot.x,
+        y: pot.y - 12,
+        vy: -1.2,
+        life: 40,
+        color: '#f87171'
+      });
+
+      // Spawn hit spark particles
+      for (let i = 0; i < 6; i++) {
+        p.particles.push({
+          x: pot.x + (Math.random() * 8 - 4),
+          y: pot.y + (Math.random() * 8 - 4),
+          vx: (Math.random() - 0.5) * 3,
+          vy: (Math.random() - 0.5) * 3,
+          life: 25,
+          maxLife: 25,
+          color: '#facc15',
+          size: 2.5
+        });
+      }
+
+      if (pot.hp === 0) {
+        p.floatingTexts.push({
+          text: '+5 🪙',
+          x: pot.x,
+          y: pot.y - 24,
+          vy: -1.5,
+          life: 50,
+          color: '#fbbf24'
+        });
+        showToast('🏺 Shattered training pot! +5 Gold Coins!');
+      }
+    }
+  }
+
+  function triggerDodgeRoll() {
+    if (artState.testDrive.isRolling || artState.testDrive.isAttacking) return;
+    artState.testDrive.isRolling = true;
+    artState.testDrive.rollTimer = 260;
+    artState.testDrive.rollFacing = artState.testDrive.facing;
+
+    // Spawn dust particles
+    for (let i = 0; i < 5; i++) {
+      artState.testDrive.particles.push({
+        x: artState.testDrive.x + (Math.random() * 8 - 4),
+        y: artState.testDrive.y + 10,
+        vx: (Math.random() - 0.5) * 1.5,
+        vy: -Math.random() * 1.2,
+        life: 20,
+        maxLife: 20,
+        color: '#e2e8f0',
+        size: 3
+      });
+    }
+  }
+
   function initTestDrive() {
     if (!testDriveCanvas) return;
     const ctx = testDriveCanvas.getContext('2d');
@@ -1460,14 +1776,14 @@ function initArtStudio() {
 
     testDriveCanvas.addEventListener('focus', () => {
       if (testDriveHint) {
-        testDriveHint.innerText = '🎮 Controlling Avatar — Move with WASD / Arrows';
+        testDriveHint.innerText = '🎮 Controlling Avatar — Move: WASD | Slash: Space | Roll: Shift';
         testDriveHint.style.color = '#38bdf8';
       }
     });
 
     testDriveCanvas.addEventListener('blur', () => {
       if (testDriveHint) {
-        testDriveHint.innerText = 'Click canvas to move with WASD';
+        testDriveHint.innerText = 'Click canvas • WASD Walk • Space Slash • Shift Roll';
         testDriveHint.style.color = '#a5b4fc';
       }
       artState.testDrive.keys.clear();
@@ -1479,6 +1795,12 @@ function initArtStudio() {
       if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) {
         e.preventDefault();
         artState.testDrive.keys.add(k);
+      } else if (e.code === 'Space') {
+        e.preventDefault();
+        triggerSlashAttack();
+      } else if (e.key === 'Shift') {
+        e.preventDefault();
+        triggerDodgeRoll();
       }
     });
 
@@ -1487,46 +1809,85 @@ function initArtStudio() {
       artState.testDrive.keys.delete(k);
     });
 
+    btnTdAttack?.addEventListener('click', () => {
+      testDriveCanvas.focus();
+      triggerSlashAttack();
+    });
+
+    btnTdRoll?.addEventListener('click', () => {
+      testDriveCanvas.focus();
+      triggerDodgeRoll();
+    });
+
+    btnTdResetPot?.addEventListener('click', () => {
+      artState.testDrive.pot.hp = 3;
+      artState.testDrive.pot.wobble = 10;
+      showToast('🏺 Training pot restored!');
+    });
+
     let lastTime = performance.now();
 
     function loop(now: number) {
       const dt = Math.min(100, now - lastTime);
       lastTime = now;
 
+      // Update attack / roll timers
+      const td = artState.testDrive;
+      if (td.isAttacking) {
+        td.attackTimer -= dt;
+        if (td.attackTimer <= 0) td.isAttacking = false;
+      }
+      if (td.isRolling) {
+        td.rollTimer -= dt;
+        if (td.rollTimer <= 0) td.isRolling = false;
+      }
+      if (td.pot.wobble > 0) {
+        td.pot.wobble = Math.max(0, td.pot.wobble - dt * 0.05);
+      }
+
       // Update movement
-      const keys = artState.testDrive.keys;
+      const keys = td.keys;
       let vx = 0;
       let vy = 0;
 
-      if (keys.has('w') || keys.has('arrowup')) { vy -= 1; artState.testDrive.facing = 3; }
-      if (keys.has('s') || keys.has('arrowdown')) { vy += 1; artState.testDrive.facing = 0; }
-      if (keys.has('a') || keys.has('arrowleft')) { vx -= 1; artState.testDrive.facing = 1; }
-      if (keys.has('d') || keys.has('arrowright')) { vx += 1; artState.testDrive.facing = 2; }
+      if (td.isRolling) {
+        // Roll thrust in rollFacing direction
+        const rollSpeed = 3.8 * (dt / 16.6);
+        if (td.rollFacing === 0) vy += rollSpeed;
+        else if (td.rollFacing === 1) vx -= rollSpeed;
+        else if (td.rollFacing === 2) vx += rollSpeed;
+        else if (td.rollFacing === 3) vy -= rollSpeed;
+      } else if (!td.isAttacking) {
+        if (keys.has('w') || keys.has('arrowup')) { vy -= 1; td.facing = 3; }
+        if (keys.has('s') || keys.has('arrowdown')) { vy += 1; td.facing = 0; }
+        if (keys.has('a') || keys.has('arrowleft')) { vx -= 1; td.facing = 1; }
+        if (keys.has('d') || keys.has('arrowright')) { vx += 1; td.facing = 2; }
+      }
 
       const isMoving = vx !== 0 || vy !== 0;
-      artState.testDrive.moving = isMoving;
+      td.moving = isMoving;
 
       if (isMoving) {
-        const speed = 1.8 * (dt / 16.6);
+        const speed = (td.isRolling ? 1 : 2.0) * (dt / 16.6);
         const len = Math.hypot(vx, vy) || 1;
-        artState.testDrive.x = Math.max(16, Math.min(testDriveCanvas!.width - 16, artState.testDrive.x + (vx / len) * speed));
-        artState.testDrive.y = Math.max(16, Math.min(testDriveCanvas!.height - 16, artState.testDrive.y + (vy / len) * speed));
+        td.x = Math.max(16, Math.min(testDriveCanvas!.width - 16, td.x + (vx / len) * speed));
+        td.y = Math.max(16, Math.min(testDriveCanvas!.height - 16, td.y + (vy / len) * speed));
 
-        artState.testDrive.stepAccum += dt;
-        if (artState.testDrive.stepAccum >= 120) {
-          artState.testDrive.step = (artState.testDrive.step + 1) % 4;
-          artState.testDrive.stepAccum = 0;
+        td.stepAccum += dt;
+        if (td.stepAccum >= 120) {
+          td.step = (td.step + 1) % 4;
+          td.stepAccum = 0;
         }
       } else {
-        artState.testDrive.step = 0;
+        td.step = 0;
       }
 
       // Render terrain
       ctx!.imageSmoothingEnabled = false;
-      ctx!.fillStyle = '#4f933b'; // Meadow green
+      ctx!.fillStyle = '#4f933b';
       ctx!.fillRect(0, 0, testDriveCanvas!.width, testDriveCanvas!.height);
 
-      // Cobblestone path across middle
+      // Cobblestone path
       ctx!.fillStyle = '#7a8277';
       ctx!.fillRect(0, 48, testDriveCanvas!.width, 24);
       ctx!.fillStyle = '#9da599';
@@ -1535,25 +1896,72 @@ function initArtStudio() {
         ctx!.fillRect(x + 8, 62, 12, 8);
       }
 
-      // Daisies & Buttercups
+      // Flowers
       ctx!.fillStyle = '#facc15';
       ctx!.fillRect(24, 20, 2, 2);
       ctx!.fillRect(80, 100, 2, 2);
-      ctx!.fillRect(220, 24, 2, 2);
+      ctx!.fillRect(250, 24, 2, 2);
       ctx!.fillStyle = '#ffffff';
       ctx!.fillRect(160, 18, 3, 3);
       ctx!.fillRect(40, 95, 3, 3);
       ctx!.fillRect(240, 90, 3, 3);
 
-      // Shadow
-      const px = Math.round(artState.testDrive.x);
-      const py = Math.round(artState.testDrive.y);
+      // Training Pot Render
+      const pot = td.pot;
+      ctx!.save();
+      const wobbleAngle = Math.sin(performance.now() * 0.03) * (pot.wobble * 0.03);
+      ctx!.translate(pot.x, pot.y);
+      ctx!.rotate(wobbleAngle);
+
+      if (pot.hp > 0) {
+        // Shadow
+        ctx!.fillStyle = 'rgba(0, 0, 0, 0.25)';
+        ctx!.beginPath();
+        ctx!.ellipse(0, 14, 7, 3, 0, 0, Math.PI * 2);
+        ctx!.fill();
+
+        // Terracotta pot
+        ctx!.fillStyle = '#d97706';
+        ctx!.fillRect(-7, -4, 14, 16);
+        ctx!.fillStyle = '#f59e0b';
+        ctx!.fillRect(-8, -7, 16, 4);
+
+        // HP bar above pot
+        ctx!.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx!.fillRect(-10, -14, 20, 4);
+        ctx!.fillStyle = '#22c55e';
+        ctx!.fillRect(-9, -13, (18 * pot.hp) / pot.maxHp, 2);
+      } else {
+        // Shattered shards
+        ctx!.fillStyle = '#d97706';
+        ctx!.fillRect(-8, 8, 5, 4);
+        ctx!.fillRect(2, 6, 6, 5);
+        ctx!.fillRect(-3, 10, 4, 3);
+        ctx!.fillStyle = '#facc15'; // Golden coin
+        ctx!.beginPath();
+        ctx!.arc(0, 6, 4, 0, Math.PI * 2);
+        ctx!.fill();
+      }
+      ctx!.restore();
+
+      // Shadow under avatar
+      const px = Math.round(td.x);
+      const py = Math.round(td.y);
       ctx!.fillStyle = 'rgba(0, 0, 0, 0.25)';
       ctx!.beginPath();
       ctx!.ellipse(px, py + 12, 8, 3.5, 0, 0, Math.PI * 2);
       ctx!.fill();
 
-      // Avatar render: custom art if loaded, otherwise current target placeholder
+      // Avatar render: custom art if loaded, otherwise target placeholder
+      ctx!.save();
+      if (td.isRolling) {
+        // Dodge roll rotation
+        const rollProgress = (260 - td.rollTimer) / 260;
+        ctx!.translate(px, py);
+        ctx!.rotate(rollProgress * Math.PI * 2 * (td.rollFacing === 1 ? -1 : 1));
+        ctx!.translate(-px, -py);
+      }
+
       if (artState.loadedImage) {
         const img = artState.loadedImage;
         const fw = artState.frameWidth;
@@ -1564,8 +1972,8 @@ function initArtStudio() {
         const cols = Math.max(1, Math.floor((img.width - ox) / (fw + sp)));
         const rows = Math.max(1, Math.floor((img.height - oy) / (fh + sp)));
 
-        const row = Math.min(artState.testDrive.facing, rows - 1);
-        const col = (artState.testDrive.step % 3) % cols;
+        const row = Math.min(td.facing, rows - 1);
+        const col = (td.step % 3) % cols;
 
         ctx!.drawImage(
           img,
@@ -1579,21 +1987,70 @@ function initArtStudio() {
           fh
         );
       } else {
-        // Draw procedural placeholder
-        ctx!.save();
         ctx!.translate(px - 16, py - 16);
         drawPlaceholderPreview(
           artState.currentTargetKey,
           ctx!,
           32,
           32,
-          artState.testDrive.facing,
-          artState.testDrive.step
+          td.facing,
+          td.step
         );
+      }
+      ctx!.restore();
+
+      // Draw sword slash arc when attacking
+      if (td.isAttacking) {
+        ctx!.save();
+        ctx!.translate(px, py);
+        const rotMap = [Math.PI / 2, Math.PI, 0, -Math.PI / 2];
+        ctx!.rotate(rotMap[td.facing] || 0);
+
+        ctx!.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx!.lineWidth = 3;
+        ctx!.beginPath();
+        ctx!.arc(0, 0, 22, -0.6, 0.6);
+        ctx!.stroke();
+
+        ctx!.strokeStyle = 'rgba(56, 189, 248, 0.8)';
+        ctx!.lineWidth = 1.5;
+        ctx!.beginPath();
+        ctx!.arc(0, 0, 20, -0.7, 0.7);
+        ctx!.stroke();
         ctx!.restore();
       }
 
-      artState.testDrive.animReq = requestAnimationFrame(loop);
+      // Update & render particles
+      for (let i = td.particles.length - 1; i >= 0; i--) {
+        const pt = td.particles[i]!;
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        pt.life--;
+        if (pt.life <= 0) {
+          td.particles.splice(i, 1);
+        } else {
+          ctx!.fillStyle = pt.color;
+          ctx!.beginPath();
+          ctx!.arc(pt.x, pt.y, (pt.size * pt.life) / pt.maxLife, 0, Math.PI * 2);
+          ctx!.fill();
+        }
+      }
+
+      // Update & render floating text
+      for (let i = td.floatingTexts.length - 1; i >= 0; i--) {
+        const ft = td.floatingTexts[i]!;
+        ft.y += ft.vy;
+        ft.life--;
+        if (ft.life <= 0) {
+          td.floatingTexts.splice(i, 1);
+        } else {
+          ctx!.font = 'bold 11px sans-serif';
+          ctx!.fillStyle = ft.color;
+          ctx!.fillText(ft.text, ft.x - 10, ft.y);
+        }
+      }
+
+      td.animReq = requestAnimationFrame(loop);
     }
 
     if (artState.testDrive.animReq) cancelAnimationFrame(artState.testDrive.animReq);

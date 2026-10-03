@@ -24,6 +24,15 @@ export class WorldScene extends Phaser.Scene {
   private coinCombo = 0;
   private lastCoinPickupTime = 0;
 
+  // Dynamic Camera Director & Look-Ahead
+  private camOffsetX = 0;
+  private camOffsetY = 0;
+  private isCinematicPanning = false;
+
+  // Biome Color Grading & Atmospheric Ambient Lighting
+  private ambientOverlay!: Phaser.GameObjects.Rectangle;
+  private currentBiome: string | null = null;
+
   // X-Ray Occlusion Silhouettes & Punch-Hole
   private playerSilhouette!: Phaser.GameObjects.Sprite;
   private enemySilhouettes = new Map<string, Phaser.GameObjects.Sprite>();
@@ -56,6 +65,11 @@ export class WorldScene extends Phaser.Scene {
     this.playerSilhouette.setTintFill(0x38bdf8);
     this.playerSilhouette.setAlpha(0);
     this.playerSilhouette.setDepth(3500);
+
+    // 1d. Biome Color Grading & Atmospheric Ambient Lighting Overlay
+    this.ambientOverlay = this.add.rectangle(1024, 896, 2048, 1792, 0xf59e0b);
+    this.ambientOverlay.setDepth(1500);
+    this.ambientOverlay.setAlpha(0.06);
 
     // 2. Setup Input
     if (this.input.keyboard) {
@@ -720,8 +734,16 @@ export class WorldScene extends Phaser.Scene {
     this.triggerCameraShake(120, 0.006);
     chronicles.recordStat('damageTaken', dmg);
 
+    this.localPlayer.health = Math.max(0, this.localPlayer.health - dmg);
+    (window as any).BitQuestUI?.updateHearts(this.localPlayer.health, this.localPlayer.maxHealth);
+
     network.sendInteract(this.localPlayer.id, 'player_hurt', undefined, undefined, dmg);
     this.showFloatingText(this.localPlayer.x, this.localPlayer.y, `-${dmg} ❤️`, '#ef4444');
+
+    if (this.localPlayer.health <= 0) {
+      this.triggerCozyDefeat();
+      return;
+    }
 
     this.tweens.add({
       targets: this.localPlayer,
@@ -736,17 +758,124 @@ export class WorldScene extends Phaser.Scene {
     });
   }
 
+  private triggerCozyDefeat() {
+    if (!this.localPlayer) return;
+    this.playerInvulnerable = true;
+    (window as any).BitQuestUI?.hideBossHp?.();
+
+    const body = this.localPlayer.body as Phaser.Physics.Arcade.Body;
+    if (body) body.setVelocity(0, 0);
+
+    // Warm soft vignette fade out
+    this.cameras.main.fade(700, 20, 15, 20);
+
+    // Show Cozy Defeat Transition modal
+    (window as any).BitQuestUI?.biomes?.showCozyDefeat(() => {
+      if (!this.localPlayer) return;
+
+      // Respawn player in Grandma Bramble's Bakery Cot in Oakhaven Town Plaza
+      const cotX = 1240;
+      const cotY = 840;
+      this.localPlayer.setPosition(cotX, cotY);
+      this.localPlayer.health = this.localPlayer.maxHealth;
+      (window as any).BitQuestUI?.updateHearts(this.localPlayer.health, this.localPlayer.maxHealth);
+
+      network.sendMove(cotX, cotY, 'down', 'idle', null);
+
+      // Smooth camera fade in
+      this.cameras.main.fadeIn(700, 20, 15, 20);
+
+      // Steaming berry tea recovery icon & hearts
+      this.showFloatingText(cotX, cotY - 16, '☕ WARM BERRY TEA +3 ❤️', '#fbbf24');
+      for (let i = 0; i < 6; i++) {
+        const heart = this.add.text(cotX + (Math.random() * 20 - 10), cotY + (Math.random() * 10 - 5), '❤️', { fontSize: '10px' });
+        this.tweens.add({
+          targets: heart,
+          y: heart.y - 28,
+          alpha: 0,
+          scale: 1.4,
+          duration: 900 + Math.random() * 300,
+          ease: 'Cubic.easeOut',
+          onComplete: () => heart.destroy()
+        });
+      }
+
+      this.playerInvulnerable = false;
+    });
+  }
+
+  public cinematicPanTo(targetX: number, targetY: number, holdDuration = 1200, onHold?: () => void) {
+    if (this.isCinematicPanning || !this.localPlayer) return;
+    this.isCinematicPanning = true;
+
+    this.cameras.main.stopFollow();
+
+    const camWidth = this.cameras.main.width / this.cameras.main.zoom;
+    const camHeight = this.cameras.main.height / this.cameras.main.zoom;
+
+    const destScrollX = targetX - camWidth / 2;
+    const destScrollY = targetY - camHeight / 2;
+
+    this.tweens.add({
+      targets: this.cameras.main,
+      scrollX: destScrollX,
+      scrollY: destScrollY,
+      duration: 550,
+      ease: 'Quad.easeInOut',
+      onComplete: () => {
+        onHold?.();
+
+        this.time.delayedCall(holdDuration, () => {
+          if (!this.localPlayer) return;
+          const returnScrollX = this.localPlayer.x - camWidth / 2;
+          const returnScrollY = this.localPlayer.y - camHeight / 2;
+
+          this.tweens.add({
+            targets: this.cameras.main,
+            scrollX: returnScrollX,
+            scrollY: returnScrollY,
+            duration: 550,
+            ease: 'Quad.easeInOut',
+            onComplete: () => {
+              if (this.localPlayer) {
+                this.cameras.main.startFollow(this.localPlayer, true, 0.12, 0.12, -this.camOffsetX, -this.camOffsetY);
+              }
+              this.isCinematicPanning = false;
+            }
+          });
+        });
+      }
+    });
+  }
+
   public openGate(playJingle = true) {
     const gateSprite = this.entityObjects.get('ancient_gate') as Phaser.GameObjects.Sprite;
-    if (gateSprite) {
-      gateSprite.setTexture('gate_opened');
-    }
-    if (this.gateBody) {
-      this.gateBody.disableBody(true, true);
-    }
-    if (playJingle) {
-      sounds.playSecretJingle();
-      (window as any).BitQuestUI?.showToast('✨ The Ancient Sunken Gate has opened!');
+
+    if (playJingle && this.localPlayer) {
+      this.cinematicPanTo(1024, 512, 1400, () => {
+        if (gateSprite) gateSprite.setTexture('gate_opened');
+        if (this.gateBody) this.gateBody.disableBody(true, true);
+        sounds.playSecretJingle();
+        this.triggerCameraShake(250, 0.008);
+
+        // Stone gate opening dust burst
+        for (let i = 0; i < 8; i++) {
+          const dust = this.add.image(1024 + (Math.random() * 40 - 20), 512 + (Math.random() * 20 - 10), 'particle_dust');
+          dust.setScale(0.9);
+          this.tweens.add({
+            targets: dust,
+            y: dust.y - 14,
+            alpha: 0,
+            duration: 600,
+            onComplete: () => dust.destroy()
+          });
+        }
+
+        (window as any).BitQuestUI?.showToast('✨ The Ancient Sunken Gate has unsealed!');
+      });
+    } else {
+      if (gateSprite) gateSprite.setTexture('gate_opened');
+      if (this.gateBody) this.gateBody.disableBody(true, true);
     }
     (window as any).BitQuestUI?.quests?.handleEvent({ type: 'interact', targetId: 'moss_gate' });
   }
@@ -1180,6 +1309,66 @@ export class WorldScene extends Phaser.Scene {
       const px = this.localPlayer.x;
       const py = this.localPlayer.y;
 
+      // Dynamic Camera Director: Velocity Look-Ahead & Contextual Biome Framing
+      if (!this.isCinematicPanning) {
+        const body = this.localPlayer.body as Phaser.Physics.Arcade.Body;
+        if (body) {
+          const targetOffX = (body.velocity.x / 150) * 36;
+          const targetOffY = (body.velocity.y / 150) * 28;
+          this.camOffsetX = Phaser.Math.Linear(this.camOffsetX, targetOffX, 0.05);
+          this.camOffsetY = Phaser.Math.Linear(this.camOffsetY, targetOffY, 0.05);
+          this.cameras.main.setFollowOffset(-this.camOffsetX, -this.camOffsetY);
+        }
+
+        // Contextual Biome Framing Zoom
+        let targetZoom = 1.75;
+        if (py < 500) {
+          targetZoom = 1.45; // Wide arena framing for Boss / Sunken Caverns
+        } else if (px > 1400) {
+          targetZoom = 1.60; // Expansive meadow framing
+        } else if (py >= 650 && py <= 1200 && px >= 650 && px <= 1400) {
+          targetZoom = 1.85; // Cozy intimate framing in Town Plaza
+        }
+
+        if (Math.abs(this.cameras.main.zoom - targetZoom) > 0.005) {
+          this.cameras.main.zoom = Phaser.Math.Linear(this.cameras.main.zoom, targetZoom, 0.02);
+        }
+      }
+
+      // Biome Boundary Detection & Title Card Trigger
+      let biomeId = 'whispering_meadow';
+      let biomeName = 'Whispering Meadow';
+      let biomeSub = 'Home of the Great Acorns and Ancient Paths';
+      let biomeIcon = '🍃';
+
+      if (py < 540) {
+        biomeId = 'ancient_ruins';
+        biomeName = 'Ancient Sunken Ruins';
+        biomeSub = 'Sacred moss-carved halls of the elder spore kings';
+        biomeIcon = '🏛️';
+      } else if (py >= 1280) {
+        biomeId = 'crystal_lake';
+        biomeName = 'Crystal Lake & Pier';
+        biomeSub = 'Shimmering waters where ancient ripples tell forgotten tales';
+        biomeIcon = '🌊';
+      } else if (px >= 640 && px <= 1408 && py >= 640 && py < 1280) {
+        biomeId = 'oakhaven_town';
+        biomeName = 'Oakhaven Town Plaza';
+        biomeSub = 'A safe, cozy haven for weary wanderers and bakers';
+        biomeIcon = '🏘️';
+      }
+
+      if (this.currentBiome !== biomeId) {
+        this.currentBiome = biomeId;
+        (window as any).BitQuestUI?.biomes?.showBiome({
+          id: biomeId,
+          name: biomeName,
+          subtitle: biomeSub,
+          icon: biomeIcon
+        });
+        this.updateBiomeColorGrading(biomeId);
+      }
+
       // Spatial 2D Audio, DSP Low-Pass & Heartbeat Pass
       sounds.setEnvironmentalLowPass(py < 550 ? 1100 : 20000);
       sounds.updateHealthHeartbeat(this.localPlayer.health, this.localPlayer.maxHealth);
@@ -1559,5 +1748,35 @@ export class WorldScene extends Phaser.Scene {
     if ((tx >= 21 && tx <= 26 && ty >= 24 && ty <= 28) || (tx >= 37 && tx <= 42 && ty >= 24 && ty <= 28)) return 'dirt';
 
     return 'grass';
+  }
+
+  private updateBiomeColorGrading(biomeId: string) {
+    if (!this.ambientOverlay) return;
+    let targetColor = 0xf59e0b;
+    let targetAlpha = 0.07;
+
+    if (biomeId === 'ancient_ruins') {
+      targetColor = 0x6366f1;
+      targetAlpha = 0.16;
+    } else if (biomeId === 'crystal_lake') {
+      targetColor = 0x0ea5e9;
+      targetAlpha = 0.08;
+    } else if (biomeId === 'whispering_meadow') {
+      targetColor = 0x10b981;
+      targetAlpha = 0.05;
+    } else if (biomeId === 'oakhaven_town') {
+      targetColor = 0xf59e0b;
+      targetAlpha = 0.08;
+    }
+
+    this.tweens.add({
+      targets: this.ambientOverlay,
+      alpha: targetAlpha,
+      duration: 900,
+      ease: 'Sine.easeInOut',
+      onStart: () => {
+        this.ambientOverlay.setFillStyle(targetColor);
+      }
+    });
   }
 }

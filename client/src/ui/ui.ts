@@ -3,6 +3,7 @@ import { sounds } from '../audio/SoundManager';
 import { MinimapManager } from './Minimap';
 import { QuestJournalManager } from './QuestJournal';
 import { SettingsModal } from './SettingsModal';
+import { BiomeBannerManager } from './BiomeBanner';
 import { saveManager } from '../storage/SaveManager';
 import type { EmoteType } from '../../../shared/src/types';
 
@@ -10,6 +11,7 @@ export class UIManager {
   public minimap: MinimapManager;
   public quests: QuestJournalManager;
   public settings: SettingsModal;
+  public biomes: BiomeBannerManager;
   private selectedPalette = 0;
   private currentTypewriterTimer: any = null;
 
@@ -20,6 +22,7 @@ export class UIManager {
     });
     this.quests.updateBeacon();
     this.settings = new SettingsModal();
+    this.biomes = new BiomeBannerManager();
 
     this.setupJoinModal();
     this.setupChatAndEmotes();

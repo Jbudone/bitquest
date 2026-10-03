@@ -299,6 +299,46 @@ export class SoundManager {
     }
   }
 
+  public playBiomeChime() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const notes = [659.25, 987.77];
+    notes.forEach((freq, i) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + i * 0.14);
+      gain.gain.setValueAtTime(0.001, now + i * 0.14);
+      gain.gain.linearRampToValueAtTime(0.12 * this.sfxVol, now + i * 0.14 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.14 + 0.65);
+      osc.connect(gain);
+      gain.connect(this.soundDestination);
+      osc.start(now + i * 0.14);
+      osc.stop(now + i * 0.14 + 0.65);
+    });
+  }
+
+  public playLullabyWake() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const chords = [261.63, 329.63, 392.00, 523.25];
+    chords.forEach((freq, idx) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.18);
+      gain.gain.setValueAtTime(0.001, now + idx * 0.18);
+      gain.gain.linearRampToValueAtTime(0.14 * this.sfxVol, now + idx * 0.18 + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.18 + 0.85);
+      osc.connect(gain);
+      gain.connect(this.soundDestination);
+      osc.start(now + idx * 0.18);
+      osc.stop(now + idx * 0.18 + 0.85);
+    });
+  }
+
   public playSlash() {
     this.ensureContext();
     if (!this.ctx) return;

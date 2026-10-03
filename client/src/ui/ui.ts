@@ -2,11 +2,14 @@ import { network } from '../network/NetworkClient';
 import { sounds } from '../audio/SoundManager';
 import { MinimapManager } from './Minimap';
 import { QuestJournalManager } from './QuestJournal';
+import { SettingsModal } from './SettingsModal';
+import { saveManager } from '../storage/SaveManager';
 import type { EmoteType } from '../../../shared/src/types';
 
 export class UIManager {
   public minimap: MinimapManager;
   public quests: QuestJournalManager;
+  public settings: SettingsModal;
   private selectedPalette = 0;
   private currentTypewriterTimer: any = null;
 
@@ -16,6 +19,7 @@ export class UIManager {
       this.minimap.questBeacon = beacon;
     });
     this.quests.updateBeacon();
+    this.settings = new SettingsModal();
 
     this.setupJoinModal();
     this.setupChatAndEmotes();
@@ -49,6 +53,19 @@ export class UIManager {
           e.stopPropagation();
           return;
         }
+        if (this.settings.isSettingsOpen()) {
+          this.settings.close();
+          e.stopPropagation();
+          return;
+        }
+        const dialogueModal = document.getElementById('dialogue-modal');
+        if (dialogueModal && dialogueModal.classList.contains('active')) {
+          this.hideDialogue();
+          e.stopPropagation();
+          return;
+        }
+        this.settings.toggle();
+        e.stopPropagation();
       }
     });
   }
@@ -67,11 +84,35 @@ export class UIManager {
     const startBtn = document.getElementById('start-btn');
     const nameInput = document.getElementById('player-name-input') as HTMLInputElement;
 
+    // Prefill from local save if available
+    const saved = saveManager.currentSave;
+    if (saved && saved.name && nameInput) {
+      nameInput.value = saved.name;
+      this.selectedPalette = saved.palette;
+      swatches.forEach(s => {
+        if (Number((s as HTMLElement).dataset.palette) === saved.palette) {
+          s.classList.add('selected');
+        } else {
+          s.classList.remove('selected');
+        }
+      });
+    }
+
+    // Settings header button hook
+    document.getElementById('settings-toggle-btn')?.addEventListener('click', () => {
+      this.settings.toggle();
+    });
+
     const joinGame = () => {
       sounds.ensureContext();
       const rawName = nameInput.value.trim();
       const playerName = rawName || `Adventurer_${Math.floor(Math.random() * 899 + 100)}`;
       
+      saveManager.updatePlayerSnapshot({
+        name: playerName,
+        palette: this.selectedPalette
+      });
+
       (window as any).BitQuestUser = {
         name: playerName,
         palette: this.selectedPalette

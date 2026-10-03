@@ -1409,3 +1409,282 @@ canvas {
   color: #94a3b8;
   font-size: 13px;
 }
+
+/* ======================================================================
+   Settings Modal & Accessibility Styles
+   ====================================================================== */
+.settings-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-modal.hidden {
+  display: none !important;
+}
+
+.settings-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 11, 20, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.settings-window {
+  position: relative;
+  z-index: 111;
+  background: #0f172a;
+  border: 2px solid #38bdf8;
+  border-radius: 12px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.85), 0 0 25px rgba(56, 189, 248, 0.3);
+  width: 620px;
+  max-width: 95vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: #1e293b;
+}
+
+.settings-title-group h2 {
+  font-family: var(--font-retro);
+  font-size: 13px;
+  color: #38bdf8;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.settings-sub {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.settings-close-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+  transition: color 0.15s;
+}
+
+.settings-close-btn:hover {
+  color: #ef4444;
+}
+
+.settings-tabs {
+  display: flex;
+  background: #111827;
+  border-bottom: 1px solid #1f2937;
+  padding: 0 16px;
+  gap: 6px;
+}
+
+.settings-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.settings-tab:hover {
+  color: #f1f5f9;
+}
+
+.settings-tab.active {
+  color: #38bdf8;
+  border-bottom-color: #38bdf8;
+}
+
+.settings-body {
+  padding: 16px;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.settings-pane {
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.settings-pane.active {
+  display: flex;
+}
+
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #1e293b;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settings-group.toggle-row {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settings-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.vol-value {
+  font-family: monospace;
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+.settings-slider {
+  width: 100%;
+  accent-color: #38bdf8;
+  cursor: pointer;
+}
+
+.toggle-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.toggle-desc {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.settings-toggle {
+  width: 20px;
+  height: 20px;
+  accent-color: #38bdf8;
+  cursor: pointer;
+}
+
+.preset-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.btn-preset {
+  font-size: 10px;
+  padding: 4px 8px;
+}
+
+.keybinds-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.keybind-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1e293b;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.keybind-card.listening {
+  border-color: #facc15;
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.4);
+}
+
+.keybind-label {
+  font-size: 11px;
+  color: #e2e8f0;
+}
+
+.keybind-btn {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+  background: #0f172a;
+  color: #38bdf8;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  min-width: 50px;
+  text-align: center;
+}
+
+.keybind-card.listening .keybind-btn {
+  color: #facc15;
+  animation: pulse 0.8s infinite;
+}
+
+.rebind-prompt {
+  background: rgba(250, 204, 21, 0.15);
+  border: 1px solid #facc15;
+  color: #fef08a;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.profile-summary-box {
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.save-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* High Contrast Font Theme (Task 5.7) */
+body.high-contrast-font {
+  --font-retro: system-ui, -apple-system, sans-serif !important;
+  font-family: system-ui, -apple-system, sans-serif !important;
+}
+
+body.high-contrast-font .brand-title,
+body.high-contrast-font .boss-name,
+body.high-contrast-font .card-title,
+body.high-contrast-font .journal-title-block h2,
+body.high-contrast-font .atlas-title-block h2,
+body.high-contrast-font .settings-title-group h2 {
+  font-family: system-ui, -apple-system, sans-serif !important;
+  font-weight: 800 !important;
+}
+
+/* Integer-scaled canvas (Task 5.8) */
+canvas.integer-scaled {
+  image-rendering: pixelated !important;
+}

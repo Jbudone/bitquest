@@ -3,6 +3,7 @@ import { Player } from '../entities/Player';
 import { OtherPlayer } from '../entities/OtherPlayer';
 import { network } from '../network/NetworkClient';
 import { sounds } from '../audio/SoundManager';
+import { saveManager } from '../storage/SaveManager';
 import type { EntityData, PlayerData, Direction, EmoteType, ItemDropData } from '../../../shared/src/types';
 
 export class WorldScene extends Phaser.Scene {
@@ -377,11 +378,23 @@ export class WorldScene extends Phaser.Scene {
   }
 
   public spawnLocalPlayer(id: string, x: number, y: number, name: string, paletteIndex: number) {
-    this.localPlayer = new Player(this, x, y, id, name, paletteIndex);
+    const saved = saveManager.currentSave;
+    const spawnX = (saved && saved.name === name && saved.x > 50 && saved.x < 1950) ? saved.x : x;
+    const spawnY = (saved && saved.name === name && saved.y > 50 && saved.y < 1700) ? saved.y : y;
+
+    this.localPlayer = new Player(this, spawnX, spawnY, id, name, paletteIndex);
     this.physics.add.collider(this.localPlayer, this.obstacles);
     this.cameras.main.startFollow(this.localPlayer, true, 0.12, 0.12);
 
-    this.playerGlow = this.add.image(x, y, 'light_glow');
+    if (saved && saved.name === name) {
+      if (saved.coins > 0) this.localPlayer.coins = saved.coins;
+      if (saved.acorns > 0) this.localPlayer.acorns = saved.acorns;
+      if (saved.health > 0) this.localPlayer.health = saved.health;
+      (window as any).BitQuestUI?.updateHearts(this.localPlayer.health, this.localPlayer.maxHealth);
+      (window as any).BitQuestUI?.updateCurrency(this.localPlayer.coins, this.localPlayer.acorns);
+    }
+
+    this.playerGlow = this.add.image(spawnX, spawnY, 'light_glow');
     this.playerGlow.setDepth(1);
     this.playerGlow.setBlendMode(Phaser.BlendModes.ADD);
     this.playerGlow.setScale(1.4);
@@ -530,7 +543,7 @@ export class WorldScene extends Phaser.Scene {
 
     if (event.action === 'stomp') {
       sounds.playBossStomp();
-      this.cameras.main.shake(200, 0.007);
+      this.triggerCameraShake(200, 0.007);
 
       // Expanding Shockwave Ring
       const ring = this.add.sprite(x, y, 'shockwave_ring');
@@ -571,7 +584,7 @@ export class WorldScene extends Phaser.Scene {
       });
     } else if (event.action === 'defeated') {
       sounds.playVictory();
-      this.cameras.main.shake(350, 0.012);
+      this.triggerCameraShake(350, 0.012);
       (window as any).BitQuestUI?.hideBossHp();
       (window as any).BitQuestUI?.showToast('🎉 Baron von Truffle is DEFEATED! The Golden Crown is reclaimed!');
 
@@ -597,12 +610,19 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  public triggerCameraShake(duration: number, intensity: number) {
+    const cfg = saveManager.currentSave.settings;
+    if (cfg.screenShake) {
+      this.cameras.main.shake(duration, intensity * cfg.shakeIntensity);
+    }
+  }
+
   private hurtPlayer(dmg = 1) {
     if (!this.localPlayer || this.localPlayer.godMode || this.playerInvulnerable) return;
 
     this.playerInvulnerable = true;
     sounds.playHit();
-    this.cameras.main.shake(120, 0.006);
+    this.triggerCameraShake(120, 0.006);
 
     network.sendInteract(this.localPlayer.id, 'player_hurt', undefined, undefined, dmg);
     this.showFloatingText(this.localPlayer.x, this.localPlayer.y, `-${dmg} ❤️`, '#ef4444');
@@ -646,7 +666,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private emitLeafBurst(x: number, y: number) {
-    this.cameras.main.shake(70, 0.003);
+    this.triggerCameraShake(70, 0.003);
     for (let i = 0; i < 8; i++) {
       const leaf = this.add.sprite(x, y, 'particle_leaf');
       const angle = Math.random() * Math.PI * 2;

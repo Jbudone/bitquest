@@ -561,6 +561,15 @@ export class WorldManager {
             this.onEntityStateChanged?.(entity);
           }
         }
+
+        // 2b. Crystal Lake Ducks gentle paddling wander
+        if (entity.type === 'wildlife' && entity.subtype === 'duck') {
+          const dx = (Math.random() - 0.5) * 14;
+          const dy = (Math.random() - 0.5) * 10;
+          entity.x = Math.max(760, Math.min(1300, entity.x + dx));
+          entity.y = Math.max(1320, Math.min(1680, entity.y + dy));
+          this.onEntityStateChanged?.(entity);
+        }
       }
 
       // 3. Baron von Truffle Boss Patterns

@@ -471,6 +471,62 @@ export class TextureGenerator {
 
       scene.textures.addCanvas('prop_counter_wood', canvas);
     }
+
+    // 12. Wildflowers & Tall Grass Tufts (16x16)
+    {
+      // Red Wildflower
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(7, 8, 2, 7);
+      ctx.fillRect(5, 11, 2, 2);
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(6, 4, 4, 4);
+      ctx.fillRect(4, 5, 2, 2);
+      ctx.fillRect(10, 5, 2, 2);
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(7, 5, 2, 2);
+      scene.textures.addCanvas('prop_flower_red', canvas);
+    }
+    {
+      // Blue Bellflower
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(7, 8, 2, 7);
+      ctx.fillRect(9, 10, 2, 2);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(6, 4, 4, 4);
+      ctx.fillRect(5, 3, 2, 2);
+      ctx.fillRect(9, 3, 2, 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(7, 5, 2, 2);
+      scene.textures.addCanvas('prop_flower_blue', canvas);
+    }
+    {
+      // Golden Marigold
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(7, 8, 2, 7);
+      ctx.fillRect(5, 11, 2, 2);
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(5, 4, 6, 5);
+      ctx.fillStyle = '#ea580c';
+      ctx.fillRect(7, 5, 2, 2);
+      scene.textures.addCanvas('prop_flower_yellow', canvas);
+    }
+    {
+      // Tall Grass Tuft
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      ctx.fillStyle = '#16a34a';
+      ctx.fillRect(7, 5, 2, 10);
+      ctx.fillRect(8, 3, 1, 3);
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(4, 8, 2, 7);
+      ctx.fillRect(3, 6, 2, 3);
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(10, 7, 2, 8);
+      ctx.fillRect(11, 5, 2, 3);
+      scene.textures.addCanvas('prop_grass_tuft', canvas);
+    }
   }
 
   private static createPlayerTextures(scene: Phaser.Scene) {

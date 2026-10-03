@@ -75,6 +75,23 @@ export class WorldScene extends Phaser.Scene {
     tween: Phaser.Tweens.Tween;
   }>();
 
+  // Secondary Foliage Motion & Wind Simulation
+  private treeCanopies: Array<{
+    sprite: Phaser.GameObjects.Sprite | Phaser.GameObjects.Image;
+    baseX: number;
+    baseY: number;
+  }> = [];
+
+  private interactiveFoliage: Array<{
+    sprite: Phaser.GameObjects.Sprite;
+    baseX: number;
+    baseY: number;
+    currentBend: number;
+    targetBend: number;
+  }> = [];
+
+  private lastDuckRippleTime = 0;
+
   constructor() {
     super({ key: 'WorldScene' });
   }
@@ -270,12 +287,62 @@ export class WorldScene extends Phaser.Scene {
     // 7. Outer World Borders (Dense Tree / Fungal Canopies)
     for (let x = 0; x < MAP_W; x++) {
       const topTex = (x < 20) ? 'tile_fungal_canopy' : 'tile_tree_canopy';
-      this.obstacles.create(x * TILE + 16, 16, topTex).refreshBody();
-      this.obstacles.create(x * TILE + 16, (MAP_H - 1) * TILE + 16, 'tile_tree_canopy').refreshBody();
+      const topTree = this.obstacles.create(x * TILE + 16, 16, topTex);
+      topTree.refreshBody();
+      this.treeCanopies.push({ sprite: topTree, baseX: x * TILE + 16, baseY: 16 });
+
+      const botTree = this.obstacles.create(x * TILE + 16, (MAP_H - 1) * TILE + 16, 'tile_tree_canopy');
+      botTree.refreshBody();
+      this.treeCanopies.push({ sprite: botTree, baseX: x * TILE + 16, baseY: (MAP_H - 1) * TILE + 16 });
     }
     for (let y = 0; y < MAP_H; y++) {
-      this.obstacles.create(16, y * TILE + 16, 'tile_fungal_canopy').refreshBody();
-      this.obstacles.create((MAP_W - 1) * TILE + 16, y * TILE + 16, 'tile_tree_canopy').refreshBody();
+      const leftTree = this.obstacles.create(16, y * TILE + 16, 'tile_fungal_canopy');
+      leftTree.refreshBody();
+      this.treeCanopies.push({ sprite: leftTree, baseX: 16, baseY: y * TILE + 16 });
+
+      const rightTree = this.obstacles.create((MAP_W - 1) * TILE + 16, y * TILE + 16, 'tile_tree_canopy');
+      rightTree.refreshBody();
+      this.treeCanopies.push({ sprite: rightTree, baseX: (MAP_W - 1) * TILE + 16, baseY: y * TILE + 16 });
+    }
+
+    // 7b. Interactive Wildflowers & Tall Grass Tufts
+    const foliageSpots = [
+      // Whispering Meadow (East & South-East)
+      { x: 1450, y: 800, tex: 'prop_flower_red' },
+      { x: 1520, y: 760, tex: 'prop_flower_yellow' },
+      { x: 1600, y: 850, tex: 'prop_flower_blue' },
+      { x: 1480, y: 920, tex: 'prop_grass_tuft' },
+      { x: 1580, y: 980, tex: 'prop_grass_tuft' },
+      { x: 1650, y: 720, tex: 'prop_flower_yellow' },
+      { x: 1720, y: 820, tex: 'prop_grass_tuft' },
+      { x: 1420, y: 1050, tex: 'prop_flower_blue' },
+      { x: 1530, y: 1120, tex: 'prop_flower_red' },
+      { x: 1680, y: 1100, tex: 'prop_grass_tuft' },
+      // Town Square edges
+      { x: 740, y: 880, tex: 'prop_flower_yellow' },
+      { x: 760, y: 940, tex: 'prop_grass_tuft' },
+      { x: 1280, y: 880, tex: 'prop_flower_red' },
+      { x: 1300, y: 940, tex: 'prop_grass_tuft' },
+      { x: 920, y: 750, tex: 'prop_flower_blue' },
+      { x: 1120, y: 750, tex: 'prop_flower_yellow' },
+      // Crystal Lake shoreline
+      { x: 720, y: 1320, tex: 'prop_grass_tuft' },
+      { x: 800, y: 1350, tex: 'prop_flower_blue' },
+      { x: 1350, y: 1320, tex: 'prop_grass_tuft' },
+      { x: 1400, y: 1360, tex: 'prop_flower_yellow' }
+    ];
+
+    for (const spot of foliageSpots) {
+      const sprite = this.add.sprite(spot.x, spot.y, spot.tex);
+      sprite.setDepth(spot.y);
+      sprite.setOrigin(0.5, 0.9);
+      this.interactiveFoliage.push({
+        sprite,
+        baseX: spot.x,
+        baseY: spot.y,
+        currentBend: 0,
+        targetBend: 0
+      });
     }
 
     // 8. Braziers & Point Lights (Sunken Gate, Cavern Sanctuary, Town Center)
@@ -603,7 +670,16 @@ export class WorldScene extends Phaser.Scene {
     let obj: Phaser.GameObjects.GameObject;
 
     if (ent.type === 'bush') {
-      obj = this.add.sprite(ent.x, ent.y, ent.state.destroyed ? 'ent_bush_cut' : 'ent_bush');
+      const sprite = this.add.sprite(ent.x, ent.y, ent.state.destroyed ? 'ent_bush_cut' : 'ent_bush');
+      sprite.setOrigin(0.5, 0.9);
+      this.interactiveFoliage.push({
+        sprite,
+        baseX: ent.x,
+        baseY: ent.y,
+        currentBend: 0,
+        targetBend: 0
+      });
+      obj = sprite;
     } else if (ent.type === 'pot') {
       const sprite = this.add.sprite(ent.x, ent.y, 'ent_pot');
       const isVisible = !ent.state.destroyed && !ent.state.heldBy;
@@ -2068,11 +2144,107 @@ export class WorldScene extends Phaser.Scene {
 
       // 5. Zero-Allocation Ambient Biome Particles & VFX Pipeline
       this.particles?.update(delta, this.cameras.main, this.currentBiome);
+
+      // 6. Secondary Foliage Motion, Wind Simulation & Water Wake Ripples
+      this.updateWindAndFoliage(time, delta);
     }
 
     for (const other of this.otherPlayers.values()) {
       other.updateInterpolation(delta);
     }
+  }
+
+  private updateWindAndFoliage(time: number, delta: number) {
+    // 1. Ambient Sinusoidal Wind Sway on Tree Canopies
+    const windSpeed = 0.0018;
+    for (let i = 0; i < this.treeCanopies.length; i++) {
+      const canopy = this.treeCanopies[i];
+      const phase = canopy.baseX * 0.015 + canopy.baseY * 0.012;
+      const swayOffset = Math.sin(time * windSpeed + phase) * 1.5;
+      canopy.sprite.x = canopy.baseX + swayOffset;
+      canopy.sprite.rotation = Math.sin(time * windSpeed * 0.8 + phase) * 0.02;
+    }
+
+    // 2. Interactive Foliage Displacement Parting & Wind Sway
+    const px = this.localPlayer ? this.localPlayer.x : -9999;
+    const py = this.localPlayer ? this.localPlayer.y : -9999;
+
+    for (let i = 0; i < this.interactiveFoliage.length; i++) {
+      const foliage = this.interactiveFoliage[i];
+      if (!foliage.sprite.active) continue;
+
+      const phase = foliage.baseX * 0.04 + foliage.baseY * 0.03;
+      const ambientSway = Math.sin(time * 0.0028 + phase) * 0.08;
+
+      // Distance to local player
+      const dx = foliage.baseX - px;
+      const dy = foliage.baseY - py;
+      const distSq = dx * dx + dy * dy;
+
+      let minDisplace = 0;
+      let isUnderfoot = false;
+
+      if (distSq < 32 * 32) {
+        isUnderfoot = true;
+        const dist = Math.sqrt(distSq);
+        const pushForce = Math.max(0, 1 - dist / 32);
+        const dir = dx >= 0 ? 1 : -1;
+        minDisplace = dir * pushForce * 0.45;
+      }
+
+      for (const other of this.otherPlayers.values()) {
+        const odx = foliage.baseX - other.x;
+        const ody = foliage.baseY - other.y;
+        const oDistSq = odx * odx + ody * ody;
+        if (oDistSq < 32 * 32) {
+          const odist = Math.sqrt(oDistSq);
+          const pushForce = Math.max(0, 1 - odist / 32);
+          const dir = odx >= 0 ? 1 : -1;
+          const otherDisplace = dir * pushForce * 0.45;
+          if (Math.abs(otherDisplace) > Math.abs(minDisplace)) {
+            minDisplace = otherDisplace;
+            isUnderfoot = true;
+          }
+        }
+      }
+
+      if (isUnderfoot) {
+        foliage.targetBend = minDisplace;
+        foliage.sprite.scaleY = Phaser.Math.Linear(foliage.sprite.scaleY, 0.88, 0.2);
+      } else {
+        foliage.targetBend = 0;
+        foliage.sprite.scaleY = Phaser.Math.Linear(foliage.sprite.scaleY, 1.0, 0.15);
+      }
+
+      // Smooth spring recovery
+      foliage.currentBend = Phaser.Math.Linear(foliage.currentBend, foliage.targetBend, 0.18);
+      foliage.sprite.rotation = foliage.currentBend + ambientSway;
+    }
+
+    // 3. Water Wake Ripples behind Swimming Ducks
+    if (time - this.lastDuckRippleTime > 550) {
+      this.lastDuckRippleTime = time;
+      for (const [id, obj] of this.entityObjects.entries()) {
+        if (id.startsWith('wildlife_duck_') && obj instanceof Phaser.GameObjects.Sprite) {
+          this.spawnWaterWakeRipple(obj.x, obj.y);
+        }
+      }
+    }
+  }
+
+  private spawnWaterWakeRipple(x: number, y: number) {
+    const ripple = this.add.ellipse(x, y + 4, 14, 7);
+    ripple.setStrokeStyle(1.5, 0x93c5fd, 0.65);
+    ripple.setDepth(y - 1);
+    this.tweens.add({
+      targets: ripple,
+      scaleX: 2.3,
+      scaleY: 2.3,
+      alpha: 0,
+      duration: 1000,
+      ease: 'Cubic.easeOut',
+      onComplete: () => ripple.destroy()
+    });
   }
 
   private setupInteractionPrompt() {

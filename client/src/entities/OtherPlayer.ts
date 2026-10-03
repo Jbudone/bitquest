@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { Direction, PlayerAnimState } from '../../../shared/src/types';
+import type { Direction, PlayerAnimState, PlayerEquipment, PlayerVanity } from '../../../shared/src/types';
 import { HermiteInterpolator } from '../../../shared/src/netcode/hermite';
 
 export class OtherPlayer extends Phaser.GameObjects.Container {
@@ -12,8 +12,15 @@ export class OtherPlayer extends Phaser.GameObjects.Container {
   public animState: PlayerAnimState = 'idle';
   private hermite: HermiteInterpolator;
 
+  // Equipment & Vanity
+  public equipment: PlayerEquipment = { weapon: 'sword_wood', offhand: null, armor: null, relic: null };
+  public vanity: PlayerVanity = { head: null, armor: null, weapon: null };
+
   public sprite: Phaser.GameObjects.Sprite;
   public shadowSprite: Phaser.GameObjects.Sprite;
+  public vanityArmorSprite: Phaser.GameObjects.Sprite;
+  public vanityHeadSprite: Phaser.GameObjects.Sprite;
+  public weaponSprite: Phaser.GameObjects.Sprite;
   private carriedPotSprite: Phaser.GameObjects.Sprite;
   private nameText: Phaser.GameObjects.Text;
   private emoteSprite: Phaser.GameObjects.Sprite | null = null;
@@ -35,10 +42,28 @@ export class OtherPlayer extends Phaser.GameObjects.Container {
     this.shadowSprite.setAlpha(0.65);
     this.add(this.shadowSprite);
 
-    // Sprite
+    // Vanity Armor / Cape (behind body)
+    this.vanityArmorSprite = scene.add.sprite(0, -4, 'vanity_cape_hero');
+    this.vanityArmorSprite.setOrigin(0.5, 0.7);
+    this.vanityArmorSprite.setVisible(false);
+    this.add(this.vanityArmorSprite);
+
+    // Main Sprite
     this.sprite = scene.add.sprite(0, 0, `player_${paletteIndex}_down_idle`);
     this.sprite.setOrigin(0.5, 0.7);
     this.add(this.sprite);
+
+    // Vanity Headgear (above player head)
+    this.vanityHeadSprite = scene.add.sprite(0, -18, 'vanity_crown_gold');
+    this.vanityHeadSprite.setOrigin(0.5, 0.7);
+    this.vanityHeadSprite.setVisible(false);
+    this.add(this.vanityHeadSprite);
+
+    // Weapon In Hand
+    this.weaponSprite = scene.add.sprite(7, -1, 'weapon_sword');
+    this.weaponSprite.setOrigin(0.5, 0.5);
+    this.weaponSprite.setVisible(true);
+    this.add(this.weaponSprite);
 
     // Carried Pot Sprite
     this.carriedPotSprite = scene.add.sprite(0, -26, 'ent_pot');
@@ -57,6 +82,92 @@ export class OtherPlayer extends Phaser.GameObjects.Container {
     this.add(this.nameText);
 
     scene.add.existing(this);
+  }
+
+  public updateEquipment(equipment: PlayerEquipment, vanity: PlayerVanity) {
+    this.equipment = equipment;
+    this.vanity = vanity;
+    this.updateGearVisuals();
+  }
+
+  public updateGearVisuals() {
+    // 1. Headgear
+    const headId = this.vanity.head;
+    if (headId === 'vanity_crown') {
+      this.vanityHeadSprite.setTexture('vanity_crown_gold');
+      this.vanityHeadSprite.setPosition(0, -18);
+      this.vanityHeadSprite.setVisible(this.animState !== 'roll');
+    } else if (headId === 'vanity_hat_wizard') {
+      this.vanityHeadSprite.setTexture('vanity_hat_wizard');
+      this.vanityHeadSprite.setPosition(0, -22);
+      this.vanityHeadSprite.setVisible(this.animState !== 'roll');
+    } else if (headId === 'vanity_hood_ranger') {
+      this.vanityHeadSprite.setTexture('vanity_hood_ranger');
+      this.vanityHeadSprite.setPosition(0, -16);
+      this.vanityHeadSprite.setVisible(this.animState !== 'roll');
+    } else {
+      this.vanityHeadSprite.setVisible(false);
+    }
+
+    // 2. Armor / Cloak
+    const armorId = this.vanity.armor;
+    if (armorId === 'vanity_cape_hero') {
+      this.vanityArmorSprite.setTexture('vanity_cape_hero');
+      this.vanityArmorSprite.setPosition(0, -4);
+      this.vanityArmorSprite.setVisible(this.animState !== 'roll');
+    } else if (armorId === 'vanity_armor_knight') {
+      this.vanityArmorSprite.setTexture('vanity_armor_knight');
+      this.vanityArmorSprite.setPosition(0, -6);
+      this.vanityArmorSprite.setVisible(this.animState !== 'roll');
+    } else {
+      this.vanityArmorSprite.setVisible(false);
+    }
+
+    // 3. Weapon in hand
+    if (this.animState === 'roll' || this.carriedPotSprite.visible) {
+      this.weaponSprite.setVisible(false);
+      return;
+    }
+
+    const wepId = this.equipment.weapon;
+    let wepKey = 'weapon_sword';
+    if (wepId === 'dagger_shadow') wepKey = 'weapon_dagger';
+    else if (wepId === 'sword_claymore') wepKey = 'weapon_broadsword';
+    else if (wepId === 'staff_oak') wepKey = 'weapon_staff';
+    else if (wepId === 'bow_recurve') wepKey = 'weapon_bow';
+
+    this.weaponSprite.setTexture(wepKey);
+    this.weaponSprite.setVisible(true);
+
+    if (this.animState === 'slash') {
+      if (this.direction === 'down') {
+        this.weaponSprite.setPosition(6, 6);
+        this.weaponSprite.setRotation(1.57);
+      } else if (this.direction === 'up') {
+        this.weaponSprite.setPosition(-6, -14);
+        this.weaponSprite.setRotation(-1.57);
+      } else if (this.direction === 'left') {
+        this.weaponSprite.setPosition(-12, 0);
+        this.weaponSprite.setRotation(-1.8);
+      } else {
+        this.weaponSprite.setPosition(12, 0);
+        this.weaponSprite.setRotation(1.8);
+      }
+    } else {
+      if (this.direction === 'down') {
+        this.weaponSprite.setPosition(7, -1);
+        this.weaponSprite.setRotation(0.35);
+      } else if (this.direction === 'up') {
+        this.weaponSprite.setPosition(-7, -7);
+        this.weaponSprite.setRotation(-0.35);
+      } else if (this.direction === 'left') {
+        this.weaponSprite.setPosition(-8, -2);
+        this.weaponSprite.setRotation(-0.55);
+      } else {
+        this.weaponSprite.setPosition(8, -2);
+        this.weaponSprite.setRotation(0.55);
+      }
+    }
   }
 
   public setTargetState(x: number, y: number, direction: Direction, anim: PlayerAnimState, carryingItem: string | null) {
@@ -87,6 +198,8 @@ export class OtherPlayer extends Phaser.GameObjects.Container {
         this.sprite.setTexture(`player_${this.paletteIndex}_${direction}_idle`);
       }
     }
+
+    this.updateGearVisuals();
   }
 
   public updateInterpolation(delta: number) {

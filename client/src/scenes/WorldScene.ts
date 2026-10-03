@@ -586,11 +586,17 @@ export class WorldScene extends Phaser.Scene {
       }
 
       if (myProfile && this.localPlayer) {
+        if (myProfile.equipment && myProfile.vanity) {
+          this.localPlayer.updateEquipment(myProfile.equipment, myProfile.vanity);
+        }
         this.localPlayer.health = myProfile.health || 3;
         this.localPlayer.maxHealth = myProfile.maxHealth || 3;
+        this.localPlayer.mana = myProfile.mana || 50;
+        this.localPlayer.maxMana = myProfile.maxMana || 50;
         this.localPlayer.coins = myProfile.coins || 0;
         this.localPlayer.acorns = myProfile.acorns || 0;
         (window as any).BitQuestUI?.updateHearts(this.localPlayer.health, this.localPlayer.maxHealth);
+        (window as any).BitQuestUI?.updateMana(this.localPlayer.mana, this.localPlayer.maxMana);
         (window as any).BitQuestUI?.updateCurrency(this.localPlayer.coins, this.localPlayer.acorns);
       }
 
@@ -723,6 +729,26 @@ export class WorldScene extends Phaser.Scene {
       this.handleBossEvent(event);
     };
 
+    network.onEquipmentUpdated = (data) => {
+      if (data.playerId === this.localPlayer?.id) {
+        this.localPlayer.updateEquipment(data.equipment, data.vanity, data.stats);
+        (window as any).BitQuestUI?.updateHearts(this.localPlayer.health, this.localPlayer.maxHealth);
+        (window as any).BitQuestUI?.updateMana(this.localPlayer.mana, this.localPlayer.maxMana);
+        (window as any).BitQuestUI?.equipmentSheet?.updateSheet();
+      } else {
+        const other = this.otherPlayers.get(data.playerId);
+        if (other) {
+          other.updateEquipment(data.equipment, data.vanity);
+        }
+      }
+    };
+
+    network.onArrowShot = (data) => {
+      if (data.shooterId !== this.localPlayer?.id) {
+        this.shootArrow(data.x, data.y, data.direction, true, data.damage);
+      }
+    };
+
     network.connect();
 
     const tryJoin = () => {
@@ -772,6 +798,9 @@ export class WorldScene extends Phaser.Scene {
 
   public spawnOtherPlayer(p: PlayerData) {
     const other = new OtherPlayer(this, p.x, p.y, p.id, p.name, p.paletteIndex);
+    if (p.equipment && p.vanity) {
+      other.updateEquipment(p.equipment, p.vanity);
+    }
     this.otherPlayers.set(p.id, other);
   }
 
@@ -1522,6 +1551,116 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  public shootArrow(originX?: number, originY?: number, dir?: Direction, isRemote = false, damage?: number) {
+    const px = originX !== undefined ? originX : this.localPlayer!.x;
+    const py = originY !== undefined ? originY : this.localPlayer!.y;
+    const facing = dir || this.localPlayer?.direction || 'down';
+
+    let facingAngle = Math.PI / 2; // down
+    let vx = 0;
+    let vy = 1;
+    if (facing === 'up') {
+      facingAngle = -Math.PI / 2;
+      vx = 0; vy = -1;
+    } else if (facing === 'left') {
+      facingAngle = Math.PI;
+      vx = -1; vy = 0;
+    } else if (facing === 'right') {
+      facingAngle = 0;
+      vx = 1; vy = 0;
+    }
+
+    const speed = this.localPlayer?.equipmentStats.arrowSpeed || 340;
+    const range = this.localPlayer?.equipmentStats.arrowRange || 260;
+    const arrowDmg = damage !== undefined ? damage : (this.localPlayer?.equipmentStats.attackPower || 2);
+
+    sounds.playSlash();
+
+    const arrow = this.add.sprite(px + vx * 12, py + vy * 12, 'proj_arrow');
+    arrow.setRotation(facingAngle);
+    arrow.setDepth(this.localPlayer ? this.localPlayer.depth + 1 : 2000);
+
+    if (!isRemote) {
+      network.sendShootArrow(px, py, facing, arrowDmg);
+    }
+
+    const duration = (range / speed) * 1000;
+    const targetX = px + vx * range;
+    const targetY = py + vy * range;
+
+    let hasHit = false;
+
+    this.tweens.add({
+      targets: arrow,
+      x: targetX,
+      y: targetY,
+      duration,
+      ease: 'Linear',
+      onUpdate: () => {
+        if (hasHit || !arrow.active) return;
+
+        // Check bush hits
+        for (const [id, obj] of this.entityObjects.entries()) {
+          if (id.startsWith('bush_')) {
+            const sprite = obj as Phaser.GameObjects.Sprite;
+            if (sprite.texture.key === 'ent_bush') {
+              if (Math.hypot(sprite.x - arrow.x, sprite.y - arrow.y) < 18) {
+                if (!isRemote) network.sendInteract(id, 'cut');
+                hasHit = true;
+                arrow.destroy();
+                return;
+              }
+            }
+          }
+        }
+
+        // Check enemy / boss hits (only client authoritatively checks if not remote)
+        if (!isRemote) {
+          for (const [id, obj] of this.entityObjects.entries()) {
+            if (id.startsWith('enemy_') || id.startsWith('boss_')) {
+              const sprite = obj as Phaser.GameObjects.Sprite;
+              if (sprite.visible) {
+                const hitRadius = id.startsWith('boss_') ? 34 : 18;
+                if (Math.hypot(sprite.x - arrow.x, sprite.y - arrow.y) < hitRadius) {
+                  hasHit = true;
+                  const isCrit = Math.random() < (this.localPlayer?.equipmentStats.critChance || 0.25);
+                  const finalDmg = isCrit ? arrowDmg + 1 : arrowDmg;
+                  network.sendInteract(id, 'hit_enemy', undefined, undefined, finalDmg);
+
+                  if (isCrit) sounds.playCritStrike();
+                  else sounds.playEnemyHit();
+                  this.triggerHitstop(isCrit ? 50 : 30, isCrit);
+
+                  const spark = this.add.sprite(arrow.x, arrow.y, 'impact_spark');
+                  spark.setScale(1.2);
+                  spark.setDepth(3500);
+                  this.tweens.add({
+                    targets: spark,
+                    scale: 0.1,
+                    alpha: 0,
+                    duration: 120,
+                    onComplete: () => spark.destroy()
+                  });
+
+                  sprite.setTintFill(0xffffff);
+                  this.time.delayedCall(100, () => sprite.clearTint());
+
+                  arrow.destroy();
+                  return;
+                }
+              }
+            }
+          }
+        }
+      },
+      onComplete: () => {
+        if (!hasHit && arrow.active) {
+          arrow.destroy();
+        }
+      }
+    });
+  }
+
   private handleActionAttack() {
     if (!this.localPlayer) return;
 
@@ -1533,7 +1672,20 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    // 120-degree forward arc multi-target cleave
+    // If Ranged Bow equipped, fire physical arrow
+    if (this.localPlayer.equipmentStats.isRanged) {
+      this.shootArrow();
+      return;
+    }
+
+    // Dynamic forward arc multi-target cleave tuned by weapon archetype
+    const stats = this.localPlayer.equipmentStats;
+    const cleaveRadius = stats.cleaveRadius || 46;
+    const cleaveHalfAngle = (stats.cleaveAngle || ((2 * Math.PI) / 3)) / 2;
+    const critChance = stats.critChance || 0.15;
+    const baseDamage = stats.attackPower || 1;
+    const baseKnock = stats.knockback || 12;
+
     this.localPlayer.attack((_hitX, _hitY, dir) => {
       const px = this.localPlayer!.x;
       const py = this.localPlayer!.y;
@@ -1542,9 +1694,6 @@ export class WorldScene extends Phaser.Scene {
       if (dir === 'up') facingAngle = -Math.PI / 2;
       else if (dir === 'left') facingAngle = Math.PI;
       else if (dir === 'right') facingAngle = 0;
-
-      const cleaveRadius = 46;
-      const cleaveHalfAngle = Math.PI / 3; // 60 deg each side = 120 deg cone
 
       // Visual: Curved slash ribbon trail and arc sparks
       this.renderSlashTrail(px, py, dir, false);
@@ -1578,8 +1727,8 @@ export class WorldScene extends Phaser.Scene {
               const diff = Math.abs(Phaser.Math.Angle.Wrap(angle - facingAngle));
               if (diff <= cleaveHalfAngle) {
                 const isStunnedBoss = id.startsWith('boss_') && this.bossStunnedUntil > this.time.now;
-                const isCrit = isStunnedBoss || Math.random() < 0.25;
-                const damage = isCrit ? 2 : 1;
+                const isCrit = isStunnedBoss || Math.random() < critChance;
+                const damage = isCrit ? (baseDamage + 2) : baseDamage;
 
                 network.sendInteract(id, 'hit_enemy', undefined, undefined, damage);
 
@@ -1610,7 +1759,7 @@ export class WorldScene extends Phaser.Scene {
                 this.time.delayedCall(120, () => sprite.clearTint());
 
                 // Directional knockback impulse with map boundary safety
-                const knockDist = isCrit ? 26 : 14;
+                const knockDist = isCrit ? (baseKnock * 1.6) : baseKnock;
                 const targetX = Phaser.Math.Clamp(sprite.x + Math.cos(angle) * knockDist, 40, 2000);
                 const targetY = Phaser.Math.Clamp(sprite.y + Math.sin(angle) * knockDist, 40, 1750);
                 this.tweens.add({

@@ -99,5 +99,343 @@
     "stackable": false,
     "maxStack": 1,
     "stats": {}
+  },
+  {
+    "id": "dagger_shadow",
+    "name": "Thief's Stiletto",
+    "category": "weapon",
+    "tier": 2,
+    "description": "A razor-sharp obsidian dagger with rapid attacks and high crit lethality.",
+    "iconColor": "#334155",
+    "soundKey": "slash",
+    "value": 75,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {
+      "archetype": "dagger",
+      "slot": "weapon",
+      "attackPower": 1,
+      "attackSpeedMs": 110,
+      "cleaveRadius": 32,
+      "cleaveAngle": 1.05,
+      "critChance": 0.45,
+      "moveSpeedBonus": 0.10
+    }
+  },
+  {
+    "id": "sword_claymore",
+    "name": "Royal Claymore",
+    "category": "weapon",
+    "tier": 3,
+    "description": "A massive two-handed greatsword sweeping a wide 180-degree cleave arc with heavy knockback.",
+    "iconColor": "#e2e8f0",
+    "soundKey": "slash",
+    "value": 120,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {
+      "archetype": "broadsword",
+      "slot": "weapon",
+      "attackPower": 3,
+      "attackSpeedMs": 270,
+      "cleaveRadius": 64,
+      "cleaveAngle": 3.14,
+      "critChance": 0.15,
+      "knockback": 36
+    }
+  },
+  {
+    "id": "staff_oak",
+    "name": "Elder Oak Staff",
+    "category": "weapon",
+    "tier": 2,
+    "description": "Ancient staff carved from Heartwood. Reduces spell mana costs by 40%.",
+    "iconColor": "#a855f7",
+    "soundKey": "slash",
+    "value": 100,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {
+      "archetype": "staff",
+      "slot": "weapon",
+      "attackPower": 1,
+      "attackSpeedMs": 200,
+      "cleaveRadius": 42,
+      "cleaveAngle": 1.57,
+      "manaCostReduction": 0.40,
+      "maxManaBonus": 20
+    }
+  },
+  {
+    "id": "bow_recurve",
+    "name": "Whispering Recurve Bow",
+    "category": "weapon",
+    "tier": 2,
+    "description": "A flexible yew longbow. Fires physical arrows at long range.",
+    "iconColor": "#15803d",
+    "soundKey": "slash",
+    "value": 90,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {
+      "archetype": "bow",
+      "slot": "weapon",
+      "attackPower": 2,
+      "attackSpeedMs": 220,
+      "isRanged": true,
+      "arrowSpeed": 340,
+      "arrowRange": 260,
+      "critChance": 0.25
+    }
+  },
+  {
+    "id": "shield_wood",
+    "name": "Oak Buckler",
+    "category": "offhand",
+    "tier": 1,
+    "description": "Light wooden round shield. Absorbs 15% of incoming enemy damage.",
+    "iconColor": "#b45309",
+    "soundKey": "pickup",
+    "value": 25,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {
+      "slot": "offhand",
+      "damageReductionPct": 0.15
+    }
+  },
+  {
+    "id": "shield_iron",
+    "name": "Iron Aegis",
+    "category": "offhand",
+    "tier": 2,
+    "description": "Heavy reinforced steel shield. Absorbs 30% damage and fortifies health.",
+    "iconColor": "#64748b",
+    "soundKey": "pickup",
+    "value": 80,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {
+      "slot": "offhand",
+      "damageReductionPct": 0.30,
+      "maxHealthBonus": 1
+    }
+  },
+  {
+    "id": "tome_arcane",
+    "name": "Arcane Grimoire",
+    "category": "offhand",
+    "tier": 2,
+    "description": "A leather-bound book of forgotten sigils. Grants +25 MP and spell efficiency.",
+    "iconColor": "#6366f1",
+    "soundKey": "pickup",
+    "value": 85,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {
+      "slot": "offhand",
+      "maxManaBonus": 25,
+      "manaCostReduction": 0.15
+    }
+  },
+  {
+    "id": "quiver_ranger",
+    "name": "Quiver of the Wind",
+    "category": "offhand",
+    "tier": 2,
+    "description": "Breeze-enchanted quiver quickening bow reload speed and arrow damage.",
+    "iconColor": "#059669",
+    "soundKey": "pickup",
+    "value": 70,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {
+      "slot": "offhand",
+      "attackSpeedMs": -35,
+      "attackPower": 1
+    }
+  },
+  {
+    "id": "armor_leather",
+    "name": "Ranger's Leather Tunic",
+    "category": "armor",
+    "tier": 1,
+    "description": "Supple boiled leather armor. Enhances movement speed and survivability.",
+    "iconColor": "#78350f",
+    "soundKey": "pickup",
+    "value": 45,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {
+      "slot": "armor",
+      "moveSpeedBonus": 0.10,
+      "maxHealthBonus": 1,
+      "damageReductionPct": 0.05
+    }
+  },
+  {
+    "id": "armor_plate",
+    "name": "Knight's Iron Cuirass",
+    "category": "armor",
+    "tier": 2,
+    "description": "Solid plate mail armor. Exceptional damage reduction and maximum health fortitude.",
+    "iconColor": "#475569",
+    "soundKey": "pickup",
+    "value": 110,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {
+      "slot": "armor",
+      "damageReductionPct": 0.25,
+      "maxHealthBonus": 2,
+      "moveSpeedBonus": -0.05
+    }
+  },
+  {
+    "id": "armor_robe",
+    "name": "Arcane Weaver's Robe",
+    "category": "armor",
+    "tier": 2,
+    "description": "Silk vestments imbued with astral threads. Expands mana capacity by +30 MP.",
+    "iconColor": "#7c3aed",
+    "soundKey": "pickup",
+    "value": 95,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {
+      "slot": "armor",
+      "maxManaBonus": 30,
+      "manaCostReduction": 0.10
+    }
+  },
+  {
+    "id": "relic_heart",
+    "name": "Heart Locket",
+    "category": "relic",
+    "tier": 2,
+    "description": "An enchanted silver amulet pulsing with warm vitality. Adds +2 maximum health.",
+    "iconColor": "#ef4444",
+    "soundKey": "pickup",
+    "value": 60,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {
+      "slot": "relic",
+      "maxHealthBonus": 2
+    }
+  },
+  {
+    "id": "relic_feather",
+    "name": "Swift Falcon Feather",
+    "category": "relic",
+    "tier": 2,
+    "description": "A feather blessed by mountain falcons. Increases player movement speed by 20%.",
+    "iconColor": "#38bdf8",
+    "soundKey": "pickup",
+    "value": 65,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {
+      "slot": "relic",
+      "moveSpeedBonus": 0.20
+    }
+  },
+  {
+    "id": "relic_moonstone",
+    "name": "Moonstone Charm",
+    "category": "relic",
+    "tier": 2,
+    "description": "A luminous celestial gem glowing in moonlight. Expands mana capacity by +25 MP.",
+    "iconColor": "#c084fc",
+    "soundKey": "pickup",
+    "value": 75,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {
+      "slot": "relic",
+      "maxManaBonus": 25
+    }
+  },
+  {
+    "id": "relic_phoenix",
+    "name": "Phoenix Talisman",
+    "category": "relic",
+    "tier": 3,
+    "description": "A warm cinder preserved in a golden cage. Fortifies endurance and warding aura.",
+    "iconColor": "#f97316",
+    "soundKey": "pickup",
+    "value": 120,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {
+      "slot": "relic",
+      "maxHealthBonus": 1,
+      "damageReductionPct": 0.10
+    }
+  },
+  {
+    "id": "vanity_crown",
+    "name": "Royal Golden Crown",
+    "category": "vanity",
+    "tier": 3,
+    "description": "A regal diadem crowned with crimson rubies, worthy of Oakhaven royalty.",
+    "iconColor": "#eab308",
+    "soundKey": "pickup",
+    "value": 200,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {}
+  },
+  {
+    "id": "vanity_hat_wizard",
+    "name": "Starlight Wizard Hat",
+    "category": "vanity",
+    "tier": 2,
+    "description": "A pointed midnight-blue hat stitched with glowing celestial gold constellations.",
+    "iconColor": "#3b82f6",
+    "soundKey": "pickup",
+    "value": 150,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {}
+  },
+  {
+    "id": "vanity_hood_ranger",
+    "name": "Woodland Ranger Hood",
+    "category": "vanity",
+    "tier": 2,
+    "description": "A stealthy dark green cowl blending seamlessly into forest shadows.",
+    "iconColor": "#16a34a",
+    "soundKey": "pickup",
+    "value": 150,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {}
+  },
+  {
+    "id": "vanity_cape_hero",
+    "name": "Hero's Crimson Cape",
+    "category": "vanity",
+    "tier": 2,
+    "description": "A majestic crimson cloak that billows heroically in the autumn wind.",
+    "iconColor": "#dc2626",
+    "soundKey": "pickup",
+    "value": 180,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {}
+  },
+  {
+    "id": "vanity_armor_knight",
+    "name": "Knight's Steel Pauldrons",
+    "category": "vanity",
+    "tier": 3,
+    "description": "Polished silver shoulder plates stamped with the gallant lion sigil.",
+    "iconColor": "#94a3b8",
+    "soundKey": "pickup",
+    "value": 220,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {}
   }
 ]

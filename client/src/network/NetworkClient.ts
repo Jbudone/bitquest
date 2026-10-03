@@ -9,7 +9,12 @@ import type {
   PlayerAnimState,
   EmoteType,
   ItemDropData,
-  SpellId
+  SpellId,
+  EquipmentSlot,
+  VanitySlot,
+  PlayerEquipment,
+  PlayerVanity,
+  AggregatedEquipmentStats
 } from '../../../shared/src/types';
 
 export class NetworkClient {
@@ -26,6 +31,8 @@ export class NetworkClient {
   public onItemCollected?: (data: { itemId: string; collectorId: string; itemType: string; value: number }) => void;
   public onPlayerStatsUpdated?: (data: { id: string; health: number; maxHealth: number; mana: number; maxMana: number; coins: number; acorns: number }) => void;
   public onSpellCast?: (data: { casterId: string; spellId: SpellId; x: number; y: number; direction: Direction }) => void;
+  public onEquipmentUpdated?: (data: { playerId: string; equipment: PlayerEquipment; vanity: PlayerVanity; stats: AggregatedEquipmentStats }) => void;
+  public onArrowShot?: (data: { shooterId: string; x: number; y: number; direction: Direction; speed: number; range: number; damage: number }) => void;
   public onChatBroadcast?: (chat: ChatMessage) => void;
   public onEmoteBroadcast?: (emote: EmoteEvent) => void;
   public onWorldFlagUpdated?: (key: string, value: boolean) => void;
@@ -138,6 +145,12 @@ export class NetworkClient {
       case 'spell_cast':
         this.onSpellCast?.(packet);
         break;
+      case 'equipment_updated':
+        this.onEquipmentUpdated?.(packet);
+        break;
+      case 'arrow_shot':
+        this.onArrowShot?.(packet);
+        break;
       case 'reconcile':
         this.onReconcile?.(packet.ackSeq, packet.x, packet.y);
         break;
@@ -159,6 +172,18 @@ export class NetworkClient {
 
   public sendCastSpell(spellId: SpellId, x: number, y: number, direction: Direction) {
     this.send({ type: 'cast_spell', spellId, x, y, direction });
+  }
+
+  public sendEquipItem(slot: EquipmentSlot, itemId: string | null) {
+    this.send({ type: 'equip_item', slot, itemId });
+  }
+
+  public sendSetVanity(slot: VanitySlot, vanityId: string | null) {
+    this.send({ type: 'set_vanity', slot, vanityId });
+  }
+
+  public sendShootArrow(x: number, y: number, direction: Direction, damage: number) {
+    this.send({ type: 'shoot_arrow', x, y, direction, damage });
   }
 
   public sendInteract(targetId: string, action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever', x?: number, y?: number, damage?: number) {

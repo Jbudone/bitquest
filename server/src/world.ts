@@ -1,10 +1,28 @@
-import { PlayerData, EntityData, Direction, PlayerAnimState, EmoteType, ChatMessage, EmoteEvent, ItemDropData, ServerPacket, SpellId, StatusEffectType } from '../../shared/src/types';
+import { 
+  PlayerData, 
+  EntityData, 
+  Direction, 
+  PlayerAnimState, 
+  EmoteType, 
+  ChatMessage, 
+  EmoteEvent, 
+  ItemDropData, 
+  ServerPacket, 
+  SpellId, 
+  StatusEffectType,
+  EquipmentSlot,
+  VanitySlot,
+  PlayerEquipment,
+  PlayerVanity,
+  AggregatedEquipmentStats
+} from '../../shared/src/types';
 import { WorldDatabase } from './db';
 import { STARTER_DIALOGUES } from '../../content/dialogues';
 import { NavigationEngine, NavAgent } from '../../shared/src/navigation';
 import { SpatialGrid } from '../../shared/src/spatialGrid';
 import { BehaviorRegistry } from '../../shared/src/behaviors/registry';
 import { SPELL_DEFINITIONS, StatusEffectManager } from '../../shared/src/magic';
+import { EquipmentManager } from '../../shared/src/equipment';
 
 export class WorldManager {
   public db: WorldDatabase;
@@ -26,6 +44,8 @@ export class WorldManager {
   public onPotThrown?: (potId: string, throwerId: string, startX: number, startY: number, targetX: number, targetY: number, duration: number) => void;
   public onPotCaught?: (potId: string, catcherId: string, x: number, y: number) => void;
   public onSpellCast?: (casterId: string, spellId: SpellId, x: number, y: number, direction: Direction) => void;
+  public onEquipmentUpdated?: (playerId: string, equipment: PlayerEquipment, vanity: PlayerVanity, stats: AggregatedEquipmentStats) => void;
+  public onArrowShot?: (shooterId: string, x: number, y: number, direction: Direction, speed: number, range: number, damage: number) => void;
 
   public flyingPots = new Map<string, {
     potId: string;
@@ -758,6 +778,72 @@ export class WorldManager {
     }, 1400);
   }
 
+  public getPlayerStats(playerId: string): AggregatedEquipmentStats {
+    const player = this.players.get(playerId);
+    if (!player || !player.equipment) {
+      return EquipmentManager.createDefaultStats();
+    }
+    return EquipmentManager.calculateStats(player.equipment, EquipmentManager.createDefaultStats());
+  }
+
+  public handleEquipItem(playerId: string, slot: EquipmentSlot, itemId: string | null) {
+    const player = this.players.get(playerId);
+    if (!player) return;
+
+    if (itemId) {
+      if (!EquipmentManager.canEquip(slot, itemId)) return;
+    }
+
+    if (!player.equipment) {
+      player.equipment = EquipmentManager.getDefaultEquipment();
+    }
+
+    player.equipment[slot] = itemId;
+
+    // Recalculate stats & adjust max HP/MP
+    const stats = this.getPlayerStats(playerId);
+    const oldMaxHealth = player.maxHealth || 3;
+    const oldMaxMana = player.maxMana || 50;
+
+    const newMaxHealth = 3 + stats.maxHealthBonus;
+    const newMaxMana = 50 + stats.maxManaBonus;
+
+    player.maxHealth = newMaxHealth;
+    player.maxMana = newMaxMana;
+
+    const hpDelta = newMaxHealth - oldMaxHealth;
+    const mpDelta = newMaxMana - oldMaxMana;
+
+    player.health = Math.max(1, Math.min(player.maxHealth, player.health + hpDelta));
+    player.mana = Math.max(0, Math.min(player.maxMana, (player.mana ?? 50) + mpDelta));
+
+    this.db.savePlayer(playerId, player.name, player.color, player.paletteIndex, player.equipment, player.vanity);
+    this.onPlayerStatsUpdated?.(player);
+    this.onEquipmentUpdated?.(playerId, player.equipment, player.vanity || EquipmentManager.getDefaultVanity(), stats);
+  }
+
+  public handleSetVanity(playerId: string, slot: VanitySlot, vanityId: string | null) {
+    const player = this.players.get(playerId);
+    if (!player) return;
+
+    if (!player.vanity) {
+      player.vanity = EquipmentManager.getDefaultVanity();
+    }
+
+    player.vanity[slot] = vanityId;
+    this.db.savePlayer(playerId, player.name, player.color, player.paletteIndex, player.equipment, player.vanity);
+    const stats = this.getPlayerStats(playerId);
+    this.onEquipmentUpdated?.(playerId, player.equipment, player.vanity, stats);
+  }
+
+  public handleShootArrow(playerId: string, x: number, y: number, direction: Direction, damage?: number) {
+    const stats = this.getPlayerStats(playerId);
+    const speed = stats.arrowSpeed > 0 ? stats.arrowSpeed : 340;
+    const range = stats.arrowRange > 0 ? stats.arrowRange : 260;
+    const actualDamage = damage || stats.attackPower || 2;
+    this.onArrowShot?.(playerId, x, y, direction, speed, range, actualDamage);
+  }
+
   public handleCastSpell(playerId: string, spellId: SpellId, x: number, y: number, direction: Direction) {
     const player = this.players.get(playerId);
     if (!player) return;
@@ -768,10 +854,13 @@ export class WorldManager {
     if (player.mana === undefined) player.mana = 50;
     if (player.maxMana === undefined) player.maxMana = 50;
 
-    if (player.mana < spell.manaCost) return;
+    const stats = this.getPlayerStats(playerId);
+    const actualCost = Math.max(1, Math.round(spell.manaCost * (1 - stats.manaCostReductionPct)));
+
+    if (player.mana < actualCost) return;
 
     // Deduct mana
-    player.mana -= spell.manaCost;
+    player.mana -= actualCost;
     this.onPlayerStatsUpdated?.(player);
     this.onSpellCast?.(playerId, spellId, x, y, direction);
 
@@ -800,6 +889,22 @@ export class WorldManager {
   }
 
   public addPlayer(id: string, name: string, color: string, paletteIndex: number): PlayerData {
+    const saved = this.db.getPlayerData(id);
+    const equipment = saved?.equipment || {
+      weapon: 'sword_wood',
+      offhand: null,
+      armor: null,
+      relic: null
+    };
+    const vanity = saved?.vanity || {
+      head: null,
+      armor: null,
+      weapon: null
+    };
+    const stats = EquipmentManager.calculateStats(equipment, EquipmentManager.createDefaultStats());
+    const baseHealth = 3 + stats.maxHealthBonus;
+    const baseMana = 50 + stats.maxManaBonus;
+
     const player: PlayerData = {
       id,
       name,
@@ -810,15 +915,17 @@ export class WorldManager {
       direction: 'down',
       anim: 'idle',
       carryingItem: null,
-      health: 3,
-      maxHealth: 3,
-      mana: 50,
-      maxMana: 50,
-      coins: 0,
-      acorns: 0
+      health: baseHealth,
+      maxHealth: baseHealth,
+      mana: baseMana,
+      maxMana: baseMana,
+      coins: saved?.coins ?? 0,
+      acorns: 0,
+      equipment,
+      vanity
     };
     this.players.set(id, player);
-    this.db.savePlayer(id, name, color, paletteIndex);
+    this.db.savePlayer(id, name, color, paletteIndex, equipment, vanity);
     return player;
   }
 
@@ -904,7 +1011,10 @@ export class WorldManager {
     if (action === 'player_hurt') {
       const player = this.players.get(playerId);
       if (player && player.health > 0) {
-        player.health = Math.max(0, player.health - (damage || 1));
+        const stats = this.getPlayerStats(playerId);
+        const incoming = damage || 1;
+        const reduced = Math.max(1, Math.round(incoming * (1 - stats.damageReductionPct)));
+        player.health = Math.max(0, player.health - reduced);
         this.onPlayerStatsUpdated?.(player);
       }
       return;

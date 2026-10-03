@@ -5,6 +5,7 @@ import { network } from '../network/NetworkClient';
 import { chronicles } from '../storage/ChroniclesManager';
 import { ClientPredictionManager } from '../../../shared/src/netcode/prediction';
 import { ManaPool, SPELL_DEFINITIONS, type SpellDefinition, type SpellId } from '../../../shared/src/magic';
+import { EquipmentManager, type PlayerEquipment, type PlayerVanity, type AggregatedEquipmentStats } from '../../../shared/src/equipment';
 
 export class Player extends Phaser.GameObjects.Container {
   public id: string;
@@ -34,6 +35,11 @@ export class Player extends Phaser.GameObjects.Container {
   public coins = 0;
   public acorns = 0;
 
+  // Equipment & Vanity Gear
+  public equipment: PlayerEquipment = { weapon: 'sword_wood', offhand: null, armor: null, relic: null };
+  public vanity: PlayerVanity = { head: null, armor: null, weapon: null };
+  public equipmentStats: AggregatedEquipmentStats = EquipmentManager.createDefaultStats();
+
   // Input buffering
   public bufferedAction: 'attack' | 'roll' | null = null;
   public bufferedActionExpiresAt = 0;
@@ -41,6 +47,9 @@ export class Player extends Phaser.GameObjects.Container {
 
   public sprite: Phaser.GameObjects.Sprite;
   public shadowSprite: Phaser.GameObjects.Sprite;
+  public vanityArmorSprite: Phaser.GameObjects.Sprite;
+  public vanityHeadSprite: Phaser.GameObjects.Sprite;
+  public weaponSprite: Phaser.GameObjects.Sprite;
   private footstepTimer = 0;
   private carriedPotSprite: Phaser.GameObjects.Sprite;
   private nameText: Phaser.GameObjects.Text;
@@ -66,10 +75,28 @@ export class Player extends Phaser.GameObjects.Container {
     this.shadowSprite.setAlpha(0.65);
     this.add(this.shadowSprite);
 
-    // Sprite
+    // Vanity Armor / Cape (behind body)
+    this.vanityArmorSprite = scene.add.sprite(0, -4, 'vanity_cape_hero');
+    this.vanityArmorSprite.setOrigin(0.5, 0.7);
+    this.vanityArmorSprite.setVisible(false);
+    this.add(this.vanityArmorSprite);
+
+    // Main Player Sprite
     this.sprite = scene.add.sprite(0, 0, `player_${paletteIndex}_down_idle`);
     this.sprite.setOrigin(0.5, 0.7);
     this.add(this.sprite);
+
+    // Vanity Headgear (above player head)
+    this.vanityHeadSprite = scene.add.sprite(0, -18, 'vanity_crown_gold');
+    this.vanityHeadSprite.setOrigin(0.5, 0.7);
+    this.vanityHeadSprite.setVisible(false);
+    this.add(this.vanityHeadSprite);
+
+    // Weapon In Hand
+    this.weaponSprite = scene.add.sprite(7, -1, 'weapon_sword');
+    this.weaponSprite.setOrigin(0.5, 0.5);
+    this.weaponSprite.setVisible(true);
+    this.add(this.weaponSprite);
 
     // Carried Pot Sprite (above head)
     this.carriedPotSprite = scene.add.sprite(0, -26, 'ent_pot');
@@ -118,6 +145,112 @@ export class Player extends Phaser.GameObjects.Container {
 
   public setTitle(title: string) {
     this.titleText.setText(title);
+  }
+
+  public updateEquipment(
+    equipment: PlayerEquipment,
+    vanity: PlayerVanity,
+    stats?: AggregatedEquipmentStats
+  ) {
+    this.equipment = equipment;
+    this.vanity = vanity;
+    if (stats) {
+      this.equipmentStats = stats;
+    } else {
+      EquipmentManager.calculateStats(this.equipment, this.equipmentStats);
+    }
+
+    // Apply stat bonuses
+    this.maxHealth = 3 + this.equipmentStats.maxHealthBonus;
+    this.health = Math.min(this.health, this.maxHealth);
+
+    this.maxMana = 50 + this.equipmentStats.maxManaBonus;
+    this.mana = Math.min(this.mana, this.maxMana);
+    this.manaPool.setMaxMana(this.maxMana);
+
+    this.speedMultiplier = this.equipmentStats.moveSpeedMultiplier;
+
+    this.updateGearVisuals();
+  }
+
+  public updateGearVisuals() {
+    // 1. Headgear
+    const headId = this.vanity.head;
+    if (headId === 'vanity_crown') {
+      this.vanityHeadSprite.setTexture('vanity_crown_gold');
+      this.vanityHeadSprite.setPosition(0, -18);
+      this.vanityHeadSprite.setVisible(!this.isRolling);
+    } else if (headId === 'vanity_hat_wizard') {
+      this.vanityHeadSprite.setTexture('vanity_hat_wizard');
+      this.vanityHeadSprite.setPosition(0, -22);
+      this.vanityHeadSprite.setVisible(!this.isRolling);
+    } else if (headId === 'vanity_hood_ranger') {
+      this.vanityHeadSprite.setTexture('vanity_hood_ranger');
+      this.vanityHeadSprite.setPosition(0, -16);
+      this.vanityHeadSprite.setVisible(!this.isRolling);
+    } else {
+      this.vanityHeadSprite.setVisible(false);
+    }
+
+    // 2. Armor / Cloak
+    const armorId = this.vanity.armor;
+    if (armorId === 'vanity_cape_hero') {
+      this.vanityArmorSprite.setTexture('vanity_cape_hero');
+      this.vanityArmorSprite.setPosition(0, -4);
+      this.vanityArmorSprite.setVisible(!this.isRolling);
+    } else if (armorId === 'vanity_armor_knight') {
+      this.vanityArmorSprite.setTexture('vanity_armor_knight');
+      this.vanityArmorSprite.setPosition(0, -6);
+      this.vanityArmorSprite.setVisible(!this.isRolling);
+    } else {
+      this.vanityArmorSprite.setVisible(false);
+    }
+
+    // 3. Weapon in hand
+    if (this.isRolling || this.carryingPotId) {
+      this.weaponSprite.setVisible(false);
+      return;
+    }
+
+    const wepId = this.equipment.weapon;
+    let wepKey = 'weapon_sword';
+    if (wepId === 'dagger_shadow') wepKey = 'weapon_dagger';
+    else if (wepId === 'sword_claymore') wepKey = 'weapon_broadsword';
+    else if (wepId === 'staff_oak') wepKey = 'weapon_staff';
+    else if (wepId === 'bow_recurve') wepKey = 'weapon_bow';
+
+    this.weaponSprite.setTexture(wepKey);
+    this.weaponSprite.setVisible(true);
+
+    if (this.isAttacking) {
+      if (this.direction === 'down') {
+        this.weaponSprite.setPosition(6, 6);
+        this.weaponSprite.setRotation(1.57);
+      } else if (this.direction === 'up') {
+        this.weaponSprite.setPosition(-6, -14);
+        this.weaponSprite.setRotation(-1.57);
+      } else if (this.direction === 'left') {
+        this.weaponSprite.setPosition(-12, 0);
+        this.weaponSprite.setRotation(-1.8);
+      } else {
+        this.weaponSprite.setPosition(12, 0);
+        this.weaponSprite.setRotation(1.8);
+      }
+    } else {
+      if (this.direction === 'down') {
+        this.weaponSprite.setPosition(7, -1);
+        this.weaponSprite.setRotation(0.35);
+      } else if (this.direction === 'up') {
+        this.weaponSprite.setPosition(-7, -7);
+        this.weaponSprite.setRotation(-0.35);
+      } else if (this.direction === 'left') {
+        this.weaponSprite.setPosition(-8, -2);
+        this.weaponSprite.setRotation(-0.55);
+      } else {
+        this.weaponSprite.setPosition(8, -2);
+        this.weaponSprite.setRotation(0.55);
+      }
+    }
   }
 
   public updateMovement(cursors: Phaser.Types.Input.Keyboard.CursorKeys, keys: Record<string, Phaser.Input.Keyboard.Key>, delta = 16.67) {
@@ -197,6 +330,8 @@ export class Player extends Phaser.GameObjects.Container {
       this.nameText.setY(-28);
       this.titleText.setY(-39);
     }
+
+    this.updateGearVisuals();
 
     // Surface-Reactive Footstep Cadence & Organic Layered Idle Progression
     const isMoving = vx !== 0 || vy !== 0;
@@ -279,13 +414,16 @@ export class Player extends Phaser.GameObjects.Container {
       return;
     }
 
-    if (!this.manaPool.canCast(spellId)) {
+    const discount = this.equipmentStats.manaCostReductionPct || 0;
+    const actualCost = Math.max(1, Math.round(spell.manaCost * (1 - discount)));
+
+    if (this.manaPool.current < actualCost) {
       sounds.playOutOfMana();
       (this.scene as any).showFloatingText?.(this.x, this.y - 20, "Out of Mana!", "#60a5fa");
       return;
     }
 
-    this.manaPool.consumeMana(spell.manaCost, now);
+    this.manaPool.consumeMana(actualCost, now);
     this.mana = this.manaPool.current;
     (window as any).BitQuestUI?.updateMana(this.mana, this.maxMana);
     this.spellCooldowns[spellId] = now + spell.cooldownMs;
@@ -499,6 +637,7 @@ export class Player extends Phaser.GameObjects.Container {
 
     this.sprite.setTexture(`player_${this.paletteIndex}_roll`);
     this.sprite.setAngle(vx < 0 ? -25 : (vx > 0 ? 25 : 0));
+    this.updateGearVisuals();
 
     // Elevation Hop & Ground Shadow Detachment
     this.scene.tweens.add({
@@ -544,6 +683,7 @@ export class Player extends Phaser.GameObjects.Container {
       this.sprite.y = 0;
       this.shadowSprite.setScale(1.0).setAlpha(0.65);
       body.setVelocity(0, 0);
+      this.updateGearVisuals();
 
       // Impact landing on ground: audio step + landing dust puff
       this.emitFootstep();
@@ -575,9 +715,11 @@ export class Player extends Phaser.GameObjects.Container {
       return;
     }
 
+    const duration = this.equipmentStats.attackSpeedMs || 180;
+
     if (this.isAttacking || this.isRolling) {
       this.bufferedAction = 'attack';
-      this.bufferedActionExpiresAt = this.scene.time.now + 180;
+      this.bufferedActionExpiresAt = this.scene.time.now + duration;
       this.bufferedHitScan = onHitScan;
       return;
     }
@@ -586,7 +728,8 @@ export class Player extends Phaser.GameObjects.Container {
     const body = this.body as Phaser.Physics.Arcade.Body;
 
     // Root-motion tactical forward step (clean weight without ice skating)
-    const stepSpeed = 50 * this.speedMultiplier;
+    const isDagger = this.equipmentStats.weaponArchetype === 'dagger';
+    const stepSpeed = (isDagger ? 75 : 50) * this.speedMultiplier;
     let svx = 0;
     let svy = 0;
     if (this.direction === 'down') svy = stepSpeed;
@@ -599,11 +742,12 @@ export class Player extends Phaser.GameObjects.Container {
 
     // Show slash sprite
     this.sprite.setTexture(`player_${this.paletteIndex}_${this.direction}_slash`);
+    this.updateGearVisuals();
 
     // Calculate hit point in front of player
     let hitX = this.x;
     let hitY = this.y;
-    const reach = 28;
+    const reach = this.equipmentStats.cleaveRadius > 0 ? Math.round(this.equipmentStats.cleaveRadius * 0.6) : 28;
     if (this.direction === 'down') hitY += reach;
     if (this.direction === 'up') hitY -= reach;
     if (this.direction === 'left') hitX -= reach;
@@ -611,11 +755,12 @@ export class Player extends Phaser.GameObjects.Container {
 
     onHitScan(hitX, hitY, this.direction);
 
-    // End slash after 180ms with friction decay
-    this.scene.time.delayedCall(180, () => {
+    // End slash after duration with friction decay
+    this.scene.time.delayedCall(duration, () => {
       this.isAttacking = false;
       body.setVelocity(0, 0);
       this.sprite.setTexture(`player_${this.paletteIndex}_${this.direction}_idle`);
+      this.updateGearVisuals();
 
       // Check input buffer
       this.checkActionBuffer();

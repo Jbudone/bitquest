@@ -2358,3 +2358,387 @@ canvas.integer-scaled {
   color: #f8fafc;
   letter-spacing: 0.5px;
 }
+
+/* ==========================================================================
+   Equipment & Vanity Wardrobe Sheet Modal (Issue #20: Task 7.2)
+   ========================================================================== */
+.equipment-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.equipment-modal.hidden {
+  display: none;
+}
+
+.equipment-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+.equipment-window {
+  position: relative;
+  width: 900px;
+  max-width: 95vw;
+  max-height: 90vh;
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 12px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.8), 0 0 25px rgba(56, 189, 248, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalPopIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.equipment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: #1e293b;
+  border-bottom: 2px solid #334155;
+}
+
+.equipment-title-block h2 {
+  font-family: var(--font-retro);
+  font-size: 13px;
+  color: #38bdf8;
+  margin: 0 0 2px 0;
+  letter-spacing: 0.5px;
+}
+
+.equipment-hint {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.equipment-close-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 26px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.equipment-close-btn:hover {
+  color: #ef4444;
+}
+
+.equipment-body {
+  display: grid;
+  grid-template-columns: 240px 290px 1fr;
+  gap: 16px;
+  padding: 18px 20px;
+  overflow-y: auto;
+  max-height: calc(90vh - 65px);
+}
+
+.column-heading {
+  font-family: var(--font-retro);
+  font-size: 11px;
+  color: #fde047;
+  margin: 0 0 10px 0;
+  letter-spacing: 0.5px;
+}
+
+/* Paper Doll Column */
+.equipment-doll-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.paper-doll-frame {
+  background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
+  border: 1.5px solid #334155;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.doll-preview-sprite {
+  font-size: 42px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+  margin-bottom: 6px;
+}
+
+.doll-player-name {
+  font-family: var(--font-retro);
+  font-size: 11px;
+  color: #f8fafc;
+  margin-bottom: 4px;
+}
+
+.doll-archetype-badge {
+  font-size: 10px;
+  background: #3b82f6;
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+/* Gear Slots Grid */
+.equipment-slots-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gear-slot-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #1e293b;
+  border: 1.5px solid #334155;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gear-slot-card:hover {
+  background: #334155;
+  border-color: #64748b;
+}
+
+.gear-slot-card.active {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+}
+
+.slot-icon {
+  font-size: 20px;
+}
+
+.slot-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.slot-label {
+  font-family: var(--font-retro);
+  font-size: 8px;
+  color: #94a3b8;
+}
+
+.slot-item-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slot-item-name.equipped {
+  color: #f8fafc;
+}
+
+.slot-unequip-btn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: color 0.15s;
+}
+
+.slot-unequip-btn:hover {
+  color: #ef4444;
+}
+
+/* Combat Stats Grid */
+.equipment-stats-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.stats-overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.stat-badge {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-title {
+  font-family: var(--font-retro);
+  font-size: 8px;
+  color: #94a3b8;
+}
+
+.stat-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fde047;
+}
+
+/* Vanity Wardrobe Controls */
+.vanity-controls-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vanity-select-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vanity-select-group label {
+  font-family: var(--font-retro);
+  font-size: 8px;
+  color: #cbd5e1;
+}
+
+.vanity-select {
+  background: #1e293b;
+  border: 1.5px solid #475569;
+  border-radius: 6px;
+  color: #f8fafc;
+  padding: 6px 10px;
+  font-size: 11px;
+  outline: none;
+  cursor: pointer;
+}
+
+.vanity-select:focus {
+  border-color: #38bdf8;
+}
+
+/* Item Picker Column */
+.equipment-picker-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.picker-items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 480px;
+  padding-right: 4px;
+}
+
+.picker-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #1e293b;
+  border: 1.5px solid #334155;
+  border-radius: 8px;
+  padding: 10px 12px;
+  transition: all 0.15s ease;
+}
+
+.picker-item-card:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+.picker-item-card.is-equipped {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.picker-item-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.picker-item-icon {
+  font-size: 24px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.picker-item-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.picker-item-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.picker-item-desc {
+  font-size: 10px;
+  color: #94a3b8;
+  line-height: 1.3;
+}
+
+.picker-item-stats {
+  font-family: var(--font-retro);
+  font-size: 8px;
+  color: #fde047;
+  letter-spacing: 0.3px;
+}
+
+.picker-equip-btn {
+  background: #2563eb;
+  border: none;
+  border-radius: 6px;
+  color: #ffffff;
+  font-family: var(--font-retro);
+  font-size: 9px;
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.picker-equip-btn:hover {
+  background: #1d4ed8;
+  box-shadow: 0 0 8px rgba(37, 99, 235, 0.5);
+}
+
+.picker-equip-btn.equipped {
+  background: #10b981;
+}
+
+.picker-equip-btn.equipped:hover {
+  background: #059669;
+}
+
+.empty-picker-notice {
+  font-size: 11px;
+  color: #64748b;
+  text-align: center;
+  padding: 40px 10px;
+}
+

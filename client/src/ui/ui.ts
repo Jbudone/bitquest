@@ -6,6 +6,7 @@ import { SettingsModal } from './SettingsModal';
 import { BiomeBannerManager } from './BiomeBanner';
 import { EmoteWheelManager } from './EmoteWheel';
 import { DialogueParser } from './DialogueParser';
+import { EquipmentSheetManager } from './EquipmentSheet';
 import { saveManager } from '../storage/SaveManager';
 import type { EmoteType } from '../../../shared/src/types';
 
@@ -15,6 +16,7 @@ export class UIManager {
   public settings: SettingsModal;
   public biomes: BiomeBannerManager;
   public emoteWheel: EmoteWheelManager;
+  public equipmentSheet: EquipmentSheetManager;
   private selectedPalette = 0;
   private currentTypewriterTimer: any = null;
   private fastForwardDialogue: (() => void) | null = null;
@@ -30,6 +32,11 @@ export class UIManager {
     this.emoteWheel = new EmoteWheelManager((emote) => {
       const worldScene = (window as any).BitQuestGame?.scene?.getScene('WorldScene');
       worldScene?.triggerEmote(emote);
+    });
+    this.equipmentSheet = new EquipmentSheetManager();
+
+    document.getElementById('gear-toggle-btn')?.addEventListener('click', () => {
+      this.equipmentSheet.toggle();
     });
 
     this.setupJoinModal();
@@ -53,6 +60,10 @@ export class UIManager {
         sounds.ensureContext();
         this.quests.toggleJournal();
       }
+      if (e.key === 'c' || e.key === 'C') {
+        sounds.ensureContext();
+        this.equipmentSheet.toggle();
+      }
       if (e.key === ' ' || e.key === 'Enter') {
         const dialogueModal = document.getElementById('dialogue-modal');
         if (dialogueModal && dialogueModal.classList.contains('active')) {
@@ -72,6 +83,11 @@ export class UIManager {
         }
       }
       if (e.key === 'Escape') {
+        if (this.equipmentSheet.isOpen) {
+          this.equipmentSheet.close();
+          e.stopPropagation();
+          return;
+        }
         if (this.quests.isJournalOpen()) {
           this.quests.closeJournal();
           e.stopPropagation();

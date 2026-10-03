@@ -13,6 +13,7 @@ export class TextureGenerator {
     this.createPortraitTextures(scene);
     this.createDecalTextures(scene);
     this.createSpellTextures(scene);
+    this.createEquipmentAndVanityTextures(scene);
   }
 
   private static createCanvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -2598,5 +2599,462 @@ export class TextureGenerator {
       ctx.fillRect(5, 5, 2, 2);
       scene.textures.addCanvas('vfx_stun_star', canvas);
     }
+  }
+
+  private static createEquipmentAndVanityTextures(scene: Phaser.Scene) {
+    // ----------------------------------------------------
+    // 1. Vanity Headgear (Worn Overlays)
+    // ----------------------------------------------------
+    // Crown
+    {
+      const [canvas, ctx] = this.createCanvas(20, 16);
+      ctx.fillStyle = '#ca8a04';
+      ctx.fillRect(2, 6, 16, 8);
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(3, 7, 14, 6);
+      // Crown peaks
+      ctx.beginPath();
+      ctx.moveTo(3, 6); ctx.lineTo(5, 1); ctx.lineTo(7, 6);
+      ctx.moveTo(8, 6); ctx.lineTo(10, 0); ctx.lineTo(12, 6);
+      ctx.moveTo(13, 6); ctx.lineTo(15, 1); ctx.lineTo(17, 6);
+      ctx.fill();
+      // Peak gold shine
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(9, 2, 2, 4);
+      ctx.fillRect(4, 3, 2, 3);
+      ctx.fillRect(14, 3, 2, 3);
+      // Ruby Jewels
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(5, 9, 2, 2);
+      ctx.fillRect(9, 8, 2, 3);
+      ctx.fillRect(13, 9, 2, 2);
+      scene.textures.addCanvas('vanity_crown_gold', canvas);
+    }
+
+    // Wizard Hat
+    {
+      const [canvas, ctx] = this.createCanvas(24, 20);
+      // Wide brim
+      ctx.fillStyle = '#1e3a8a';
+      ctx.beginPath();
+      ctx.ellipse(12, 16, 10, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#2563eb';
+      ctx.beginPath();
+      ctx.ellipse(12, 15, 9, 2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Conical hat body
+      ctx.fillStyle = '#1d4ed8';
+      ctx.beginPath();
+      ctx.moveTo(5, 15);
+      ctx.quadraticCurveTo(10, 8, 14, 2);
+      ctx.quadraticCurveTo(13, 8, 19, 15);
+      ctx.closePath();
+      ctx.fill();
+      // Golden star ornament
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(11, 7, 2, 2);
+      ctx.fillRect(10, 8, 4, 1);
+      scene.textures.addCanvas('vanity_hat_wizard', canvas);
+    }
+
+    // Ranger Hood
+    {
+      const [canvas, ctx] = this.createCanvas(20, 18);
+      ctx.fillStyle = '#14532d';
+      ctx.beginPath();
+      ctx.arc(10, 9, 8, Math.PI, 0);
+      ctx.lineTo(18, 16);
+      ctx.lineTo(2, 16);
+      ctx.closePath();
+      ctx.fill();
+      // Inner shadow/face cutout
+      ctx.fillStyle = '#166534';
+      ctx.beginPath();
+      ctx.arc(10, 10, 6, Math.PI, 0);
+      ctx.lineTo(15, 14);
+      ctx.lineTo(5, 14);
+      ctx.closePath();
+      ctx.fill();
+      // Cowl edge trim
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(3, 14, 14, 3);
+      scene.textures.addCanvas('vanity_hood_ranger', canvas);
+    }
+
+    // ----------------------------------------------------
+    // 2. Vanity Body & Cloaks (Worn Overlays)
+    // ----------------------------------------------------
+    // Hero's Crimson Cape
+    {
+      const [canvas, ctx] = this.createCanvas(20, 22);
+      ctx.fillStyle = '#991b1b';
+      ctx.fillRect(3, 4, 14, 16);
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(4, 5, 12, 14);
+      // Gold neck clasps
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(3, 2, 3, 3);
+      ctx.fillRect(14, 2, 3, 3);
+      // Folds
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(6, 6, 2, 12);
+      ctx.fillRect(12, 6, 2, 12);
+      scene.textures.addCanvas('vanity_cape_hero', canvas);
+    }
+
+    // Knight's Steel Pauldrons
+    {
+      const [canvas, ctx] = this.createCanvas(24, 16);
+      // Left and right shoulder guards
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(1, 4, 6, 8);
+      ctx.fillRect(17, 4, 6, 8);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(2, 5, 4, 6);
+      ctx.fillRect(18, 5, 4, 6);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(3, 5, 2, 2);
+      ctx.fillRect(19, 5, 2, 2);
+      scene.textures.addCanvas('vanity_armor_knight', canvas);
+    }
+
+    // ----------------------------------------------------
+    // 3. Arrow Projectile
+    // ----------------------------------------------------
+    {
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      // Wooden shaft
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(3, 7, 9, 2);
+      // Steel arrowhead (pointing right)
+      ctx.fillStyle = '#cbd5e1';
+      ctx.beginPath();
+      ctx.moveTo(15, 8);
+      ctx.lineTo(11, 4);
+      ctx.lineTo(11, 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(11, 7, 2, 2);
+      // Feather fletching (left)
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.moveTo(1, 4); ctx.lineTo(4, 7); ctx.lineTo(1, 7); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(1, 12); ctx.lineTo(4, 9); ctx.lineTo(1, 9); ctx.fill();
+      scene.textures.addCanvas('proj_arrow', canvas);
+    }
+
+    // ----------------------------------------------------
+    // 4. Weapon Hand Overlays
+    // ----------------------------------------------------
+    // Sword
+    {
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(6, 2, 4, 9);
+      ctx.fillStyle = '#f1f5f9';
+      ctx.fillRect(7, 2, 2, 8);
+      ctx.fillStyle = '#b45309'; // crossguard
+      ctx.fillRect(3, 10, 10, 2);
+      ctx.fillStyle = '#78350f'; // grip
+      ctx.fillRect(7, 12, 2, 3);
+      scene.textures.addCanvas('weapon_sword', canvas);
+    }
+
+    // Dagger
+    {
+      const [canvas, ctx] = this.createCanvas(14, 14);
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(5, 2, 3, 6);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(6, 2, 1, 5);
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(3, 7, 7, 2);
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(5, 9, 2, 3);
+      scene.textures.addCanvas('weapon_dagger', canvas);
+    }
+
+    // Broadsword
+    {
+      const [canvas, ctx] = this.createCanvas(20, 20);
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(7, 1, 6, 12);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(8, 2, 4, 10);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(9, 2, 2, 9);
+      // Heavy crossguard
+      ctx.fillStyle = '#ca8a04';
+      ctx.fillRect(3, 12, 14, 3);
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(8, 15, 3, 4);
+      scene.textures.addCanvas('weapon_broadsword', canvas);
+    }
+
+    // Staff
+    {
+      const [canvas, ctx] = this.createCanvas(20, 20);
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(9, 4, 3, 15);
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(10, 4, 1, 14);
+      // Arcane head & jewel
+      ctx.fillStyle = '#a855f7';
+      ctx.beginPath();
+      ctx.arc(10, 4, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#e9d5ff';
+      ctx.fillRect(9, 3, 2, 2);
+      scene.textures.addCanvas('weapon_staff', canvas);
+    }
+
+    // Bow
+    {
+      const [canvas, ctx] = this.createCanvas(18, 18);
+      ctx.strokeStyle = '#92400e';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(6, 9, 7, -Math.PI / 2, Math.PI / 2);
+      ctx.stroke();
+      // Bowstring
+      ctx.strokeStyle = '#f8fafc';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(6, 2);
+      ctx.lineTo(6, 16);
+      ctx.stroke();
+      scene.textures.addCanvas('weapon_bow', canvas);
+    }
+
+    // ----------------------------------------------------
+    // 5. Equipment & Vanity Inventory Icons (20x20)
+    // ----------------------------------------------------
+    const createItemIcon = (key: string, drawFn: (ctx: CanvasRenderingContext2D) => void) => {
+      const [canvas, ctx] = this.createCanvas(20, 20);
+      // Subtle item background slot
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.4)';
+      ctx.fillRect(0, 0, 20, 20);
+      drawFn(ctx);
+      scene.textures.addCanvas(key, canvas);
+    };
+
+    createItemIcon('item_dagger_shadow', (ctx) => {
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(8, 3, 3, 8);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(9, 3, 1, 6);
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(6, 11, 7, 2);
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(8, 13, 2, 4);
+    });
+
+    createItemIcon('item_sword_claymore', (ctx) => {
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(8, 2, 4, 11);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(9, 2, 2, 10);
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(4, 12, 12, 2);
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(8, 14, 2, 4);
+    });
+
+    createItemIcon('item_staff_oak', (ctx) => {
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(9, 5, 2, 13);
+      ctx.fillStyle = '#a855f7';
+      ctx.beginPath();
+      ctx.arc(10, 4, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f3e8ff';
+      ctx.fillRect(9, 3, 2, 2);
+    });
+
+    createItemIcon('item_bow_recurve', (ctx) => {
+      ctx.strokeStyle = '#15803d';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(7, 10, 7, -Math.PI / 2, Math.PI / 2);
+      ctx.stroke();
+      ctx.strokeStyle = '#f8fafc';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(7, 3);
+      ctx.lineTo(7, 17);
+      ctx.stroke();
+    });
+
+    createItemIcon('item_shield_wood', (ctx) => {
+      ctx.fillStyle = '#92400e';
+      ctx.beginPath();
+      ctx.arc(10, 10, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#d97706';
+      ctx.beginPath();
+      ctx.arc(10, 10, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(9, 5, 2, 10);
+    });
+
+    createItemIcon('item_shield_iron', (ctx) => {
+      ctx.fillStyle = '#475569';
+      ctx.beginPath();
+      ctx.moveTo(10, 3);
+      ctx.lineTo(16, 6);
+      ctx.lineTo(14, 15);
+      ctx.lineTo(10, 18);
+      ctx.lineTo(6, 15);
+      ctx.lineTo(4, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(8, 7, 4, 7);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(9, 8, 2, 5);
+    });
+
+    createItemIcon('item_tome_arcane', (ctx) => {
+      ctx.fillStyle = '#4f46e5';
+      ctx.fillRect(5, 3, 10, 14);
+      ctx.fillStyle = '#6366f1';
+      ctx.fillRect(6, 4, 8, 12);
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(8, 8, 4, 4);
+    });
+
+    createItemIcon('item_quiver_ranger', (ctx) => {
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(6, 6, 7, 11);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(7, 2, 2, 5);
+      ctx.fillRect(10, 3, 2, 4);
+    });
+
+    createItemIcon('item_armor_leather', (ctx) => {
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(5, 4, 10, 12);
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(6, 6, 8, 9);
+      ctx.fillStyle = '#ca8a04';
+      ctx.fillRect(7, 8, 6, 2);
+    });
+
+    createItemIcon('item_armor_plate', (ctx) => {
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(4, 4, 12, 13);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(6, 5, 8, 10);
+      ctx.fillStyle = '#f1f5f9';
+      ctx.fillRect(7, 6, 2, 4);
+    });
+
+    createItemIcon('item_armor_robe', (ctx) => {
+      ctx.fillStyle = '#581c87';
+      ctx.fillRect(5, 3, 10, 14);
+      ctx.fillStyle = '#7e22ce';
+      ctx.fillRect(6, 5, 8, 11);
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(9, 4, 2, 12);
+    });
+
+    createItemIcon('item_relic_heart', (ctx) => {
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(8, 8, 3, 0, Math.PI * 2);
+      ctx.arc(12, 8, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(5, 9);
+      ctx.lineTo(10, 15);
+      ctx.lineTo(15, 9);
+      ctx.closePath();
+      ctx.fill();
+    });
+
+    createItemIcon('item_relic_feather', (ctx) => {
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.ellipse(10, 10, 4, 7, 0.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#f0f9ff';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(7, 16);
+      ctx.lineTo(13, 4);
+      ctx.stroke();
+    });
+
+    createItemIcon('item_relic_moonstone', (ctx) => {
+      ctx.fillStyle = '#a855f7';
+      ctx.beginPath();
+      ctx.arc(10, 10, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f3e8ff';
+      ctx.beginPath();
+      ctx.arc(11, 9, 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    createItemIcon('item_relic_phoenix', (ctx) => {
+      ctx.fillStyle = '#f97316';
+      ctx.beginPath();
+      ctx.arc(10, 10, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(8, 7, 4, 6);
+    });
+
+    createItemIcon('item_vanity_crown', (ctx) => {
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(4, 9, 12, 5);
+      ctx.beginPath();
+      ctx.moveTo(4, 9); ctx.lineTo(6, 4); ctx.lineTo(8, 9);
+      ctx.moveTo(9, 9); ctx.lineTo(10, 3); ctx.lineTo(11, 9);
+      ctx.moveTo(12, 9); ctx.lineTo(14, 4); ctx.lineTo(16, 9);
+      ctx.fill();
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(9, 10, 2, 2);
+    });
+
+    createItemIcon('item_vanity_hat_wizard', (ctx) => {
+      ctx.fillStyle = '#1e3a8a';
+      ctx.beginPath();
+      ctx.ellipse(10, 15, 8, 2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#2563eb';
+      ctx.beginPath();
+      ctx.moveTo(5, 14); ctx.lineTo(10, 3); ctx.lineTo(15, 14); ctx.fill();
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(9, 8, 2, 2);
+    });
+
+    createItemIcon('item_vanity_hood_ranger', (ctx) => {
+      ctx.fillStyle = '#166534';
+      ctx.beginPath();
+      ctx.arc(10, 9, 6, Math.PI, 0);
+      ctx.lineTo(16, 15); ctx.lineTo(4, 15); ctx.fill();
+    });
+
+    createItemIcon('item_vanity_cape_hero', (ctx) => {
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(5, 4, 10, 13);
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(5, 3, 3, 2);
+      ctx.fillRect(12, 3, 3, 2);
+    });
+
+    createItemIcon('item_vanity_armor_knight', (ctx) => {
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(2, 6, 5, 8);
+      ctx.fillRect(13, 6, 5, 8);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(3, 7, 3, 3);
+      ctx.fillRect(14, 7, 3, 3);
+    });
   }
 }

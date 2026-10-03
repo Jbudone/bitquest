@@ -42,6 +42,18 @@ export const StatusEffectDataSchema = z.object({
 export type StatusEffectData = z.infer<typeof StatusEffectDataSchema>;
 
 // ==========================================
+// 1c. Equipment & Vanity Schemas
+// ==========================================
+export const EquipmentSlotSchema = z.enum(['weapon', 'offhand', 'armor', 'relic']);
+export type EquipmentSlot = z.infer<typeof EquipmentSlotSchema>;
+
+export const VanitySlotSchema = z.enum(['head', 'armor', 'weapon']);
+export type VanitySlot = z.infer<typeof VanitySlotSchema>;
+
+export const WeaponArchetypeSchema = z.enum(['sword', 'dagger', 'broadsword', 'staff', 'bow']);
+export type WeaponArchetype = z.infer<typeof WeaponArchetypeSchema>;
+
+// ==========================================
 // 2. Player Data Schema
 // ==========================================
 export const PlayerDataSchema = z.object({
@@ -61,7 +73,27 @@ export const PlayerDataSchema = z.object({
   coins: z.number().int().nonnegative().default(0),
   acorns: z.number().int().nonnegative().default(0),
   activeEmote: z.string().nullable().optional(),
-  emoteExpiresAt: z.number().optional()
+  emoteExpiresAt: z.number().optional(),
+  equipment: z.object({
+    weapon: z.string().nullable().default('sword_wood'),
+    offhand: z.string().nullable().default(null),
+    armor: z.string().nullable().default(null),
+    relic: z.string().nullable().default(null)
+  }).default({
+    weapon: 'sword_wood',
+    offhand: null,
+    armor: null,
+    relic: null
+  }),
+  vanity: z.object({
+    head: z.string().nullable().default(null),
+    armor: z.string().nullable().default(null),
+    weapon: z.string().nullable().default(null)
+  }).default({
+    head: null,
+    armor: null,
+    weapon: null
+  })
 });
 export type PlayerData = z.infer<typeof PlayerDataSchema>;
 
@@ -127,8 +159,27 @@ export const ItemTypeSchema = z.enum([
   'potion_health',
   'sword_wood',
   'sword_iron',
+  'dagger_shadow',
+  'sword_claymore',
+  'staff_oak',
+  'bow_recurve',
   'shield_wood',
-  'relic_heart'
+  'shield_iron',
+  'tome_arcane',
+  'quiver_ranger',
+  'armor_leather',
+  'armor_plate',
+  'armor_robe',
+  'relic_heart',
+  'relic_feather',
+  'relic_moonstone',
+  'relic_phoenix',
+  'vanity_crown',
+  'vanity_hat_wizard',
+  'vanity_hood_ranger',
+  'vanity_cape_hero',
+  'vanity_armor_knight',
+  'proj_arrow'
 ]);
 export type ItemType = z.infer<typeof ItemTypeSchema>;
 
@@ -138,8 +189,10 @@ export const ItemCategorySchema = z.enum([
   'quest',
   'key',
   'weapon',
+  'offhand',
   'armor',
-  'relic'
+  'relic',
+  'vanity'
 ]);
 export type ItemCategory = z.infer<typeof ItemCategorySchema>;
 
@@ -159,7 +212,23 @@ export const ItemDefinitionSchema = z.object({
     defense: z.number().optional(),
     healAmount: z.number().optional(),
     speedBoost: z.number().optional(),
-    durationMs: z.number().optional()
+    durationMs: z.number().optional(),
+    archetype: WeaponArchetypeSchema.optional(),
+    slot: EquipmentSlotSchema.optional(),
+    attackPower: z.number().optional(),
+    attackSpeedMs: z.number().optional(),
+    cleaveRadius: z.number().optional(),
+    cleaveAngle: z.number().optional(),
+    critChance: z.number().optional(),
+    knockback: z.number().optional(),
+    moveSpeedBonus: z.number().optional(),
+    damageReductionPct: z.number().optional(),
+    maxHealthBonus: z.number().optional(),
+    maxManaBonus: z.number().optional(),
+    manaCostReduction: z.number().optional(),
+    isRanged: z.boolean().optional(),
+    arrowSpeed: z.number().optional(),
+    arrowRange: z.number().optional()
   }).default({})
 });
 export type ItemDefinition = z.infer<typeof ItemDefinitionSchema>;

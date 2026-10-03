@@ -86,6 +86,29 @@ world.onSpellCast = (casterId, spellId, x, y, direction) => {
   }, casterId);
 };
 
+world.onEquipmentUpdated = (playerId, equipment, vanity, stats) => {
+  broadcast({
+    type: 'equipment_updated',
+    playerId,
+    equipment,
+    vanity,
+    stats
+  });
+};
+
+world.onArrowShot = (shooterId, x, y, direction, speed, range, damage) => {
+  broadcast({
+    type: 'arrow_shot',
+    shooterId,
+    x,
+    y,
+    direction,
+    speed,
+    range,
+    damage
+  });
+};
+
 world.onBossEvent = (event) => {
   broadcast(event);
 };
@@ -366,6 +389,21 @@ const server = Bun.serve<SocketData>({
 
           case 'cast_spell': {
             world.handleCastSpell(id, msg.spellId, msg.x, msg.y, msg.direction);
+            break;
+          }
+
+          case 'equip_item': {
+            world.handleEquipItem(id, msg.slot, msg.itemId);
+            break;
+          }
+
+          case 'set_vanity': {
+            world.handleSetVanity(id, msg.slot, msg.vanityId);
+            break;
+          }
+
+          case 'shoot_arrow': {
+            world.handleShootArrow(id, msg.x, msg.y, msg.direction, msg.damage);
             break;
           }
 

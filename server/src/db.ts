@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import type { PlayerEquipment, PlayerVanity } from '../../shared/src/types';
 
 export interface WorldStateData {
   worldFlags: Record<string, boolean>;
@@ -9,6 +10,8 @@ export interface WorldStateData {
     paletteIndex: number;
     coins: number;
     inventory: string[];
+    equipment?: PlayerEquipment;
+    vanity?: PlayerVanity;
     lastSeen: number;
   }>;
 }
@@ -62,7 +65,18 @@ export class WorldDatabase {
     return { ...this.data.worldFlags };
   }
 
-  public savePlayer(id: string, name: string, color: string, paletteIndex: number): void {
+  public getPlayerData(id: string) {
+    return this.data.players[id];
+  }
+
+  public savePlayer(
+    id: string,
+    name: string,
+    color: string,
+    paletteIndex: number,
+    equipment?: PlayerEquipment,
+    vanity?: PlayerVanity
+  ): void {
     if (!this.data.players[id]) {
       this.data.players[id] = {
         name,
@@ -70,12 +84,16 @@ export class WorldDatabase {
         paletteIndex,
         coins: 10,
         inventory: ['Wooden Practice Stick'],
+        equipment: equipment || { weapon: 'sword_wood', offhand: null, armor: null, relic: null },
+        vanity: vanity || { head: null, armor: null, weapon: null },
         lastSeen: Date.now()
       };
     } else {
       this.data.players[id].name = name;
       this.data.players[id].color = color;
       this.data.players[id].paletteIndex = paletteIndex;
+      if (equipment) this.data.players[id].equipment = equipment;
+      if (vanity) this.data.players[id].vanity = vanity;
       this.data.players[id].lastSeen = Date.now();
     }
     this.save();

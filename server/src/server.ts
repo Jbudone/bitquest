@@ -1,6 +1,9 @@
+import fs from 'fs';
+import path from 'path';
 import { WorldManager } from './world';
 import { ClientPacket, ServerPacket } from '../../shared/src/types';
 import { STARTER_DIALOGUES } from '../../content/dialogues';
+import { runAssetIngestion } from '../../tools/ingest_assets';
 
 const PORT = Number(process.env.PORT) || 3001;
 const world = new WorldManager();
@@ -97,6 +100,18 @@ const server = Bun.serve<SocketData>({
   hostname: '0.0.0.0',
   fetch(req, s) {
     const url = new URL(req.url);
+
+    // CORS Preflight
+    if (req.method === 'OPTIONS') {
+      return new Response(null, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type'
+        }
+      });
+    }
+
     if (url.pathname === '/health' || url.pathname === '/status') {
       return new Response(JSON.stringify({
         status: 'ok',
@@ -106,6 +121,55 @@ const server = Bun.serve<SocketData>({
       }), {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       });
+    }
+
+    // Asset Import Endpoint for Dev Suite
+    if (url.pathname === '/api/import-asset' && req.method === 'POST') {
+      return (async () => {
+        try {
+          const body: any = await req.json();
+          const { name, dataUrl, category } = body;
+          if (!name || !dataUrl) {
+            return new Response(JSON.stringify({ error: 'Missing name or dataUrl' }), {
+              status: 400,
+              headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+            });
+          }
+
+          const base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, '');
+          const buffer = Buffer.from(base64Data, 'base64');
+
+          const subDir = category === 'tile' ? 'tiles' : 'sprites';
+          const targetDir = path.resolve(import.meta.dir, `../../assets/raw/${subDir}`);
+          if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+
+          const filePath = path.join(targetDir, `${name}.png`);
+          fs.writeFileSync(filePath, buffer);
+
+          // Also write to client public folder so it's instantly servable via HTTP
+          const clientTargetDir = path.resolve(import.meta.dir, `../../client/public/assets/${subDir}`);
+          if (!fs.existsSync(clientTargetDir)) fs.mkdirSync(clientTargetDir, { recursive: true });
+          fs.writeFileSync(path.join(clientTargetDir, `${name}.png`), buffer);
+
+          console.log(`[Asset Importer] Saved asset "${name}" to ${filePath}`);
+
+          // Re-synchronize TypeScript definitions
+          try {
+            runAssetIngestion();
+          } catch (e) {
+            console.error('[Asset Importer] Failed to run asset ingestion:', e);
+          }
+
+          return new Response(JSON.stringify({ success: true, name, filePath }), {
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          });
+        } catch (err: any) {
+          return new Response(JSON.stringify({ error: err.message }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          });
+        }
+      })();
     }
 
     const clientId = `p_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;

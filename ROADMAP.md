@@ -75,6 +75,8 @@ flowchart TD
   * In-browser Monte Carlo simulation executing 1,000 battles on demand to report win rates and damage metrics.
 * [x] **Task 4.6: External Asset Ingestion & Typings Watcher (`bun run ingest:assets`)**
   * Watches `assets/raw/`, auto-generates strongly-typed TypeScript keys in `shared/src/assetKeys.ts`.
+* [x] **[#52]** [Task 4.7: Interactive Art Ingestion & Spritesheet Slicing Studio (`tools.html#tab-art`)](https://github.com/Jbudone/bitquest/issues/52)
+  * Drag-and-drop image importer, interactive grid slicing visualizer, directional animation preview loop, and hot-swap placeholder endpoint.
 
 ### 🧰 Advanced Tooling Suite (Upcoming Tools)
 * [ ] **[#29]** [Tool: Visual Keyframe, Hitbox & Hurtbox Timeline Editor (/tools/animator)](https://github.com/Jbudone/bitquest/issues/29)

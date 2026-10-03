@@ -182,6 +182,7 @@
       <button class="tab-btn" data-tab="tab-sandbox">⚔️ Combat Sandbox</button>
       <button class="tab-btn" data-tab="tab-quests">📜 Quests & Dialogue</button>
       <button class="tab-btn" data-tab="tab-entities">🐺 Enemies & Items</button>
+      <button class="tab-btn" data-tab="tab-art">🎨 Art & Spritesheets</button>
     </nav>
 
     <div class="actions">
@@ -247,6 +248,113 @@
         <h3>🐺 Enemy Bestiary & Item Catalog</h3>
         <div id="entity-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin-top: 16px;"></div>
       </div>
+    </div>
+
+    <!-- Tab 5: Art & Spritesheet Studio -->
+    <div id="tab-art" class="tab-content" style="flex-direction: row; height: 100%;">
+      <!-- Left Config Sidebar -->
+      <aside style="width: 320px; background: var(--panel); border-right: 1px solid var(--border); padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;">
+        <h3 style="font-size: 14px;">📤 Import Spritesheet / Tilesheet</h3>
+        
+        <div id="art-dropzone" style="border: 2px dashed var(--accent); border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; background: rgba(99,102,241,0.05); transition: background 0.15s;">
+          <div style="font-size: 24px; margin-bottom: 6px;">📥</div>
+          <div style="font-size: 12px; font-weight: 600;">Drag & Drop PNG here</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">or click to browse from disk</div>
+          <input type="file" id="art-file-input" accept="image/png,image/jpeg" style="display: none;" />
+        </div>
+
+        <div>
+          <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">Asset Category:</label>
+          <select id="art-category-select" style="width: 100%; background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 12px;">
+            <option value="character">Character (4-Direction 3-Frame Sheet)</option>
+            <option value="monster">Monster / Critter (Animated Sheet)</option>
+            <option value="tile">Tilesheet Grid (Environment Tiles)</option>
+            <option value="item">Single Item / Prop Icon</option>
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label style="font-size: 11px; color: var(--text-muted);">Frame Width (px):</label>
+            <input type="number" id="art-frame-w" value="32" min="8" max="256" step="8" style="width: 100%; background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 6px; border-radius: 6px; font-size: 12px;" />
+          </div>
+          <div>
+            <label style="font-size: 11px; color: var(--text-muted);">Frame Height (px):</label>
+            <input type="number" id="art-frame-h" value="32" min="8" max="256" step="8" style="width: 100%; background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 6px; border-radius: 6px; font-size: 12px;" />
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">🎯 Replace Placeholder Target:</label>
+          <select id="art-target-select" style="width: 100%; background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 12px;">
+            <optgroup label="Hero Palettes">
+              <option value="player_0">Hero (Default Azure)</option>
+              <option value="player_1">Hero (Rose Pink)</option>
+              <option value="player_2">Hero (Golden Knight)</option>
+            </optgroup>
+            <optgroup label="Enemies & Bosses">
+              <option value="enemy_slime_blue">Bouncy Meadow Slime</option>
+              <option value="enemy_slime_red">Fiery Spore Slime</option>
+              <option value="boss_fungor">Spore King Fungor</option>
+            </optgroup>
+            <optgroup label="NPCs & Props">
+              <option value="npc_grandma">Grandma Bramble</option>
+              <option value="npc_barnaby">Barnaby the Pelican</option>
+              <option value="prop_pot">Clay Pot</option>
+              <option value="prop_chest">Treasure Chest</option>
+            </optgroup>
+            <optgroup label="Tiles">
+              <option value="tile_grass">Meadow Grass</option>
+              <option value="tile_cobble">Town Cobble</option>
+              <option value="tile_water">River Water</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <button id="btn-save-art" class="btn btn-primary" style="padding: 10px; font-size: 13px; margin-top: auto;">
+          ✨ Save & Hot-Swap Placeholder
+        </button>
+      </aside>
+
+      <!-- Center Slice Visualizer -->
+      <div style="flex: 1; position: relative; background: #090d16; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 20px;">
+        <div id="art-empty-notice" style="text-align: center; color: var(--text-muted); font-size: 13px;">
+          <div style="font-size: 32px; margin-bottom: 8px;">🖼️</div>
+          Drag an image into the left panel or click to upload.<br>
+          We'll slice it into frames and preview it live!
+        </div>
+        <canvas id="art-slice-canvas" style="display: none; image-rendering: pixelated; box-shadow: 0 0 20px rgba(0,0,0,0.8); border: 1px solid var(--border);"></canvas>
+      </div>
+
+      <!-- Right Live Animation Preview -->
+      <aside style="width: 260px; background: var(--panel); border-left: 1px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+        <h3 style="font-size: 14px;">🎞️ Live Animation Preview</h3>
+        <div style="background: #090d16; border: 1px solid var(--border); border-radius: 8px; height: 160px; display: flex; align-items: center; justify-content: center;">
+          <canvas id="art-preview-canvas" width="96" height="96" style="image-rendering: pixelated;"></canvas>
+        </div>
+
+        <div>
+          <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">Facing Direction:</label>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+            <button class="btn anim-dir-btn active" data-dir="0">Down</button>
+            <button class="btn anim-dir-btn" data-dir="1">Left</button>
+            <button class="btn anim-dir-btn" data-dir="2">Right</button>
+            <button class="btn anim-dir-btn" data-dir="3">Up</button>
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between;">
+            <span>Playback Speed:</span>
+            <span id="anim-fps-val">8 FPS</span>
+          </label>
+          <input type="range" id="anim-fps-slider" min="1" max="24" value="8" style="width: 100%; margin-top: 6px;" />
+        </div>
+
+        <div style="font-size: 11px; color: var(--text-muted); line-height: 1.5; background: #0f172a; padding: 10px; border-radius: 6px; margin-top: auto;">
+          💡 <strong>Tip:</strong> Slices are verified against the sprite grid and immediately saved to <code>assets/raw/</code> when you click Hot-Swap!
+        </div>
+      </aside>
     </div>
 
     <!-- Contextual AI Copilot Floating Prompt -->

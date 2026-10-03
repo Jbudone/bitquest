@@ -316,6 +316,55 @@ function handleCopilotSubmit() {
       });
       showToast(`✨ Painted selection with ${currentTileType}!`);
     }
+  } else if (activeTab === 'tab-art') {
+    const frameWInput = document.getElementById('art-frame-w') as HTMLInputElement | null;
+    const frameHInput = document.getElementById('art-frame-h') as HTMLInputElement | null;
+    const fpsSlider = document.getElementById('anim-fps-slider') as HTMLInputElement | null;
+    const targetSelect = document.getElementById('art-target-select') as HTMLSelectElement | null;
+
+    if (prompt.includes('16') || prompt.includes('16x16')) {
+      if (frameWInput) frameWInput.value = '16';
+      if (frameHInput) frameHInput.value = '16';
+      frameWInput?.dispatchEvent(new Event('input'));
+      frameHInput?.dispatchEvent(new Event('input'));
+      showToast('✨ AI Copilot: Sliced grid configured to 16×16 px frames!');
+    } else if (prompt.includes('32') || prompt.includes('32x32')) {
+      if (frameWInput) frameWInput.value = '32';
+      if (frameHInput) frameHInput.value = '32';
+      frameWInput?.dispatchEvent(new Event('input'));
+      frameHInput?.dispatchEvent(new Event('input'));
+      showToast('✨ AI Copilot: Sliced grid configured to 32×32 px frames!');
+    } else if (prompt.includes('faster')) {
+      if (fpsSlider) {
+        fpsSlider.value = String(Math.min(24, (parseInt(fpsSlider.value, 10) || 8) + 4));
+        fpsSlider.dispatchEvent(new Event('input'));
+      }
+      showToast('✨ AI Copilot: Animation playback speed increased!');
+    } else if (prompt.includes('slower')) {
+      if (fpsSlider) {
+        fpsSlider.value = String(Math.max(1, (parseInt(fpsSlider.value, 10) || 8) - 4));
+        fpsSlider.dispatchEvent(new Event('input'));
+      }
+      showToast('✨ AI Copilot: Animation playback speed decreased!');
+    } else if (prompt.includes('save') || prompt.includes('swap') || prompt.includes('import')) {
+      document.getElementById('btn-save-art')?.click();
+    } else {
+      let matched = false;
+      if (targetSelect) {
+        for (let i = 0; i < targetSelect.options.length; i++) {
+          const opt = targetSelect.options[i]!;
+          if (prompt.includes(opt.value.toLowerCase()) || prompt.includes(opt.text.toLowerCase())) {
+            targetSelect.selectedIndex = i;
+            showToast(`✨ AI Copilot: Selected target "${opt.text}"`);
+            matched = true;
+            break;
+          }
+        }
+      }
+      if (!matched) {
+        showToast(`✨ AI Copilot received art directive: "${prompt}"`);
+      }
+    }
   } else {
     showToast(`✨ AI Copilot processed: "${prompt}"`);
   }
@@ -419,6 +468,321 @@ function initInspectors() {
 }
 
 // ----------------------------------------------------------------------
+// Art Ingestion & Spritesheet Studio
+// ----------------------------------------------------------------------
+interface ArtStudioState {
+  loadedImage: HTMLImageElement | null;
+  dataUrl: string | null;
+  frameWidth: number;
+  frameHeight: number;
+  direction: number; // 0: Down, 1: Left, 2: Right, 3: Up
+  fps: number;
+  currentFrame: number;
+  animTimer: any;
+}
+
+const artState: ArtStudioState = {
+  loadedImage: null,
+  dataUrl: null,
+  frameWidth: 32,
+  frameHeight: 32,
+  direction: 0,
+  fps: 8,
+  currentFrame: 0,
+  animTimer: null
+};
+
+function initArtStudio() {
+  const dropzone = document.getElementById('art-dropzone');
+  const fileInput = document.getElementById('art-file-input') as HTMLInputElement | null;
+  const categorySelect = document.getElementById('art-category-select') as HTMLSelectElement | null;
+  const frameWInput = document.getElementById('art-frame-w') as HTMLInputElement | null;
+  const frameHInput = document.getElementById('art-frame-h') as HTMLInputElement | null;
+  const targetSelect = document.getElementById('art-target-select') as HTMLSelectElement | null;
+  const btnSave = document.getElementById('btn-save-art') as HTMLButtonElement | null;
+  const emptyNotice = document.getElementById('art-empty-notice');
+  const sliceCanvas = document.getElementById('art-slice-canvas') as HTMLCanvasElement | null;
+  const previewCanvas = document.getElementById('art-preview-canvas') as HTMLCanvasElement | null;
+  const dirButtons = document.querySelectorAll<HTMLButtonElement>('.anim-dir-btn');
+  const fpsSlider = document.getElementById('anim-fps-slider') as HTMLInputElement | null;
+  const fpsVal = document.getElementById('anim-fps-val');
+
+  if (!sliceCanvas || !previewCanvas) return;
+
+  function renderSliceCanvas() {
+    if (!sliceCanvas || !artState.loadedImage) return;
+    const img = artState.loadedImage;
+    const fw = artState.frameWidth;
+    const fh = artState.frameHeight;
+
+    sliceCanvas.width = img.width;
+    sliceCanvas.height = img.height;
+    const ctx = sliceCanvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+    ctx.drawImage(img, 0, 0);
+
+    const cols = Math.max(1, Math.floor(img.width / fw));
+    const rows = Math.max(1, Math.floor(img.height / fh));
+
+    // Highlight selected row for character/monsters
+    if (artState.direction < rows) {
+      ctx.fillStyle = 'rgba(99, 102, 241, 0.25)';
+      ctx.fillRect(0, artState.direction * fh, img.width, fh);
+      ctx.strokeStyle = '#818cf8';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(0, artState.direction * fh, img.width, fh);
+    }
+
+    // Grid cut lines
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+
+    for (let c = 1; c < cols; c++) {
+      ctx.beginPath();
+      ctx.moveTo(c * fw, 0);
+      ctx.lineTo(c * fw, img.height);
+      ctx.stroke();
+    }
+    for (let r = 1; r < rows; r++) {
+      ctx.beginPath();
+      ctx.moveTo(0, r * fh);
+      ctx.lineTo(img.width, r * fh);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // Frame coordinate badges
+    ctx.font = '9px monospace';
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const frameIdx = r * cols + c;
+        const bx = c * fw + 2;
+        const by = r * fh + 10;
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+        ctx.fillRect(bx - 1, by - 8, 18, 10);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText(`${frameIdx}`, bx + 1, by);
+      }
+    }
+  }
+
+  function renderPreviewFrame() {
+    if (!previewCanvas) return;
+    const ctx = previewCanvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+    if (!artState.loadedImage) {
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(32, 32, 32, 32);
+      return;
+    }
+
+    const img = artState.loadedImage;
+    const fw = artState.frameWidth;
+    const fh = artState.frameHeight;
+    const cols = Math.max(1, Math.floor(img.width / fw));
+    const rows = Math.max(1, Math.floor(img.height / fh));
+
+    const category = categorySelect?.value || 'character';
+    const row = (category === 'character' || category === 'monster') 
+      ? Math.min(artState.direction, rows - 1) 
+      : 0;
+
+    const col = artState.currentFrame % cols;
+    const sx = col * fw;
+    const sy = row * fh;
+
+    // Scale up frame centered in 96x96 canvas
+    const scale = Math.max(1, Math.min(Math.floor(80 / fw), Math.floor(80 / fh), 4));
+    const dw = fw * scale;
+    const dh = fh * scale;
+    const dx = Math.floor((previewCanvas.width - dw) / 2);
+    const dy = Math.floor((previewCanvas.height - dh) / 2);
+
+    ctx.drawImage(img, sx, sy, fw, fh, dx, dy, dw, dh);
+  }
+
+  function startAnimationLoop() {
+    if (artState.animTimer) clearInterval(artState.animTimer);
+    const interval = Math.max(20, Math.floor(1000 / artState.fps));
+    artState.animTimer = setInterval(() => {
+      if (!artState.loadedImage) return;
+      const cols = Math.max(1, Math.floor(artState.loadedImage.width / artState.frameWidth));
+      artState.currentFrame = (artState.currentFrame + 1) % cols;
+      renderPreviewFrame();
+    }, interval);
+  }
+
+  function handleFile(file: File) {
+    if (!file || !file.type.startsWith('image/')) {
+      showToast('⚠️ Please select a valid image file (PNG or JPG)');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+        artState.loadedImage = img;
+        artState.dataUrl = dataUrl;
+
+        // Auto-detect frame dimensions
+        const cat = categorySelect?.value || 'character';
+        if (cat === 'character' || cat === 'monster') {
+          if (img.width % 3 === 0 && img.height % 4 === 0) {
+            artState.frameWidth = Math.floor(img.width / 3);
+            artState.frameHeight = Math.floor(img.height / 4);
+          } else if (img.width % 32 === 0 && img.height % 32 === 0) {
+            artState.frameWidth = 32;
+            artState.frameHeight = 32;
+          } else if (img.width % 16 === 0 && img.height % 16 === 0) {
+            artState.frameWidth = 16;
+            artState.frameHeight = 16;
+          }
+        } else if (cat === 'tile') {
+          artState.frameWidth = 16;
+          artState.frameHeight = 16;
+        } else {
+          artState.frameWidth = img.width;
+          artState.frameHeight = img.height;
+        }
+
+        if (frameWInput) frameWInput.value = String(artState.frameWidth);
+        if (frameHInput) frameHInput.value = String(artState.frameHeight);
+
+        if (emptyNotice) emptyNotice.style.display = 'none';
+        if (sliceCanvas) sliceCanvas.style.display = 'block';
+
+        renderSliceCanvas();
+        startAnimationLoop();
+        showToast(`Loaded ${file.name} (${img.width}×${img.height}px)`);
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Setup Drag & Drop and File Input
+  if (dropzone && fileInput) {
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files && fileInput.files[0]) {
+        handleFile(fileInput.files[0]);
+      }
+    });
+
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.style.borderColor = '#38bdf8';
+      dropzone.style.background = 'rgba(56, 189, 248, 0.1)';
+    });
+
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.style.borderColor = 'var(--accent)';
+      dropzone.style.background = 'rgba(99, 102, 241, 0.05)';
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.style.borderColor = 'var(--accent)';
+      dropzone.style.background = 'rgba(99, 102, 241, 0.05)';
+      if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+  }
+
+  // Frame dimension listeners
+  frameWInput?.addEventListener('input', () => {
+    artState.frameWidth = Math.max(8, parseInt(frameWInput.value, 10) || 32);
+    renderSliceCanvas();
+    renderPreviewFrame();
+  });
+
+  frameHInput?.addEventListener('input', () => {
+    artState.frameHeight = Math.max(8, parseInt(frameHInput.value, 10) || 32);
+    renderSliceCanvas();
+    renderPreviewFrame();
+  });
+
+  categorySelect?.addEventListener('change', () => {
+    if (artState.loadedImage) {
+      renderSliceCanvas();
+      renderPreviewFrame();
+    }
+  });
+
+  // Direction buttons
+  dirButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      dirButtons.forEach(b => b.classList.remove('active'));
+      const target = e.currentTarget as HTMLElement;
+      target.classList.add('active');
+      artState.direction = parseInt(target.getAttribute('data-dir') || '0', 10);
+      renderSliceCanvas();
+      renderPreviewFrame();
+    });
+  });
+
+  // FPS slider
+  fpsSlider?.addEventListener('input', () => {
+    artState.fps = parseInt(fpsSlider.value, 10) || 8;
+    if (fpsVal) fpsVal.innerText = `${artState.fps} FPS`;
+    startAnimationLoop();
+  });
+
+  // Save & Hot-Swap Placeholder button
+  btnSave?.addEventListener('click', async () => {
+    if (!artState.dataUrl || !artState.loadedImage) {
+      showToast('⚠️ Please load an image before saving!');
+      return;
+    }
+
+    const targetKey = targetSelect?.value || 'player_0';
+    const category = categorySelect?.value || 'character';
+    btnSave.disabled = true;
+    btnSave.innerText = '⏳ Saving & Slicing...';
+
+    try {
+      const serverUrl = window.location.port === '5174' ? 'http://localhost:3001/api/import-asset' : '/api/import-asset';
+      const res = await fetch(serverUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: targetKey,
+          category,
+          frameWidth: artState.frameWidth,
+          frameHeight: artState.frameHeight,
+          dataUrl: artState.dataUrl
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        showToast(`✨ Target "${targetKey}" updated with custom art!`);
+      } else {
+        showToast(`⚠️ Import failed: ${data.error || 'Server error'}`);
+      }
+    } catch (err: any) {
+      showToast(`⚠️ Network error: ${err.message}`);
+    } finally {
+      btnSave.disabled = false;
+      btnSave.innerText = '✨ Save & Hot-Swap Placeholder';
+    }
+  });
+
+  startAnimationLoop();
+}
+
+// ----------------------------------------------------------------------
 // App Boot & Hotkeys
 // ----------------------------------------------------------------------
 window.addEventListener('DOMContentLoaded', () => {
@@ -438,6 +802,7 @@ window.addEventListener('DOMContentLoaded', () => {
         else if (target === 'tab-sandbox') copilotContext.innerText = 'Context: Combat Sandbox';
         else if (target === 'tab-quests') copilotContext.innerText = 'Context: Quests & Dialogue';
         else if (target === 'tab-entities') copilotContext.innerText = 'Context: Enemies & Items';
+        else if (target === 'tab-art') copilotContext.innerText = 'Context: Art Studio';
       }
     });
   });
@@ -476,4 +841,5 @@ window.addEventListener('DOMContentLoaded', () => {
   initMapEditor();
   initSandbox();
   initInspectors();
+  initArtStudio();
 });

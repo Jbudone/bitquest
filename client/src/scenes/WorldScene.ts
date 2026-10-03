@@ -17,6 +17,7 @@ import { WeatherEngine, CAMPFIRES, type WeatherType, type WeatherState, type Day
 
 export class WorldScene extends Phaser.Scene {
   public localPlayer: Player | null = null;
+  public network = network;
   public otherPlayers = new Map<string, OtherPlayer>();
   public entityObjects = new Map<string, Phaser.GameObjects.GameObject>();
   public entityShadows = new Map<string, Phaser.GameObjects.Sprite>();
@@ -1408,7 +1409,17 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private updateEntityVisuals(ent: EntityData) {
-    this.worldEntities.set(ent.id, ent);
+    const existing = this.worldEntities.get(ent.id);
+    if (existing) {
+      existing.x = ent.x;
+      existing.y = ent.y;
+      existing.interactable = ent.interactable;
+      if (ent.state) {
+        Object.assign(existing.state, ent.state);
+      }
+    } else {
+      this.worldEntities.set(ent.id, ent);
+    }
     let obj = this.entityObjects.get(ent.id) as any;
     if (!obj) {
       this.renderEntity(ent);
@@ -2022,10 +2033,37 @@ export class WorldScene extends Phaser.Scene {
     });
   }
 
+  public teleportLocalPlayer(x: number, y: number, direction: Direction = 'down') {
+    if (!this.localPlayer) return;
+    this.localPlayer.setPosition(x, y);
+    (this.localPlayer.body as Phaser.Physics.Arcade.Body)?.reset(x, y);
+    this.localPlayer.direction = direction;
+    (this.localPlayer as any).prediction?.clear();
+    network.sendMove(x, y, direction, 'idle', null, undefined, true);
+  }
+
   private triggerCozyDefeat() {
     if (!this.localPlayer) return;
     this.playerInvulnerable = true;
     (window as any).BitQuestUI?.hideBossHp?.();
+
+    // Clean up mounted, fishing, and carried pot states on defeat
+    if (this.localPlayer.mountedEntityId) {
+      this.localPlayer.setMounted(null);
+      network.sendMountToggle(null);
+    }
+    if (this.isLocalFishing) {
+      this.cleanupFishingSession(this.localPlayer.id);
+      this.isLocalFishing = false;
+      this.fishingPhase = 'idle';
+      this.destroyTensionHud();
+      network.sendFishingCancel();
+    }
+    if (this.localPlayer.carryingPotId) {
+      this.localPlayer.carryingPotId = null;
+      (this.localPlayer as any).carriedPotSprite?.setVisible(false);
+      (this.localPlayer as any).nameText?.setY(-28);
+    }
 
     const body = this.localPlayer.body as Phaser.Physics.Arcade.Body;
     if (body) body.setVelocity(0, 0);
@@ -2040,11 +2078,9 @@ export class WorldScene extends Phaser.Scene {
       // Respawn player in Grandma Bramble's Bakery Cot in Oakhaven Town Plaza
       const cotX = 1240;
       const cotY = 840;
-      this.localPlayer.setPosition(cotX, cotY);
+      this.teleportLocalPlayer(cotX, cotY, 'down');
       this.localPlayer.health = this.localPlayer.maxHealth;
       (window as any).BitQuestUI?.updateHearts(this.localPlayer.health, this.localPlayer.maxHealth);
-
-      network.sendMove(cotX, cotY, 'down', 'idle', null);
 
       // Smooth camera fade in
       this.cameras.main.fadeIn(700, 20, 15, 20);
@@ -2545,45 +2581,8 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    // 3. Dungeon interactions: unlit torches, stairs triggers, relic chest, mount, pet
-    for (const ent of this.worldEntities.values()) {
-      if (Math.hypot(px - ent.x, py - ent.y) < 56) {
-        if (ent.type === 'mount') {
-          network.sendMountToggle(ent.id);
-          return;
-        }
-        if (ent.id === 'wildlife_buster') {
-          network.sendPetCommand(ent.id, 'pet');
-          return;
-        }
-        if (ent.type === 'torch' && !ent.state.lit) {
-          network.sendInteract(ent.id, 'light_torch');
-          sounds.playTorchIgnite();
-          return;
-        }
-        if (ent.type === 'campfire') {
-          network.sendSitCampfire(ent.id);
-          sounds.playCampfireCrackle();
-          return;
-        }
-        if (ent.type === 'merchant') {
-          network.sendShopOpen(ent.state.merchantId || ent.id);
-          sounds.playShopOpen();
-          return;
-        }
-        if (ent.type === 'trigger') {
-          network.sendInteract(ent.id, 'enter_dungeon');
-          return;
-        }
-        if (ent.type === 'chest' && ent.subtype === 'relic_chest' && !ent.state.opened && !ent.state.locked) {
-          network.sendInteract(ent.id, 'press');
-          sounds.playChestOpen();
-          return;
-        }
-      }
-    }
-
-    const interaction = BehaviorRegistry.getPrioritizedInteraction(px, py, this.worldEntities.values(), 44, this.localPlayer as any);
+    // 3. Unified Prioritized Interaction Pipeline
+    const interaction = BehaviorRegistry.getPrioritizedInteraction(px, py, this.worldEntities.values(), 56, this.localPlayer as any);
     if (!interaction) return;
 
     const closestId = interaction.entity.id;
@@ -2634,7 +2633,11 @@ export class WorldScene extends Phaser.Scene {
       this.triggerCameraShake(80, 0.002);
       network.sendInteract(closestId, 'push_block', targetX, targetY);
     } else if (action === 'open_chest') {
-      network.sendInteract(closestId, 'open');
+      if (interaction.entity.subtype === 'relic_chest') {
+        network.sendInteract(closestId, 'press');
+      } else {
+        network.sendInteract(closestId, 'open');
+      }
       sounds.playChestOpen();
     } else if (action === 'browse_shop') {
       network.sendShopOpen(interaction.entity.state.merchantId || closestId);
@@ -2642,9 +2645,32 @@ export class WorldScene extends Phaser.Scene {
     } else if (action === 'talk') {
       network.sendInteract(closestId, 'talk');
     } else if (action === 'pet') {
-      network.sendInteract(closestId, 'pet');
+      if (closestId === 'wildlife_buster') {
+        network.sendPetCommand(closestId, 'pet');
+      } else {
+        network.sendInteract(closestId, 'pet');
+      }
       this.emitHeartBurst(interaction.entity.x, interaction.entity.y);
       sounds.playCoin();
+    } else if (action === 'mount') {
+      network.sendMountToggle(closestId);
+    } else if (action === 'light_torch') {
+      network.sendInteract(closestId, 'light_torch');
+      sounds.playTorchIgnite();
+    } else if (action === 'sit_campfire') {
+      if (this.localPlayer) {
+        this.localPlayer.anim = this.localPlayer.anim === 'sit' ? 'idle' : 'sit';
+        if (this.localPlayer.anim === 'sit') {
+          this.localPlayer.sprite.setScale(1.0, 0.8);
+          this.showFloatingText(this.localPlayer.x, this.localPlayer.y - 20, "🔥 Resting...", "#fbbf24");
+        } else {
+          this.localPlayer.sprite.setScale(1.0, 1.0);
+        }
+      }
+      network.sendSitCampfire(closestId);
+      sounds.playCampfireCrackle();
+    } else if (action === 'enter_dungeon') {
+      network.sendInteract(closestId, 'enter_dungeon');
     }
   }
 
@@ -2768,7 +2794,8 @@ export class WorldScene extends Phaser.Scene {
     beam.moveTo(p1Pos.x, p1Pos.y);
     const midX = (p1Pos.x + p2Pos.x) / 2;
     const midY = Math.min(p1Pos.y, p2Pos.y) - 18;
-    beam.quadraticCurveTo(midX, midY, p2Pos.x, p2Pos.y);
+    beam.lineTo(midX, midY);
+    beam.lineTo(p2Pos.x, p2Pos.y);
     beam.strokePath();
 
     this.tweens.add({
@@ -4367,38 +4394,31 @@ export class WorldScene extends Phaser.Scene {
       const px = this.localPlayer.x;
       const py = this.localPlayer.y;
 
-      const campfire = WeatherEngine.getNearestCampfire(px, py, 48);
-      if (campfire) {
-        hasTarget = true;
-        targetX = campfire.x;
-        targetY = campfire.y - 18;
-        const isSitting = this.localPlayer.anim === 'sit';
-        label = isSitting ? '[E] Stand Up' : '[E] Rest by Fire';
-        themeColor = 0xf97316;
-      } else {
-        const prioritized = BehaviorRegistry.getPrioritizedInteraction(
-          px,
-          py,
-          this.worldEntities.values(),
-          52,
-          this.localPlayer as any
-        );
+      const prioritized = BehaviorRegistry.getPrioritizedInteraction(
+        px,
+        py,
+        this.worldEntities.values(),
+        56,
+        this.localPlayer as any
+      );
 
-        if (prioritized) {
-          hasTarget = true;
-          targetX = prioritized.entity.x;
-          targetY = prioritized.entity.y;
-          label = prioritized.promptText;
-          if (prioritized.entity.id === 'wildlife_buster') {
-            const isFollowing = prioritized.entity.state.ownerId === this.localPlayer.id && prioritized.entity.state.petState === 'following';
-            label = isFollowing ? '[E] Pet / Stay' : '[E] Whistle (Follow)';
-            themeColor = 0xf59e0b;
-          } else if (prioritized.entity.type === 'mount') {
-            label = '[E] Mount Boghopper';
-            themeColor = 0x22c55e;
-          } else {
-            themeColor = prioritized.trait.priorityWeight > 75 ? 0xf59e0b : 0x38bdf8;
-          }
+      if (prioritized) {
+        hasTarget = true;
+        targetX = prioritized.entity.x;
+        targetY = prioritized.entity.y;
+        label = prioritized.promptText;
+
+        if (prioritized.entity.type === 'mount') {
+          themeColor = 0x22c55e;
+        } else if (prioritized.entity.type === 'campfire') {
+          targetY = prioritized.entity.y - 18;
+          themeColor = 0xf97316;
+        } else if (prioritized.entity.id === 'wildlife_buster') {
+          themeColor = 0xf59e0b;
+        } else if (prioritized.entity.type === 'torch') {
+          themeColor = 0xf59e0b;
+        } else {
+          themeColor = prioritized.trait.priorityWeight > 75 ? 0xf59e0b : 0x38bdf8;
         }
       }
     }
@@ -4822,7 +4842,8 @@ export class WorldScene extends Phaser.Scene {
       this.fishingLineGfx.lineStyle(1.5, 0x475569, 0.85);
       this.fishingLineGfx.beginPath();
       this.fishingLineGfx.moveTo(tipX, tipY);
-      this.fishingLineGfx.quadraticCurveTo(midX, midY, this.activeFishingBobber.x, this.activeFishingBobber.y);
+      this.fishingLineGfx.lineTo(midX, midY);
+      this.fishingLineGfx.lineTo(this.activeFishingBobber.x, this.activeFishingBobber.y);
       this.fishingLineGfx.strokePath();
 
       // Gentle water ripple emission
@@ -4845,7 +4866,8 @@ export class WorldScene extends Phaser.Scene {
         r.lineGfx.lineStyle(1.5, 0x475569, 0.75);
         r.lineGfx.beginPath();
         r.lineGfx.moveTo(tipX, tipY);
-        r.lineGfx.quadraticCurveTo(midX, midY, r.sprite.x, r.sprite.y);
+        r.lineGfx.lineTo(midX, midY);
+        r.lineGfx.lineTo(r.sprite.x, r.sprite.y);
         r.lineGfx.strokePath();
       }
     }

@@ -196,7 +196,13 @@ export class BehaviorRegistry {
     // 7. Wildlife (e.g. Buster the Dog)
     this.interactables.set('wildlife', {
       action: 'pet',
-      promptText: '[E] Pet',
+      promptText: (ent, player) => {
+        if (ent.id === 'wildlife_buster') {
+          const isFollowing = ent.state.ownerId === player?.id && ent.state.petState === 'following';
+          return isFollowing ? '[E] Pet / Stay' : '[E] Whistle (Follow)';
+        }
+        return '[E] Pet';
+      },
       interactionRadius: 48,
       priorityWeight: 50,
       canInteract: () => true,
@@ -219,6 +225,54 @@ export class BehaviorRegistry {
       onInteract: (ent, ctx, world) => {
         world.mountWildlife?.(ctx.playerId, ent.id);
         return { handled: true, stateChanged: true };
+      }
+    });
+
+    // 7c. Unlit Crypt Torches
+    this.interactables.set('torch', {
+      action: 'light_torch',
+      promptText: '[E] Light Torch',
+      interactionRadius: 52,
+      priorityWeight: 75,
+      canInteract: (ent) => !ent.state.lit,
+      onInteract: (ent, ctx, world) => {
+        ent.state.lit = true;
+        world.handleInteract?.(ctx.playerId, ent.id, 'light_torch');
+        return { handled: true, stateChanged: true };
+      }
+    });
+
+    // 7d. Rest Campfires
+    this.interactables.set('campfire', {
+      action: 'sit_campfire',
+      promptText: (_ent, player) => (player?.anim === 'sit' ? '[E] Stand Up' : '[E] Rest by Fire'),
+      interactionRadius: 48,
+      priorityWeight: 60,
+      canInteract: () => true,
+      onInteract: (ent, ctx, world) => {
+        world.sitCampfire?.(ctx.playerId, ent.id);
+        return { handled: true };
+      }
+    });
+
+    // 7e. Dungeon Stairs & Portals
+    this.interactables.set('trigger', {
+      action: 'enter_dungeon',
+      promptText: (ent) => {
+        if (ent.subtype === 'stairs_up') return '[E] Ascend Stairs';
+        if (ent.subtype === 'stairs_down') return '[E] Descend Stairs';
+        if (ent.subtype === 'portal') return '[E] Enter Portal';
+        return '[E] Enter Catacombs';
+      },
+      interactionRadius: 52,
+      priorityWeight: 80,
+      canInteract: (ent) => {
+        if (ent.subtype === 'portal') return !!ent.state.active;
+        return true;
+      },
+      onInteract: (ent, ctx, world) => {
+        world.handleInteract?.(ctx.playerId, ent.id, 'enter_dungeon');
+        return { handled: true };
       }
     });
 
@@ -386,11 +440,12 @@ export class BehaviorRegistry {
         const score = trait.priorityWeight * 10 - dist;
         if (score > highestScore) {
           highestScore = score;
+          const prompt = typeof trait.promptText === 'function' ? trait.promptText(ent, player) : trait.promptText;
           bestInteraction = {
             entity: ent,
             trait,
             distance: dist,
-            promptText: trait.promptText
+            promptText: prompt
           };
         }
       }

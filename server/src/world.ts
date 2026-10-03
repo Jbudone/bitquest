@@ -858,11 +858,13 @@ export class WorldManager {
     // Check distance between player and target water (28px to 160px)
     const dist = Math.hypot(targetX - player.x, targetY - player.y);
     if (dist < FishingEngine.MIN_CAST_DISTANCE || dist > FishingEngine.MAX_CAST_DISTANCE) {
+      console.log(`[Fishing] Cast rejected dist: ${dist.toFixed(1)}, player at (${player.x}, ${player.y}), target (${targetX}, ${targetY})`);
       return false;
     }
 
     const floor = DungeonManager.getFloorFromY(player.y);
     if (!FishingEngine.isWaterPixel(targetX, targetY, floor)) {
+      console.log(`[Fishing] Cast rejected not water at (${targetX}, ${targetY}), floor: ${floor}`);
       return false;
     }
 

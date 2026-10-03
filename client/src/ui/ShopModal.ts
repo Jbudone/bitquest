@@ -138,6 +138,10 @@ export class ShopModal {
     }
   }
 
+  public close() {
+    this.closeShop();
+  }
+
   public setTab(tab: 'buy' | 'sell') {
     this.activeTab = tab;
     if (this.tabBuyBtn) this.tabBuyBtn.classList.toggle('active', tab === 'buy');

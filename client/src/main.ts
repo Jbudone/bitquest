@@ -3,6 +3,8 @@ import { PreloadScene } from './scenes/PreloadScene';
 import { WorldScene } from './scenes/WorldScene';
 import { UIManager } from './ui/ui';
 
+import { network } from './network/NetworkClient';
+
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'game-container',
@@ -30,5 +32,6 @@ const ui = new UIManager();
 
 (window as any).BitQuestGame = game;
 (window as any).BitQuestUI = ui;
+(window as any).BitQuestNetwork = network;
 
 console.log('🌲 BitQuest Client initialized!');

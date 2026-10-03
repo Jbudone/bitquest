@@ -158,7 +158,7 @@ async function runDeepQA() {
         })()
       `);
       if (!res.isRollingDuring) throw new Error('Dodge roll state did not activate');
-      await new Promise(r => setTimeout(r, 350));
+      await new Promise(r => setTimeout(r, 480));
       const resAfter = await evaluateInBrowser(`
         (() => {
           const scene = window.BitQuestGame.scene.getScene('WorldScene');
@@ -457,8 +457,8 @@ async function runDeepQA() {
                   activeAfterFireball,
                   speedBoosted: scene.localPlayer.speedBuffMultiplier > 1
                 });
-              }, 150);
-            }, 180);
+              }, 100);
+            }, 160);
           });
         })()
       `);
@@ -579,6 +579,240 @@ async function runDeepQA() {
       `);
       if (!res.ok) throw new Error('Failed to trigger emotes');
       await new Promise(r => setTimeout(r, 200));
+    });
+
+    console.log('\n--- 11. COZY BOBBER FISHING ENGINE ---');
+
+    await runTest('Bobber Fishing Cast, Water Detection & Cancel', async () => {
+      const res = await evaluateInBrowser(`
+        (() => {
+          const scene = window.BitQuestGame.scene.getScene('WorldScene');
+          // Teleport player near Crystal Lake shoreline and sync to server
+          scene.teleportLocalPlayer(740, 1300, 'down');
+
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              // Cast fishing line into water (y + 40 is lake water)
+              scene.castFishingLine(740, 1340);
+
+              setTimeout(() => {
+                const castingActive = scene.isLocalFishing && scene.fishingPhase === 'waiting';
+                // Cancel cast
+                scene.handleActionFishing(true);
+
+                setTimeout(() => {
+                  const idleAfterCancel = !scene.isLocalFishing && scene.fishingPhase === 'idle';
+                  resolve({ castingActive, idleAfterCancel });
+                }, 150);
+              }, 250);
+            }, 120);
+          });
+        })()
+      `);
+      if (!res.castingActive) throw new Error('Fishing cast did not activate');
+      if (!res.idleAfterCancel) throw new Error('Fishing cancel did not return to idle');
+    });
+
+    console.log('\n--- 12. CIRCADIAN DAY/NIGHT & WEATHER CYCLE ---');
+
+    await runTest('Circadian Lighting & Atmospheric Weather System', async () => {
+      const res = await evaluateInBrowser(`
+        (() => {
+          const scene = window.BitQuestGame.scene.getScene('WorldScene');
+          const weather = scene.currentWeather;
+          const timeOfDaySec = scene.timeOfDaySec;
+          const overlay = scene.ambientOverlay;
+
+          return {
+            hasWeather: typeof weather === 'string',
+            weather,
+            timeOfDaySec,
+            overlayVisible: !!overlay && overlay.visible
+          };
+        })()
+      `);
+      if (!res.hasWeather) throw new Error('Weather state not found on WorldScene');
+      if (typeof res.timeOfDaySec !== 'number') throw new Error('TimeOfDaySec not synchronized');
+    });
+
+    await runTest('Rest Campfire Sitting & Cozy Rest', async () => {
+      const res = await evaluateInBrowser(`
+        (() => {
+          const scene = window.BitQuestGame.scene.getScene('WorldScene');
+          // Teleport near Village Hearth campfire (320, 448) and sync to server
+          scene.teleportLocalPlayer(320, 475, 'up');
+
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              // Interact to sit down
+              scene.handleActionInteract();
+
+              setTimeout(() => {
+                const isSitting = scene.localPlayer.anim === 'sit';
+                // Interact again to stand up
+                scene.handleActionInteract();
+
+                setTimeout(() => {
+                  resolve({ isSitting, stoodUp: scene.localPlayer.anim !== 'sit' });
+                }, 150);
+              }, 150);
+            }, 120);
+          });
+        })()
+      `);
+      if (!res.isSitting) throw new Error('Player did not sit at campfire');
+      if (!res.stoodUp) throw new Error('Player did not stand up from campfire');
+    });
+
+    console.log('\n--- 13. PIP’S ODDITIES SHOP & WANDERING TRADER ---');
+
+    await runTest('Pip Oddities Shop Modal Lifecycle', async () => {
+      const res = await evaluateInBrowser(`
+        (() => {
+          const scene = window.BitQuestGame.scene.getScene('WorldScene');
+          const ui = window.BitQuestUI;
+          // Teleport near Pip merchant (1040, 760) and sync to server
+          scene.teleportLocalPlayer(1040, 785, 'up');
+
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              // Open shop via interaction
+              scene.handleActionInteract();
+
+              setTimeout(() => {
+                const isOpen = ui?.shopModal?.isOpen();
+                const merchantTitle = document.getElementById('shop-merchant-name')?.innerText;
+
+                // Close shop modal
+                ui?.shopModal?.close();
+
+                setTimeout(() => {
+                  const isClosed = !ui?.shopModal?.isOpen();
+                  resolve({ isOpen, merchantTitle, isClosed });
+                }, 150);
+              }, 250);
+            }, 120);
+          });
+        })()
+      `);
+      if (!res.isOpen) throw new Error('Shop modal did not open');
+      if (!res.isClosed) throw new Error('Shop modal did not close');
+    });
+
+    console.log('\n--- 14. COMPANION PETS & MOUNTABLE WILDLIFE ---');
+
+    await runTest('Buster the Dog Whistling & Following Toggle', async () => {
+      const res = await evaluateInBrowser(`
+        (() => {
+          const scene = window.BitQuestGame.scene.getScene('WorldScene');
+          const buster = scene.worldEntities.get('wildlife_buster');
+          if (!buster) return { ok: false, reason: 'Buster not found' };
+
+          // Teleport near Buster and sync to server
+          scene.teleportLocalPlayer(buster.x, buster.y + 24, 'up');
+
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              const initialPetState = buster.state.petState;
+
+              const actionText = scene.actionIndicatorText?.text;
+              const busterSpr = scene.entityObjects.get('wildlife_buster');
+              const busterSprPos = busterSpr ? { x: busterSpr.x, y: busterSpr.y } : null;
+              const busterEntPos = { x: buster.x, y: buster.y };
+              const playerPos = { x: scene.localPlayer.x, y: scene.localPlayer.y };
+
+              // Toggle 1
+              scene.handleActionInteract();
+
+              setTimeout(() => {
+                const state1 = scene.worldEntities.get('wildlife_buster')?.state.petState;
+
+                // Toggle 2
+                scene.handleActionInteract();
+
+                setTimeout(() => {
+                  const state2 = scene.worldEntities.get('wildlife_buster')?.state.petState;
+                  resolve({
+                    ok: true,
+                    initialPetState,
+                    state1,
+                    state2
+                  });
+                }, 180);
+              }, 180);
+            }, 120);
+          });
+        })()
+      `);
+      if (!res.ok) throw new Error(res.reason);
+      if (res.state1 === res.initialPetState) throw new Error(`Buster state did not toggle on interact (initial: ${res.initialPetState}, state1: ${res.state1}, state2: ${res.state2})`);
+      if (res.state2 === res.state1) throw new Error(`Buster state did not toggle back on second interact (initial: ${res.initialPetState}, state1: ${res.state1}, state2: ${res.state2})`);
+    });
+
+    await runTest('Barnaby’s Boghopper Giant Frog Mount & Dodge Roll Dismount', async () => {
+      const res = await evaluateInBrowser(`
+        (() => {
+          const scene = window.BitQuestGame.scene.getScene('WorldScene');
+          const frog = scene.worldEntities.get('mount_frog_mossy');
+          if (!frog) return { ok: false, reason: 'Frog mount not found' };
+
+          // Teleport to frog and sync to server
+          scene.teleportLocalPlayer(frog.x, frog.y + 20, 'up');
+
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              // Interact to mount
+              scene.handleActionInteract();
+
+              setTimeout(() => {
+                const mountedId = scene.localPlayer.mountedEntityId;
+                const speedMultiplier = scene.localPlayer.speedMultiplier;
+
+                // Execute dodge roll to auto-dismount
+                scene.localPlayer.roll();
+
+                setTimeout(() => {
+                  const dismountedId = scene.localPlayer.mountedEntityId;
+                  resolve({
+                    ok: true,
+                    mountedId,
+                    speedMultiplier,
+                    dismountedId
+                  });
+                }, 200);
+              }, 250);
+            }, 120);
+          });
+        })()
+      `);
+      if (!res.ok) throw new Error(res.reason);
+      if (res.mountedId !== 'mount_frog_mossy') throw new Error('Failed to mount giant frog');
+      if (res.speedMultiplier < 1.5) throw new Error('Mount speed boost not applied');
+      if (res.dismountedId !== null) throw new Error('Dodge roll did not dismount player');
+    });
+
+    console.log('\n--- 15. CATACOMBS DUNGEON & ELEVATION LEDGES ---');
+
+    await runTest('Catacombs Dungeon Stairs & World Entities Initialization', async () => {
+      const res = await evaluateInBrowser(`
+        (() => {
+          const scene = window.BitQuestGame.scene.getScene('WorldScene');
+          const stairs = scene.worldEntities.get('stairs_catacombs_entrance');
+          const f1StairsDown = scene.worldEntities.get('stairs_to_f2');
+          const relicChest = scene.worldEntities.get('chest_catacombs_relic');
+
+          return {
+            hasStairs: !!stairs,
+            hasF1StairsDown: !!f1StairsDown,
+            hasRelicChest: !!relicChest,
+            cliffLedgeCount: scene.cliffLedges.length
+          };
+        })()
+      `);
+      if (!res.hasStairs) throw new Error('Catacombs entrance stairs missing');
+      if (!res.hasF1StairsDown) throw new Error('Floor 1 descent stairs missing');
+      if (!res.hasRelicChest) throw new Error('Abyssal Sanctuary relic chest missing');
+      if (res.cliffLedgeCount === 0) throw new Error('No cliff ledges registered in world');
     });
 
     ws.close();

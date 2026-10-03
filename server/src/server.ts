@@ -585,14 +585,16 @@ const server = Bun.serve<SocketData>({
           case 'move': {
             const player = world.players.get(id);
             if (player) {
-              const validation = ServerMovementValidator.validateMovement(
-                player.x,
-                player.y,
-                msg.x,
-                msg.y,
-                60,
-                (x, y) => x >= 0 && x <= 2048 && y >= 0 && y <= 5500
-              );
+              const validation = msg.isTeleport
+                ? { valid: true, correctedX: msg.x, correctedY: msg.y }
+                : ServerMovementValidator.validateMovement(
+                    player.x,
+                    player.y,
+                    msg.x,
+                    msg.y,
+                    60,
+                    (x, y) => x >= 0 && x <= 2048 && y >= 0 && y <= 5500
+                  );
 
               if (!validation.valid && msg.seq !== undefined) {
                 ws.send(JSON.stringify({

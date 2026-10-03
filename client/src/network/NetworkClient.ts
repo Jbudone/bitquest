@@ -259,8 +259,8 @@ export class NetworkClient {
     this.send({ type: 'join', name, color, paletteIndex });
   }
 
-  public sendMove(x: number, y: number, direction: Direction, anim: PlayerAnimState, carryingItem: string | null, seq?: number) {
-    this.send({ type: 'move', x, y, direction, anim, carryingItem, seq });
+  public sendMove(x: number, y: number, direction: Direction, anim: PlayerAnimState, carryingItem: string | null, seq?: number, isTeleport?: boolean) {
+    this.send({ type: 'move', x, y, direction, anim, carryingItem, seq, isTeleport });
   }
 
   public sendCastSpell(spellId: SpellId, x: number, y: number, direction: Direction) {

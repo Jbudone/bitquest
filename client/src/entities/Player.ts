@@ -19,6 +19,7 @@ export class Player extends Phaser.GameObjects.Container {
   public isRolling = false;
   public isInvulnerable = false;
   public rollCooldown = 0;
+  public anim: PlayerAnimState = 'idle';
   public carryingPotId: string | null = null;
   public speed = 150;
   public speedMultiplier = 1;
@@ -188,7 +189,7 @@ export class Player extends Phaser.GameObjects.Container {
     this.mana = Math.min(this.mana, this.maxMana);
     this.manaPool.setMaxMana(this.maxMana);
 
-    this.speedMultiplier = this.equipmentStats.moveSpeedMultiplier;
+    this.speedMultiplier = this.equipmentStats.moveSpeedMultiplier * (this.mountedEntityId ? 1.55 : 1.0);
 
     this.updateGearVisuals();
   }
@@ -275,6 +276,7 @@ export class Player extends Phaser.GameObjects.Container {
 
   public setMounted(mountId: string | null) {
     this.mountedEntityId = mountId;
+    this.speedMultiplier = (this.equipmentStats?.moveSpeedMultiplier || 1.0) * (mountId ? 1.55 : 1.0);
     if (mountId) {
       this.mountSprite.setVisible(true);
       this.mountSprite.setTexture('mount_frog_mossy_idle');
@@ -326,13 +328,16 @@ export class Player extends Phaser.GameObjects.Container {
       vy *= 0.7071;
     }
 
-    const mountMult = this.mountedEntityId ? 1.55 : 1.0;
-    const currentSpeed = this.speed * this.speedMultiplier * this.speedBuffMultiplier * mountMult;
+    const currentSpeed = this.speed * this.speedMultiplier * this.speedBuffMultiplier;
     body.setVelocity(vx * currentSpeed, vy * currentSpeed);
 
     // Update Facing Direction & Animation
     let animState: PlayerAnimState = this.mountedEntityId ? 'ride' : 'idle';
     if (vx !== 0 || vy !== 0) {
+      if (this.anim === 'sit') {
+        this.anim = 'idle';
+        this.sprite.setScale(1.0, 1.0);
+      }
       if (Math.abs(vx) > Math.abs(vy)) {
         this.direction = vx > 0 ? 'right' : 'left';
       } else {
@@ -340,6 +345,7 @@ export class Player extends Phaser.GameObjects.Container {
       }
 
       animState = this.mountedEntityId ? 'ride' : (this.carryingPotId ? 'carry_walk' : 'walk');
+      this.anim = animState;
 
       if (this.carryingPotId) {
         this.sprite.setTexture(`player_${this.paletteIndex}_${this.direction}_carry`);
@@ -367,11 +373,17 @@ export class Player extends Phaser.GameObjects.Container {
         }
       }
     } else {
-      animState = this.mountedEntityId ? 'ride' : (this.carryingPotId ? 'carry_idle' : 'idle');
-      if (this.carryingPotId) {
-        this.sprite.setTexture(`player_${this.paletteIndex}_${this.direction}_carry`);
+      if (this.anim === 'sit') {
+        animState = 'sit';
+        this.sprite.setScale(1.0, 0.8);
       } else {
-        this.sprite.setTexture(`player_${this.paletteIndex}_${this.direction}_idle`);
+        animState = this.mountedEntityId ? 'ride' : (this.carryingPotId ? 'carry_idle' : 'idle');
+        this.anim = animState;
+        if (this.carryingPotId) {
+          this.sprite.setTexture(`player_${this.paletteIndex}_${this.direction}_carry`);
+        } else {
+          this.sprite.setTexture(`player_${this.paletteIndex}_${this.direction}_idle`);
+        }
       }
       if (this.mountedEntityId) {
         this.mountSprite.setTexture('mount_frog_mossy_idle');
@@ -403,17 +415,19 @@ export class Player extends Phaser.GameObjects.Container {
       }
     }
 
+    const riderOffsetY = this.mountedEntityId ? -6 : 0;
+
     if (isMoving || this.isRolling || this.isAttacking || this.carryingPotId) {
       this.idleStartTime = now;
-      this.sprite.setY(0);
+      this.sprite.setY(riderOffsetY);
       this.sprite.setScale(1.0, 1.0);
       this.sprite.setRotation(0);
     } else {
       // Layered Idle Progression for Player
       const idleDuration = now - this.idleStartTime;
 
-      if (idleDuration > 14000) {
-        // Layer 3: Cozy Sitting / Napping Pose (> 14s)
+      if (idleDuration > 14000 && !this.mountedEntityId) {
+        // Layer 3: Cozy Sitting / Napping Pose (> 14s) (Only when on foot)
         this.sprite.setY(3);
         const cozyBreath = Math.sin(now * 0.0022) * 0.025;
         this.sprite.setScale(1.12, 0.84 + cozyBreath);
@@ -423,21 +437,21 @@ export class Player extends Phaser.GameObjects.Container {
           this.idleZzzTimer = now;
           (this.scene as any).emitSleepyZzz?.(this.x, this.y - 18);
         }
-      } else if (idleDuration > 7000) {
+      } else if (idleDuration > 7000 && !this.mountedEntityId) {
         // Layer 2: Looking Around & Periodic Wiping Brow (> 7s)
         this.sprite.setY(0);
         const lookAround = Math.sin(now * 0.0018) * 0.07;
         this.sprite.setRotation(lookAround);
         const breath = Math.sin(now * 0.0035) * 0.035;
         this.sprite.setScale(1.0 - breath * 0.5, 1.0 + breath);
-      } else if (idleDuration > 2500) {
-        // Layer 1: Cozy Breathing & Micro-Stretch (> 2.5s)
-        this.sprite.setY(0);
+      } else if (idleDuration > 2500 || this.mountedEntityId) {
+        // Layer 1: Cozy Breathing & Micro-Stretch (> 2.5s or while mounted)
+        this.sprite.setY(riderOffsetY);
         this.sprite.setRotation(0);
         const breath = Math.sin(now * 0.0035) * 0.035;
         this.sprite.setScale(1.0 - breath * 0.5, 1.0 + breath);
       } else {
-        this.sprite.setY(0);
+        this.sprite.setY(riderOffsetY);
         this.sprite.setScale(1.0, 1.0);
         this.sprite.setRotation(0);
       }

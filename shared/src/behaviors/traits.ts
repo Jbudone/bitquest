@@ -11,7 +11,12 @@ export type InteractionActionType =
   | 'talk'
   | 'pet'
   | 'push_block'
-  | 'open_chest';
+  | 'open_chest'
+  | 'browse_shop'
+  | 'mount'
+  | 'light_torch'
+  | 'sit_campfire'
+  | 'enter_dungeon';
 
 export interface InteractionContext {
   playerId: string;
@@ -29,7 +34,7 @@ export interface InteractionResult {
 
 export interface InteractableTrait {
   action: InteractionActionType;
-  promptText: string;
+  promptText: string | ((entity: EntityData, player?: PlayerData) => string);
   interactionRadius: number;
   priorityWeight: number; // Higher weight gets prioritized in crowded spaces
   canInteract: (entity: EntityData, player?: PlayerData) => boolean;

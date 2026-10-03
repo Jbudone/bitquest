@@ -30,7 +30,7 @@ import type { ShopItem } from './shop';
 // Network protocol packets
 export type ClientPacket =
   | { type: 'join'; name: string; color: string; paletteIndex: number }
-  | { type: 'move'; x: number; y: number; direction: Direction; anim: PlayerAnimState; carryingItem: string | null; seq?: number }
+  | { type: 'move'; x: number; y: number; direction: Direction; anim: PlayerAnimState; carryingItem: string | null; seq?: number; isTeleport?: boolean }
   | { type: 'interact'; targetId: string; action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever' | 'light_torch' | 'enter_dungeon' | 'warp_floor' | 'sit_campfire' | 'browse_shop' | 'mount' | 'dismount' | 'pet_command'; x?: number; y?: number; damage?: number }
   | { type: 'cast_spell'; spellId: SpellId; x: number; y: number; direction: Direction }
   | { type: 'equip_item'; slot: EquipmentSlot; itemId: string | null }

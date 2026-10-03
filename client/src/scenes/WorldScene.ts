@@ -21,6 +21,13 @@ export class WorldScene extends Phaser.Scene {
   private coinCombo = 0;
   private lastCoinPickupTime = 0;
 
+  // Interaction prompt & target reticle
+  private promptContainer!: Phaser.GameObjects.Container;
+  private promptBg!: Phaser.GameObjects.Graphics;
+  private promptReticle!: Phaser.GameObjects.Graphics;
+  private promptActionText!: Phaser.GameObjects.Text;
+  private promptAlpha = 0;
+
   constructor() {
     super({ key: 'WorldScene' });
   }
@@ -31,6 +38,9 @@ export class WorldScene extends Phaser.Scene {
 
     // 1. Build the Multi-Zone World Tiles & Environment
     this.buildWorld();
+
+    // 1b. Interaction Prompt & Reticle
+    this.setupInteractionPrompt();
 
     // 2. Setup Input
     if (this.input.keyboard) {
@@ -1103,10 +1113,167 @@ export class WorldScene extends Phaser.Scene {
           this.sporeProjectiles.splice(i, 1);
         }
       }
+
+      // 4. Overhead Action Prompt & Reticle
+      this.updateInteractionPrompt(time);
     }
 
     for (const other of this.otherPlayers.values()) {
       other.updateInterpolation(delta);
+    }
+  }
+
+  private setupInteractionPrompt() {
+    this.promptContainer = this.add.container(0, 0);
+    this.promptContainer.setDepth(10000); // Always above entities
+    this.promptContainer.setAlpha(0);
+
+    // Subtle corner brackets reticle
+    this.promptReticle = this.add.graphics();
+    this.promptContainer.add(this.promptReticle);
+
+    // Pill background
+    this.promptBg = this.add.graphics();
+    this.promptContainer.add(this.promptBg);
+
+    // Action Text
+    this.promptActionText = this.add.text(0, -28, '[E] Talk', {
+      fontFamily: 'monospace',
+      fontSize: '9px',
+      fontStyle: 'bold',
+      color: '#f8fafc',
+      align: 'center'
+    }).setOrigin(0.5, 0.5);
+    this.promptContainer.add(this.promptActionText);
+  }
+
+  private getInteractLabel(id: string): { label: string; color: number } {
+    if (id.startsWith('pot_')) return { label: '[E] Lift Pot', color: 0xf59e0b };
+    if (id === 'npc_grandma') return { label: '[E] Talk (Grandma)', color: 0xec4899 };
+    if (id === 'npc_barnaby') return { label: '[E] Talk (Barnaby)', color: 0x38bdf8 };
+    if (id.startsWith('npc_')) return { label: '[E] Talk', color: 0xfacc15 };
+    if (id.startsWith('sign_')) return { label: '[E] Read Sign', color: 0x94a3b8 };
+    if (id === 'ancient_gate') return { label: '[E] Inspect Gate', color: 0xa855f7 };
+    if (id.startsWith('switch_')) return { label: '[E] Sun Stone Switch', color: 0xfacc15 };
+    if (id.startsWith('chest_')) return { label: '[E] Open Chest', color: 0xeab308 };
+    if (id.startsWith('wildlife_')) return { label: '[E] Pet', color: 0x4ade80 };
+    return { label: '[E] Interact', color: 0x38bdf8 };
+  }
+
+  private updateInteractionPrompt(time: number) {
+    if (!this.localPlayer || !this.promptContainer) return;
+
+    let targetX = 0;
+    let targetY = 0;
+    let label = '';
+    let themeColor = 0xfacc15;
+    let hasTarget = false;
+    let isSelf = false;
+
+    if (this.localPlayer.carryingPotId) {
+      hasTarget = true;
+      isSelf = true;
+      targetX = this.localPlayer.x;
+      targetY = this.localPlayer.y - 18;
+      label = '[E] Throw Pot';
+      themeColor = 0xf97316;
+    } else {
+      const px = this.localPlayer.x;
+      const py = this.localPlayer.y;
+      let closestId: string | null = null;
+      let closestDist = 48;
+      let closestSprite: Phaser.GameObjects.Sprite | null = null;
+
+      for (const [id, obj] of this.entityObjects.entries()) {
+        const sprite = obj as Phaser.GameObjects.Sprite;
+        if (!sprite || !sprite.visible) continue;
+        const dist = Math.hypot(px - sprite.x, py - sprite.y);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closestId = id;
+          closestSprite = sprite;
+        }
+      }
+
+      if (closestId && closestSprite) {
+        hasTarget = true;
+        targetX = closestSprite.x;
+        targetY = closestSprite.y;
+        const info = this.getInteractLabel(closestId);
+        label = info.label;
+        themeColor = info.color;
+      }
+    }
+
+    if (hasTarget) {
+      this.promptAlpha = Phaser.Math.Linear(this.promptAlpha, 1.0, 0.25);
+    } else {
+      this.promptAlpha = Phaser.Math.Linear(this.promptAlpha, 0, 0.25);
+    }
+
+    this.promptContainer.setAlpha(this.promptAlpha);
+    if (this.promptAlpha < 0.02) {
+      this.promptContainer.setVisible(false);
+      return;
+    }
+
+    this.promptContainer.setVisible(true);
+    const bob = Math.sin(time * 0.007) * 2;
+    this.promptContainer.setPosition(targetX, targetY);
+
+    // Update Action Text
+    if (this.promptActionText.text !== label) {
+      this.promptActionText.setText(label);
+    }
+    const textY = isSelf ? -34 + bob : -26 + bob;
+    this.promptActionText.setPosition(0, textY);
+
+    // Draw Pill Background
+    const textW = this.promptActionText.width + 12;
+    const textH = 16;
+    this.promptBg.clear();
+    this.promptBg.fillStyle(0x0f172a, 0.92);
+    this.promptBg.fillRoundedRect(-textW / 2, textY - textH / 2, textW, textH, 6);
+    this.promptBg.lineStyle(1.5, themeColor, 0.9);
+    this.promptBg.strokeRoundedRect(-textW / 2, textY - textH / 2, textW, textH, 6);
+
+    // Draw Corner Brackets Reticle around target
+    this.promptReticle.clear();
+    if (!isSelf) {
+      const pulse = 1 + Math.sin(time * 0.009) * 0.08;
+      const bw = 16 * pulse;
+      const bh = 16 * pulse;
+      const arm = 5;
+
+      this.promptReticle.lineStyle(2, themeColor, 0.85);
+
+      // Top-Left
+      this.promptReticle.beginPath();
+      this.promptReticle.moveTo(-bw, -bh + arm);
+      this.promptReticle.lineTo(-bw, -bh);
+      this.promptReticle.lineTo(-bw + arm, -bh);
+      this.promptReticle.stroke();
+
+      // Top-Right
+      this.promptReticle.beginPath();
+      this.promptReticle.moveTo(bw - arm, -bh);
+      this.promptReticle.lineTo(bw, -bh);
+      this.promptReticle.lineTo(bw, -bh + arm);
+      this.promptReticle.stroke();
+
+      // Bottom-Left
+      this.promptReticle.beginPath();
+      this.promptReticle.moveTo(-bw, bh - arm);
+      this.promptReticle.lineTo(-bw, bh);
+      this.promptReticle.lineTo(-bw + arm, bh);
+      this.promptReticle.stroke();
+
+      // Bottom-Right
+      this.promptReticle.beginPath();
+      this.promptReticle.moveTo(bw - arm, bh);
+      this.promptReticle.lineTo(bw, bh);
+      this.promptReticle.lineTo(bw, bh - arm);
+      this.promptReticle.stroke();
     }
   }
 }

@@ -11,6 +11,7 @@ import { SpatialGrid } from '../../../shared/src/spatialGrid';
 import { BehaviorRegistry } from '../../../shared/src/behaviors/registry';
 import { SPELL_DEFINITIONS, type SpellDefinition, type SpellId, StatusEffectManager } from '../../../shared/src/magic';
 import { ClassManager, CLASS_DEFINITIONS, type CharacterClassId, type ClassAbilityId } from '../../../shared/src/classes';
+import { DUNGEON_CONSTANTS, MALAKOR_SPECS, DungeonManager, CATACOMBS_FLOORS, type DungeonFloorId } from '../../../shared/src/dungeon';
 
 export class WorldScene extends Phaser.Scene {
   public localPlayer: Player | null = null;
@@ -21,6 +22,12 @@ export class WorldScene extends Phaser.Scene {
   public itemObjects = new Map<string, { sprite: Phaser.GameObjects.Sprite; shapeText?: Phaser.GameObjects.Text; data: ItemDropData }>();
   public playerGlow?: Phaser.GameObjects.Image;
   public particles!: ParticlePipeline;
+
+  // The Sunken Catacombs Dungeon (Task 7.4)
+  public activeFloor: 'overworld' | 'f1' | 'f2' = 'overworld';
+  private platformPosOut = { x: 0, y: 0, vx: 0 };
+  private dungeonLightingOverlay?: Phaser.GameObjects.Graphics;
+  private malakorAuraGraphic?: Phaser.GameObjects.Graphics;
 
   private obstacles!: Phaser.Physics.Arcade.StaticGroup;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -234,6 +241,11 @@ export class WorldScene extends Phaser.Scene {
     // 4. Camera bounds
     this.cameras.main.setBounds(0, 0, 2048, 1792);
     this.cameras.main.setZoom(1.35); // Cozy pixel zoom (expanded FOV)
+
+    // 5. Dungeon Subterranean Lighting Overlay
+    this.dungeonLightingOverlay = this.add.graphics();
+    this.dungeonLightingOverlay.setDepth(3400);
+    this.dungeonLightingOverlay.setVisible(false);
   }
 
   private buildWorld() {
@@ -469,6 +481,55 @@ export class WorldScene extends Phaser.Scene {
         safeY: pit.safeY,
         radius: 14
       });
+    }
+
+    // 11. Subterranean World: The Sunken Catacombs (Floor 1 & Floor 2)
+    this.buildCatacombsDungeon();
+  }
+
+  private buildCatacombsDungeon() {
+    const TILE = 32;
+
+    // Floor 1: The Forgotten Crypts (y: 2150..3600, tileY: 67..112)
+    for (let ty = 67; ty <= 112; ty++) {
+      for (let tx = 20; tx <= 44; tx++) {
+        this.add.image(tx * TILE + 16, ty * TILE + 16, 'tile_catacombs_wall');
+      }
+    }
+
+    // Floor 1 Walkable Corridors & Chambers (Crypt Slate Floor)
+    for (let ty = 69; ty <= 88; ty++) {
+      for (let tx = 26; tx <= 38; tx++) {
+        this.add.image(tx * TILE + 16, ty * TILE + 16, 'tile_catacombs_floor');
+      }
+    }
+
+    // Floor 1 Abyssal Chasm (tileY: 93..98, tileX: 24..40)
+    for (let ty = 93; ty <= 98; ty++) {
+      for (let tx = 24; tx <= 40; tx++) {
+        this.add.image(tx * TILE + 16, ty * TILE + 16, 'tile_catacombs_abyss');
+      }
+    }
+
+    // Floor 1 Descent Hall to Floor 2 (tileY: 99..110, tileX: 28..36)
+    for (let ty = 99; ty <= 110; ty++) {
+      for (let tx = 28; tx <= 36; tx++) {
+        this.add.image(tx * TILE + 16, ty * TILE + 16, 'tile_catacombs_floor');
+      }
+    }
+
+    // Floor 2: The Abyssal Sanctuary (y: 3950..5400, tileY: 124..168)
+    for (let ty = 124; ty <= 168; ty++) {
+      for (let tx = 20; tx <= 44; tx++) {
+        this.add.image(tx * TILE + 16, ty * TILE + 16, 'tile_catacombs_wall');
+      }
+    }
+
+    // Floor 2 Grand Boss Arena (tileY: 130..162, tileX: 24..40)
+    for (let ty = 130; ty <= 162; ty++) {
+      for (let tx = 24; tx <= 40; tx++) {
+        this.add.image(tx * TILE + 16, ty * TILE + 16, 'tile_catacombs_floor');
+      }
     }
   }
 
@@ -783,6 +844,35 @@ export class WorldScene extends Phaser.Scene {
       this.handleLifeSiphonVFX(data.casterId, data.targetId, data.amount);
     };
 
+    network.onDungeonTransition = (data) => {
+      sounds.playDungeonStairs();
+      if (this.localPlayer) {
+        this.localPlayer.x = data.x;
+        this.localPlayer.y = data.y;
+      }
+      this.activeFloor = data.floorId;
+      if (data.floorId === 'f1') {
+        this.cameras.main.setBounds(0, 2150, 2048, 1600);
+      } else if (data.floorId === 'f2') {
+        this.cameras.main.setBounds(0, 3950, 2048, 1600);
+      } else {
+        this.cameras.main.setBounds(0, 0, 2048, 1792);
+      }
+      if ((window as any).BitQuestUI?.biomeBanner) {
+        (window as any).BitQuestUI.biomeBanner.show(data.title, data.subtitle);
+      }
+    };
+
+    network.onTorchLitEvent = (data) => {
+      sounds.playTorchIgnite();
+      this.emitTorchLitBurst(data.x, data.y);
+      if (data.roomSolved) {
+        sounds.playGateRumble();
+        this.triggerCameraShake(200, 0.005);
+        this.showFloatingText(data.x, data.y - 25, "✨ PUZZLE SOLVED!", "#22c55e", true);
+      }
+    };
+
     network.connect();
 
     const tryJoin = () => {
@@ -885,13 +975,45 @@ export class WorldScene extends Phaser.Scene {
         obj = this.add.sprite(ent.x, ent.y, ent.state.activated ? 'switch_down' : 'switch_up');
       }
     } else if (ent.type === 'chest') {
-      const tex = ent.state.opened ? 'chest_opened' : 'chest_closed';
+      const tex = ent.subtype === 'relic_chest' ? (ent.state.opened ? 'chest_opened' : 'prop_relic_chest') : (ent.state.opened ? 'chest_opened' : 'chest_closed');
       const sprite = this.add.sprite(ent.x, ent.y, tex);
+      if (ent.subtype === 'relic_chest') {
+        sprite.setVisible(!!ent.state.active);
+      }
       const shadow = this.add.sprite(ent.x + 1, ent.y + 6, 'shadow_small').setAlpha(0.6).setDepth(ent.y - 1);
       this.entityShadows.set(ent.id, shadow);
       obj = sprite;
     } else if (ent.type === 'door') {
-      obj = this.add.sprite(ent.x, ent.y, ent.state.opened ? 'gate_opened' : 'gate_closed');
+      const tex = ent.subtype === 'iron_gate' ? (ent.state.opened ? 'prop_crypt_gate_opened' : 'prop_crypt_gate_closed') : (ent.state.opened ? 'gate_opened' : 'gate_closed');
+      obj = this.add.sprite(ent.x, ent.y, tex);
+    } else if (ent.type === 'torch') {
+      const tex = ent.state.lit ? 'prop_crypt_torch_lit' : 'prop_crypt_torch_unlit';
+      const sprite = this.add.sprite(ent.x, ent.y, tex);
+      sprite.setDepth(ent.y);
+      obj = sprite;
+    } else if (ent.type === 'platform') {
+      const sprite = this.add.sprite(ent.x, ent.y, 'prop_moving_platform');
+      sprite.setDepth(ent.y - 2);
+      obj = sprite;
+    } else if (ent.type === 'trigger') {
+      let tex = 'prop_crypt_stairs_down';
+      if (ent.subtype === 'stairs_up') tex = 'prop_crypt_stairs_up';
+      else if (ent.subtype === 'portal') tex = 'prop_catacombs_portal';
+      const sprite = this.add.sprite(ent.x, ent.y, tex);
+      sprite.setDepth(ent.y - 10);
+      if (ent.subtype === 'portal') {
+        sprite.setVisible(!!ent.state.active);
+        this.tweens.add({
+          targets: sprite,
+          scaleX: 1.08,
+          scaleY: 1.08,
+          duration: 900,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+      }
+      obj = sprite;
     } else if (ent.type === 'sign') {
       obj = this.add.sprite(ent.x, ent.y, 'ent_sign');
     } else if (ent.type === 'npc') {
@@ -919,7 +1041,7 @@ export class WorldScene extends Phaser.Scene {
       this.entityShadows.set(ent.id, shadow);
       obj = sprite;
     } else if (ent.type === 'enemy') {
-      const tex = ent.subtype === 'sproutling' ? 'enemy_sproutling' : 'enemy_grumble';
+      const tex = ent.subtype === 'skeleton' ? 'entity_minion_skeleton' : (ent.subtype === 'sproutling' ? 'enemy_sproutling' : 'enemy_grumble');
       const sprite = this.add.sprite(ent.x, ent.y, tex);
       const isDead = !!ent.state.destroyed;
       sprite.setVisible(!isDead);
@@ -931,7 +1053,8 @@ export class WorldScene extends Phaser.Scene {
       }
       obj = sprite;
     } else if (ent.type === 'boss') {
-      const sprite = this.add.sprite(ent.x, ent.y, 'boss_baron');
+      const tex = ent.subtype === 'boss_malakor' ? 'boss_malakor' : 'boss_baron';
+      const sprite = this.add.sprite(ent.x, ent.y, tex);
       const isDead = !!ent.state.destroyed;
       sprite.setVisible(!isDead);
       const shadow = this.add.sprite(ent.x + 4, ent.y + 16, 'shadow_boss').setAlpha(0.7).setDepth(ent.y - 1);
@@ -1047,10 +1170,25 @@ export class WorldScene extends Phaser.Scene {
       }
     } else if (ent.type === 'chest') {
       const isOpened = !!ent.state.opened;
-      obj.setTexture(isOpened ? 'chest_opened' : 'chest_closed');
+      if (ent.subtype === 'relic_chest') {
+        obj.setVisible(!!ent.state.active);
+        obj.setTexture(isOpened ? 'chest_opened' : 'prop_relic_chest');
+      } else {
+        obj.setTexture(isOpened ? 'chest_opened' : 'chest_closed');
+      }
     } else if (ent.type === 'door') {
       const isOpened = !!ent.state.opened;
-      obj.setTexture(isOpened ? 'gate_opened' : 'gate_closed');
+      const targetTex = ent.subtype === 'iron_gate' ? (isOpened ? 'prop_crypt_gate_opened' : 'prop_crypt_gate_closed') : (isOpened ? 'gate_opened' : 'gate_closed');
+      obj.setTexture(targetTex);
+    } else if (ent.type === 'torch') {
+      const targetTex = ent.state.lit ? 'prop_crypt_torch_lit' : 'prop_crypt_torch_unlit';
+      if (obj.texture?.key !== targetTex) {
+        obj.setTexture(targetTex);
+      }
+    } else if (ent.type === 'trigger') {
+      if (ent.subtype === 'portal') {
+        obj.setVisible(!!ent.state.active);
+      }
     } else if (ent.type === 'wildlife' && ent.subtype === 'dog') {
       if (ent.state.petCount && ent.state.petCount !== (obj as any).lastPetCount) {
         (obj as any).lastPetCount = ent.state.petCount;
@@ -1208,10 +1346,118 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  private handleBossEvent(event: { action: 'spawn' | 'stomp' | 'spore' | 'charge' | 'crash_stun' | 'defeated'; x?: number; y?: number; targetX?: number; targetY?: number }) {
+  private handleBossEvent(event: { action: 'spawn' | 'stomp' | 'spore' | 'charge' | 'crash_stun' | 'defeated' | 'crypt_spike' | 'scythe_cleave' | 'darkness_shroud' | 'soul_barrage'; bossId?: string; x?: number; y?: number; targetX?: number; targetY?: number }) {
     const x = event.x ?? 1024;
     const y = event.y ?? 280;
     const bossSprite = this.entityObjects.get('boss_baron') as Phaser.GameObjects.Sprite | undefined;
+
+    if (event.action === 'crypt_spike') {
+      const targetX = event.targetX ?? x;
+      const targetY = event.targetY ?? y;
+      sounds.playTelegraphHum();
+      const fissure = this.add.sprite(targetX, targetY + 6, 'telegraph_ring');
+      fissure.setDepth(targetY - 1).setScale(0.4).setAlpha(0.6).setTint(0xef4444);
+      this.tweens.add({
+        targets: fissure,
+        scale: 1.1,
+        duration: 500,
+        ease: 'Quad.easeOut',
+        onComplete: () => {
+          fissure.destroy();
+          sounds.playCryptSpike();
+          this.triggerCameraShake(180, 0.007);
+          const spikes = this.add.sprite(targetX, targetY, 'prop_crypt_spikes');
+          spikes.setDepth(targetY + 10).setScale(0.4);
+          this.tweens.add({
+            targets: spikes,
+            scale: 1.2,
+            duration: 120,
+            yoyo: true,
+            hold: 350,
+            ease: 'Back.easeOut',
+            onComplete: () => spikes.destroy()
+          });
+          if (this.localPlayer && !this.localPlayer.isRolling && !this.localPlayer.godMode && !this.playerInvulnerable) {
+            if (Math.hypot(this.localPlayer.x - targetX, this.localPlayer.y - targetY) < 42) {
+              this.hurtPlayer(MALAKOR_SPECS.phase1.cryptSpikeDamage);
+            }
+          }
+        }
+      });
+      return;
+    }
+
+    if (event.action === 'scythe_cleave') {
+      sounds.playSlash();
+      const malakorSpr = this.entityObjects.get(MALAKOR_SPECS.id) as Phaser.GameObjects.Sprite | undefined;
+      if (malakorSpr) {
+        this.renderSlashTrail(malakorSpr.x, malakorSpr.y, 'down', true);
+      }
+      return;
+    }
+
+    if (event.action === 'darkness_shroud') {
+      sounds.playBossStun();
+      this.triggerCameraShake(250, 0.008);
+      this.showFloatingText(x, y - 36, "🌑 DARKNESS SHROUD! (Light 4 Torches!)", "#a855f7", true);
+      const malakorSpr = this.entityObjects.get(MALAKOR_SPECS.id) as Phaser.GameObjects.Sprite | undefined;
+      if (malakorSpr) {
+        malakorSpr.setTint(0x9333ea);
+      }
+      return;
+    }
+
+    if (event.action === 'soul_barrage') {
+      sounds.playSoulBarrage();
+      const targetX = event.targetX ?? this.localPlayer?.x ?? x;
+      const targetY = event.targetY ?? this.localPlayer?.y ?? y;
+      for (let i = 0; i < 3; i++) {
+        const orb = this.add.sprite(x + (i - 1) * 16, y - 10, 'fx_siphon_orb');
+        orb.setDepth(y + 20).setTint(0xc084fc);
+        this.tweens.add({
+          targets: orb,
+          x: targetX + (Math.random() * 20 - 10),
+          y: targetY + (Math.random() * 20 - 10),
+          duration: 450 + i * 100,
+          ease: 'Sine.easeIn',
+          onComplete: () => {
+            orb.destroy();
+            if (this.localPlayer && !this.localPlayer.isRolling && !this.localPlayer.godMode && !this.playerInvulnerable) {
+              if (Math.hypot(this.localPlayer.x - targetX, this.localPlayer.y - targetY) < 36) {
+                this.hurtPlayer(MALAKOR_SPECS.phase2.soulBarrageDamage);
+              }
+            }
+          }
+        });
+      }
+      return;
+    }
+
+    if (event.action === 'crash_stun' && event.bossId === MALAKOR_SPECS.id) {
+      sounds.playBossStun();
+      this.showFloatingText(x, y - 36, "✨ SHROUD BROKEN! MALAKOR IS STUNNED! ✨", "#facc15", true);
+      const malakorSpr = this.entityObjects.get(MALAKOR_SPECS.id) as Phaser.GameObjects.Sprite | undefined;
+      if (malakorSpr) {
+        malakorSpr.clearTint();
+        this.tweens.add({
+          targets: malakorSpr,
+          angle: 15,
+          duration: 100,
+          yoyo: true,
+          repeat: 4
+        });
+      }
+      return;
+    }
+
+    if (event.action === 'defeated' && event.bossId === MALAKOR_SPECS.id) {
+      sounds.playVictory();
+      this.triggerCameraShake(400, 0.015);
+      chronicles.recordStat('bossesDefeated', 1);
+      this.showFloatingText(x, y - 36, "🏆 MALAKOR VANQUISHED! SUN STONE RELIC UNLOCKED! ☀️", "#fbbf24", true);
+      (window as any).BitQuestUI?.showToast('🎉 Malakor the Tomb Warden has fallen! Claim the Sun Stone from the relic chest!');
+      return;
+    }
 
     if (event.action === 'stomp') {
       // 1. Anticipation squash & threat telegraph ring
@@ -1828,6 +2074,17 @@ export class WorldScene extends Phaser.Scene {
         }
       }
 
+      // 1b. Light unlit crypt torches with attack swing!
+      for (const ent of this.worldEntities.values()) {
+        if (ent.type === 'torch' && !ent.state.lit) {
+          const dist = Math.hypot(ent.x - px, ent.y - py);
+          if (dist < cleaveRadius + 14) {
+            network.sendInteract(ent.id, 'light_torch');
+            sounds.playTorchIgnite();
+          }
+        }
+      }
+
       // 2. Cleave enemies & boss
       for (const [id, obj] of this.entityObjects.entries()) {
         if (id.startsWith('enemy_') || id.startsWith('boss_')) {
@@ -1933,6 +2190,26 @@ export class WorldScene extends Phaser.Scene {
         network.sendPotThrow(potInfo.potId, this.localPlayer.x, this.localPlayer.y, potInfo.x, potInfo.y);
       }
       return;
+    }
+
+    // 3. Dungeon interactions: unlit torches, stairs triggers, relic chest
+    for (const ent of this.worldEntities.values()) {
+      if (Math.hypot(px - ent.x, py - ent.y) < 52) {
+        if (ent.type === 'torch' && !ent.state.lit) {
+          network.sendInteract(ent.id, 'light_torch');
+          sounds.playTorchIgnite();
+          return;
+        }
+        if (ent.type === 'trigger') {
+          network.sendInteract(ent.id, 'enter_dungeon');
+          return;
+        }
+        if (ent.type === 'chest' && ent.subtype === 'relic_chest' && !ent.state.opened && !ent.state.locked) {
+          network.sendInteract(ent.id, 'press');
+          sounds.playChestOpen();
+          return;
+        }
+      }
     }
 
     const interaction = BehaviorRegistry.getPrioritizedInteraction(px, py, this.worldEntities.values(), 44, this.localPlayer as any);
@@ -2718,9 +2995,93 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  private emitTorchLitBurst(x: number, y: number) {
+    for (let i = 0; i < 8; i++) {
+      const p = this.add.circle(x, y - 10, Math.random() < 0.5 ? 3 : 2, 0xf59e0b);
+      p.setDepth(3500);
+      const angle = (i / 8) * Math.PI * 2;
+      const dist = 16 + Math.random() * 14;
+      this.tweens.add({
+        targets: p,
+        x: x + Math.cos(angle) * dist,
+        y: y - 10 + Math.sin(angle) * dist - 8,
+        scale: 0.2,
+        alpha: 0,
+        duration: 350 + Math.random() * 150,
+        ease: 'Quad.easeOut',
+        onComplete: () => p.destroy()
+      });
+    }
+  }
+
   update(time: number, delta: number) {
     if (this.localPlayer) {
       this.localPlayer.updateMovement(this.cursors, this.keys, delta);
+
+      // Update moving stone platform position and riding kinematics
+      const platformSprite = this.entityObjects.get(DUNGEON_CONSTANTS.F1_PLATFORM.id) as Phaser.GameObjects.Sprite | undefined;
+      const platformPos = DungeonManager.getPlatformPosition(Date.now(), this.platformPosOut);
+      if (platformSprite) {
+        platformSprite.x = platformPos.x;
+        platformSprite.y = platformPos.y;
+      }
+
+      // If local player is standing on the moving platform in the chasm, ride it!
+      if (DungeonManager.isInsideAbyss(this.localPlayer.x, this.localPlayer.y)) {
+        if (DungeonManager.isOnMovingPlatform(this.localPlayer.x, this.localPlayer.y, platformPos.x, platformPos.y)) {
+          this.localPlayer.x += (platformPos.vx * delta) / 1000;
+        }
+      }
+
+      // Dynamic Camera Clamping & Subterranean Bounds
+      const currentFloor = DungeonManager.getFloorFromY(this.localPlayer.y);
+      if (currentFloor !== this.activeFloor) {
+        this.activeFloor = currentFloor;
+        if (currentFloor === 'f1') {
+          this.cameras.main.setBounds(0, 2150, 2048, 1600);
+        } else if (currentFloor === 'f2') {
+          this.cameras.main.setBounds(0, 3950, 2048, 1600);
+        } else {
+          this.cameras.main.setBounds(0, 0, 2048, 1792);
+        }
+      }
+
+      // Subterranean Dungeon Lighting & Torch Illumination Cutouts
+      if (this.dungeonLightingOverlay) {
+        if (this.localPlayer.y >= 2000) {
+          this.dungeonLightingOverlay.setVisible(true);
+          this.dungeonLightingOverlay.clear();
+          const cam = this.cameras.main;
+          const left = cam.worldView.x - 20;
+          const top = cam.worldView.y - 20;
+          const width = cam.worldView.width + 40;
+          const height = cam.worldView.height + 40;
+
+          // Translucent subterranean darkness
+          this.dungeonLightingOverlay.fillStyle(0x06030b, 0.82);
+          this.dungeonLightingOverlay.fillRect(left, top, width, height);
+
+          // Player torchlight / aura
+          this.dungeonLightingOverlay.fillStyle(0xfde047, 0.08);
+          this.dungeonLightingOverlay.fillCircle(this.localPlayer.x, this.localPlayer.y, 110);
+          this.dungeonLightingOverlay.fillStyle(0xffffff, 0.12);
+          this.dungeonLightingOverlay.fillCircle(this.localPlayer.x, this.localPlayer.y, 70);
+
+          // Torches illumination cutouts
+          for (const ent of this.worldEntities.values()) {
+            if (ent.type === 'torch' && ent.state.lit) {
+              if (cam.worldView.contains(ent.x, ent.y)) {
+                this.dungeonLightingOverlay.fillStyle(0xf59e0b, 0.16);
+                this.dungeonLightingOverlay.fillCircle(ent.x, ent.y, 85);
+                this.dungeonLightingOverlay.fillStyle(0xfef08a, 0.24);
+                this.dungeonLightingOverlay.fillCircle(ent.x, ent.y, 50);
+              }
+            }
+          }
+        } else {
+          this.dungeonLightingOverlay.setVisible(false);
+        }
+      }
 
       // Update active spell projectiles
       for (let i = this.spellProjectiles.length - 1; i >= 0; i--) {

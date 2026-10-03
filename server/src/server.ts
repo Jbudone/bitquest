@@ -199,6 +199,31 @@ world.onPotCaught = (potId, catcherId, x, y) => {
   });
 };
 
+world.onDungeonTransition = (playerId, floorId, x, y, title, subtitle) => {
+  const socket = sockets.get(playerId);
+  const packet: ServerPacket = {
+    type: 'dungeon_transition',
+    floorId,
+    x,
+    y,
+    title,
+    subtitle
+  };
+  if (socket) {
+    socket.send(JSON.stringify(packet));
+  }
+};
+
+world.onTorchLitEvent = (torchId, x, y, roomSolved) => {
+  broadcast({
+    type: 'torch_lit_event',
+    torchId,
+    x,
+    y,
+    roomSolved
+  });
+};
+
 // 25Hz World Tick Loop with Delta State Compression
 const deltaSync = new DeltaSyncEngine();
 let tickCounter = 0;
@@ -420,7 +445,7 @@ const server = Bun.serve<SocketData>({
                 msg.x,
                 msg.y,
                 60,
-                (x, y) => x >= 0 && x <= 2048 && y >= 0 && y <= 1792
+                (x, y) => x >= 0 && x <= 2048 && y >= 0 && y <= 5500
               );
 
               if (!validation.valid && msg.seq !== undefined) {

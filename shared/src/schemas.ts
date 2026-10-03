@@ -134,7 +134,9 @@ export const EntityTypeSchema = z.enum([
   'boss',
   'minion',
   'trigger',
-  'prop'
+  'prop',
+  'torch',
+  'platform'
 ]);
 export type EntityType = z.infer<typeof EntityTypeSchema>;
 
@@ -196,6 +198,7 @@ export const ItemTypeSchema = z.enum([
   'relic_feather',
   'relic_moonstone',
   'relic_phoenix',
+  'relic_sun_stone',
   'vanity_crown',
   'vanity_hat_wizard',
   'vanity_hood_ranger',

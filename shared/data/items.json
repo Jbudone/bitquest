@@ -374,6 +374,24 @@
     }
   },
   {
+    "id": "relic_sun_stone",
+    "name": "Sun Stone of the Catacombs",
+    "category": "relic",
+    "tier": 3,
+    "description": "An ancient radiant lodestone recovered from Malakor's crypt. Emits warm light in dark dungeons, boosts attack power by +1, and grants +2 Max Health.",
+    "iconColor": "#f59e0b",
+    "soundKey": "pickup",
+    "value": 150,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {
+      "slot": "relic",
+      "maxHealthBonus": 2,
+      "attackPower": 1,
+      "damageReductionPct": 0.10
+    }
+  },
+  {
     "id": "vanity_crown",
     "name": "Royal Golden Crown",
     "category": "vanity",

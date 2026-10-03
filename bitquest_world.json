@@ -1,9 +1,11 @@
 {
   "worldFlags": {
-    "ancient_gate_opened": false,
+    "ancient_gate_opened": true,
     "fountain_jam_discovered": false,
     "first_scone_eaten": false,
-    "crown_reclaimed": true
+    "crown_reclaimed": true,
+    "grandma_jam_completed": true,
+    "duo_vault_unlocked": true
   },
   "players": {
     "p_murdj6gu_lopo": {
@@ -115,6 +117,204 @@
         "Wooden Practice Stick"
       ],
       "lastSeen": 1790996335845
+    },
+    "p_dungeon_tester": {
+      "name": "DungeonCrawler",
+      "color": "#3b82f6",
+      "paletteIndex": 0,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "classId": "warrior",
+      "equipment": {
+        "weapon": "sword_wood",
+        "offhand": null,
+        "armor": null,
+        "relic": "relic_sun_stone"
+      },
+      "vanity": {
+        "head": null,
+        "armor": null,
+        "weapon": null
+      },
+      "lastSeen": 1791052458661
+    },
+    "p_musqdrug_ebng": {
+      "name": "Adventurer",
+      "color": "#2e9939",
+      "paletteIndex": 0,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "classId": "archer",
+      "equipment": {
+        "weapon": "sword_wood",
+        "offhand": null,
+        "armor": null,
+        "relic": null
+      },
+      "vanity": {
+        "head": null,
+        "armor": null,
+        "weapon": null
+      },
+      "lastSeen": 1791052450592
+    },
+    "bot_player_1": {
+      "name": "SpeedyBot",
+      "color": "#38bdf8",
+      "paletteIndex": 0,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "classId": "warrior",
+      "equipment": {
+        "weapon": "sword_wood",
+        "offhand": null,
+        "armor": null,
+        "relic": null
+      },
+      "vanity": {
+        "head": null,
+        "armor": null,
+        "weapon": null
+      },
+      "lastSeen": 1791052458089
+    },
+    "p_alice": {
+      "name": "Alice",
+      "color": "#38bdf8",
+      "paletteIndex": 0,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "classId": "warrior",
+      "equipment": {
+        "weapon": "sword_wood",
+        "offhand": null,
+        "armor": null,
+        "relic": null
+      },
+      "vanity": {
+        "head": null,
+        "armor": null,
+        "weapon": null
+      },
+      "lastSeen": 1791052458132
+    },
+    "p_bob": {
+      "name": "Bob",
+      "color": "#f43f5e",
+      "paletteIndex": 1,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "classId": "warrior",
+      "equipment": {
+        "weapon": "sword_wood",
+        "offhand": null,
+        "armor": null,
+        "relic": null
+      },
+      "vanity": {
+        "head": null,
+        "armor": null,
+        "weapon": null
+      },
+      "lastSeen": 1791052458132
+    },
+    "test_mage": {
+      "name": "Mage",
+      "color": "#38bdf8",
+      "paletteIndex": 1,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "classId": "warrior",
+      "equipment": {
+        "weapon": "sword_wood",
+        "offhand": null,
+        "armor": null,
+        "relic": null
+      },
+      "vanity": {
+        "head": null,
+        "armor": null,
+        "weapon": null
+      },
+      "lastSeen": 1791052458492
+    },
+    "test_p_1791052458570": {
+      "name": "Arthur",
+      "color": "#2e9939",
+      "paletteIndex": 0,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "classId": "warrior",
+      "equipment": {
+        "weapon": "bow_recurve",
+        "offhand": null,
+        "armor": "armor_plate",
+        "relic": null
+      },
+      "vanity": {
+        "head": "vanity_crown",
+        "armor": "vanity_cape_hero",
+        "weapon": null
+      },
+      "lastSeen": 1791052458571
+    },
+    "p_tester_classes_1791052458613": {
+      "name": "Aiden",
+      "color": "#ffffff",
+      "paletteIndex": 0,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "classId": "archer",
+      "equipment": {
+        "weapon": "sword_wood",
+        "offhand": null,
+        "armor": null,
+        "relic": null
+      },
+      "vanity": {
+        "head": null,
+        "armor": null,
+        "weapon": null
+      },
+      "lastSeen": 1791052458615
+    },
+    "p_teammate_1791052458614": {
+      "name": "Chloe",
+      "color": "#ffffff",
+      "paletteIndex": 1,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "classId": "warrior",
+      "equipment": {
+        "weapon": "sword_wood",
+        "offhand": null,
+        "armor": null,
+        "relic": null
+      },
+      "vanity": {
+        "head": null,
+        "armor": null,
+        "weapon": null
+      },
+      "lastSeen": 1791052458614
     }
   }
 }

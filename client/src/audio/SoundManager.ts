@@ -1366,6 +1366,127 @@ export class SoundManager {
       volume: 0.3
     });
   }
+
+  public playTorchIgnite() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    // Warm fire whoosh
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.exponentialRampToValueAtTime(480, now + 0.08);
+    osc.frequency.exponentialRampToValueAtTime(180, now + 0.35);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.25 * this.sfxVol, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.35);
+  }
+
+  public playGateRumble() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(80, now);
+    osc.frequency.linearRampToValueAtTime(120, now + 0.5);
+
+    gain.gain.setValueAtTime(0.2 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.5);
+  }
+
+  public playPlatformGlide() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(110, now);
+    osc.frequency.linearRampToValueAtTime(165, now + 0.25);
+    osc.frequency.linearRampToValueAtTime(110, now + 0.5);
+
+    gain.gain.setValueAtTime(0.08 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.5);
+  }
+
+  public playCryptSpike() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    // Ground burst rumble & sharp snap
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(60, now);
+    osc.frequency.exponentialRampToValueAtTime(320, now + 0.04);
+    osc.frequency.exponentialRampToValueAtTime(90, now + 0.22);
+
+    gain.gain.setValueAtTime(0.3 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.22);
+  }
+
+  public playSoulBarrage() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(520, now);
+    osc.frequency.exponentialRampToValueAtTime(260, now + 0.18);
+    osc.frequency.exponentialRampToValueAtTime(680, now + 0.35);
+
+    gain.gain.setValueAtTime(0.2 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.35);
+  }
+
+  public playDungeonStairs() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const notes = [220, 277.18, 329.63, 440];
+    notes.forEach((freq, idx) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+      gain.gain.setValueAtTime(0.12 * this.sfxVol, now + idx * 0.07);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.25);
+      osc.connect(gain);
+      gain.connect(this.soundDestination);
+      osc.start(now + idx * 0.07);
+      osc.stop(now + idx * 0.07 + 0.25);
+    });
+  }
 }
 
 export const sounds = new SoundManager();

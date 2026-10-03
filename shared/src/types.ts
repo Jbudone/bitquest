@@ -1,6 +1,7 @@
 export * from './schemas';
 export * from './equipment';
 export * from './classes';
+export * from './dungeon';
 import type { 
   Direction, 
   PlayerAnimState, 
@@ -23,7 +24,7 @@ import type { CharacterClassId, ClassAbilityId } from './classes';
 export type ClientPacket =
   | { type: 'join'; name: string; color: string; paletteIndex: number }
   | { type: 'move'; x: number; y: number; direction: Direction; anim: PlayerAnimState; carryingItem: string | null; seq?: number }
-  | { type: 'interact'; targetId: string; action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever'; x?: number; y?: number; damage?: number }
+  | { type: 'interact'; targetId: string; action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever' | 'light_torch' | 'enter_dungeon' | 'warp_floor'; x?: number; y?: number; damage?: number }
   | { type: 'cast_spell'; spellId: SpellId; x: number; y: number; direction: Direction }
   | { type: 'equip_item'; slot: EquipmentSlot; itemId: string | null }
   | { type: 'set_vanity'; slot: VanitySlot; vanityId: string | null }
@@ -63,5 +64,7 @@ export type ServerPacket =
   | { type: 'life_siphon_event'; casterId: string; targetId: string; amount: number; casterHp: number }
   | { type: 'minion_spawned'; minionId: string; ownerId: string; x: number; y: number; subtype: string }
   | { type: 'player_stats_updated'; id: string; health: number; maxHealth: number; mana: number; maxMana: number; coins: number; acorns: number }
-  | { type: 'boss_event'; action: 'spawn' | 'stomp' | 'spore' | 'charge' | 'crash_stun' | 'defeated'; x?: number; y?: number; targetX?: number; targetY?: number };
+  | { type: 'boss_event'; action: 'spawn' | 'stomp' | 'spore' | 'charge' | 'crash_stun' | 'defeated' | 'crypt_spike' | 'scythe_cleave' | 'darkness_shroud' | 'soul_barrage'; bossId?: string; x?: number; y?: number; targetX?: number; targetY?: number }
+  | { type: 'dungeon_transition'; floorId: 'f1' | 'f2' | 'overworld'; x: number; y: number; title: string; subtitle: string }
+  | { type: 'torch_lit_event'; torchId: string; x: number; y: number; roomSolved?: boolean };
 

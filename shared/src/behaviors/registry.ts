@@ -255,6 +255,54 @@ export class BehaviorRegistry {
       touchDamage: 2,
       canDamage: (ent) => !ent.state.destroyed
     });
+
+    // 11. Boss: Malakor the Tomb Warden (The Sunken Catacombs)
+    this.healthPools.set('boss_malakor', {
+      maxHp: 24,
+      onHurt: (ent, damage) => {
+        let finalDamage = damage;
+        if (ent.state.stunnedUntil && Date.now() < ent.state.stunnedUntil) {
+          finalDamage += 1; // Stun critical bonus
+        }
+        ent.state.hp = Math.max(0, (ent.state.hp ?? 24) - finalDamage);
+        const isDestroyed = ent.state.hp <= 0;
+        if (isDestroyed) {
+          ent.state.destroyed = true;
+          ent.state.respawnAt = Date.now() + 120000;
+        }
+        return { damageDealt: finalDamage, isDestroyed };
+      }
+    });
+
+    this.hurtboxes.set('boss_malakor', {
+      radius: 32,
+      touchDamage: 2,
+      canDamage: (ent) => !ent.state.destroyed
+    });
+
+    // 12. Crypt Skeletons (The Sunken Catacombs)
+    const skeletonHealthPool = {
+      maxHp: 4,
+      onHurt: (ent: EntityData, damage: number) => {
+        ent.state.hp = Math.max(0, (ent.state.hp ?? 4) - damage);
+        const isDestroyed = ent.state.hp <= 0;
+        if (isDestroyed) {
+          ent.state.destroyed = true;
+          ent.state.respawnAt = Date.now() + 30000;
+        }
+        return { damageDealt: damage, isDestroyed };
+      }
+    };
+    this.healthPools.set('skeleton', skeletonHealthPool);
+    this.healthPools.set('enemy_skeleton', skeletonHealthPool);
+
+    const skeletonHurtbox = {
+      radius: 16,
+      touchDamage: 1,
+      canDamage: (ent: EntityData) => !ent.state.destroyed
+    };
+    this.hurtboxes.set('skeleton', skeletonHurtbox);
+    this.hurtboxes.set('enemy_skeleton', skeletonHurtbox);
   }
 
   public static getInteractable(entity: EntityData): InteractableTrait | null {

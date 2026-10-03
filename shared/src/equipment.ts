@@ -338,6 +338,20 @@ export const EQUIPMENT_DEFINITIONS: Record<string, EquipmentDefinition> = {
       maxHealthBonus: 1,
       damageReductionPct: 0.10
     }
+  },
+  relic_sun_stone: {
+    id: 'relic_sun_stone',
+    name: 'Sun Stone of the Catacombs',
+    slot: 'relic',
+    description: "An ancient radiant lodestone recovered from Malakor's crypt. Grants +2 Max Health, +1 Attack Power, and +10% Damage Reduction.",
+    icon: '☀️',
+    color: '#f59e0b',
+    value: 150,
+    stats: {
+      maxHealthBonus: 2,
+      attackPower: 1,
+      damageReductionPct: 0.10
+    }
   }
 };
 
@@ -501,11 +515,14 @@ export class EquipmentManager {
     // 5. Relic Slot modifiers
     if (equipment.relic && EQUIPMENT_DEFINITIONS[equipment.relic]) {
       const rel = EQUIPMENT_DEFINITIONS[equipment.relic]!;
+      if (rel.stats.attackPower) outStats.attackPower += rel.stats.attackPower;
+      if (rel.stats.attackSpeedMs) outStats.attackSpeedMs = Math.max(80, outStats.attackSpeedMs + rel.stats.attackSpeedMs);
       if (rel.stats.maxHealthBonus) outStats.maxHealthBonus += rel.stats.maxHealthBonus;
       if (rel.stats.maxManaBonus) outStats.maxManaBonus += rel.stats.maxManaBonus;
       if (rel.stats.moveSpeedBonus) outStats.moveSpeedMultiplier += rel.stats.moveSpeedBonus;
       if (rel.stats.damageReductionPct) outStats.damageReductionPct += rel.stats.damageReductionPct;
       if (rel.stats.critChance) outStats.critChance += rel.stats.critChance;
+      if (rel.stats.manaCostReduction) outStats.manaCostReductionPct += rel.stats.manaCostReduction;
     }
 
     // 6. Clamp values for balanced gamefeel

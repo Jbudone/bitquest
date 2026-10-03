@@ -44,10 +44,12 @@ export class NetworkClient {
   public onEmoteBroadcast?: (emote: EmoteEvent) => void;
   public onWorldFlagUpdated?: (key: string, value: boolean) => void;
   public onDialogueEvent?: (data: { npcId: string; speaker: string; portrait: string; text: string; responses?: { text: string; nextKey?: string; action?: string }[] }) => void;
-  public onBossEvent?: (event: { action: 'spawn' | 'stomp' | 'spore' | 'charge' | 'crash_stun' | 'defeated'; x?: number; y?: number; targetX?: number; targetY?: number }) => void;
+  public onBossEvent?: (event: { action: 'spawn' | 'stomp' | 'spore' | 'charge' | 'crash_stun' | 'defeated' | 'crypt_spike' | 'scythe_cleave' | 'darkness_shroud' | 'soul_barrage'; bossId?: string; x?: number; y?: number; targetX?: number; targetY?: number }) => void;
   public onSocialResonance?: (data: { player1Id: string; player2Id: string; emote: EmoteType; x: number; y: number }) => void;
   public onPotThrown?: (data: { potId: string; throwerId: string; startX: number; startY: number; targetX: number; targetY: number; duration: number }) => void;
   public onPotCaught?: (data: { potId: string; catcherId: string; x: number; y: number }) => void;
+  public onDungeonTransition?: (data: { floorId: 'f1' | 'f2' | 'overworld'; x: number; y: number; title: string; subtitle: string }) => void;
+  public onTorchLitEvent?: (data: { torchId: string; x: number; y: number; roomSolved?: boolean }) => void;
   public onReconcile?: (ackSeq: number, x: number, y: number) => void;
   public onConnectionChange?: (connected: boolean) => void;
 
@@ -173,6 +175,12 @@ export class NetworkClient {
       case 'minion_spawned':
         this.onMinionSpawned?.(packet);
         break;
+      case 'dungeon_transition':
+        this.onDungeonTransition?.(packet);
+        break;
+      case 'torch_lit_event':
+        this.onTorchLitEvent?.(packet);
+        break;
       case 'reconcile':
         this.onReconcile?.(packet.ackSeq, packet.x, packet.y);
         break;
@@ -216,7 +224,7 @@ export class NetworkClient {
     this.send({ type: 'shoot_arrow', x, y, direction, damage });
   }
 
-  public sendInteract(targetId: string, action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever', x?: number, y?: number, damage?: number) {
+  public sendInteract(targetId: string, action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever' | 'light_torch' | 'enter_dungeon' | 'warp_floor', x?: number, y?: number, damage?: number) {
     this.send({ type: 'interact', targetId, action, x, y, damage });
   }
 

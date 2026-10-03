@@ -26,6 +26,7 @@ import { BehaviorRegistry } from '../../shared/src/behaviors/registry';
 import { SPELL_DEFINITIONS, StatusEffectManager } from '../../shared/src/magic';
 import { EquipmentManager } from '../../shared/src/equipment';
 import { ClassManager } from '../../shared/src/classes';
+import { DUNGEON_CONSTANTS, MALAKOR_SPECS, DungeonManager, CATACOMBS_FLOORS, type DungeonFloorId } from '../../shared/src/dungeon';
 
 function pointToSegmentDistance(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
   const dx = x2 - x1;
@@ -40,12 +41,14 @@ function pointToSegmentDistance(px: number, py: number, x1: number, y1: number, 
 export class WorldManager {
   public db: WorldDatabase;
   public navEngine = new NavigationEngine();
-  public spatialGrid = new SpatialGrid<EntityData>(2048, 1792, 128);
+  public spatialGrid = new SpatialGrid<EntityData>(2048, 5500, 128);
   public players = new Map<string, PlayerData>();
   public entities = new Map<string, EntityData>();
   public items = new Map<string, ItemDropData>();
   private nextEntityId = 1000;
   private bossCycle = 0;
+  private malakorCycle = 0;
+  private malakorTeleportTimer = 0;
 
   public onItemSpawned?: (item: ItemDropData) => void;
   public onItemCollected?: (itemId: string, collectorId: string, itemType: string, value: number) => void;
@@ -64,6 +67,8 @@ export class WorldManager {
   public onParryEvent?: (playerId: string, attackerId?: string, x?: number, y?: number) => void;
   public onLifeSiphonEvent?: (casterId: string, targetId: string, amount: number, casterHp: number) => void;
   public onMinionSpawned?: (minionId: string, ownerId: string, x: number, y: number, subtype: string) => void;
+  public onDungeonTransition?: (playerId: string, floorId: 'f1' | 'f2' | 'overworld', x: number, y: number, title: string, subtitle: string) => void;
+  public onTorchLitEvent?: (torchId: string, x: number, y: number, roomSolved?: boolean) => void;
 
   public flyingPots = new Map<string, {
     potId: string;
@@ -413,7 +418,163 @@ export class WorldManager {
       });
     });
 
-    // Index all world entities into the 16x16 spatial partitioning grid
+    // 13. The Sunken Catacombs Subterranean Dungeon (Issue #22: Task 7.4)
+    // 13a. Overworld Entrance in Ruins Sanctuary
+    this.entities.set('stairs_catacombs_entrance', {
+      id: 'stairs_catacombs_entrance',
+      type: 'trigger',
+      subtype: 'stairs_down',
+      name: 'Catacombs Crypt Entrance',
+      x: DUNGEON_CONSTANTS.OVERWORLD_ENTRANCE.x,
+      y: DUNGEON_CONSTANTS.OVERWORLD_ENTRANCE.y,
+      interactable: true,
+      state: { targetFloor: 'f1' }
+    });
+
+    // 13b. Floor 1: The Forgotten Crypts
+    this.entities.set('stairs_f1_to_overworld', {
+      id: 'stairs_f1_to_overworld',
+      type: 'trigger',
+      subtype: 'stairs_up',
+      name: 'Ascending Crypt Stairs',
+      x: DUNGEON_CONSTANTS.F1_STAIRS_UP.x,
+      y: DUNGEON_CONSTANTS.F1_STAIRS_UP.y,
+      interactable: true,
+      state: { targetFloor: 'overworld' }
+    });
+
+    DUNGEON_CONSTANTS.F1_TORCHES.forEach(t => {
+      this.entities.set(t.id, {
+        id: t.id,
+        type: 'torch',
+        subtype: 'crypt_torch',
+        name: 'Crypt Sconce Torch',
+        x: t.x,
+        y: t.y,
+        interactable: true,
+        state: { lit: false }
+      });
+    });
+
+    this.entities.set(DUNGEON_CONSTANTS.F1_GATE.id, {
+      id: DUNGEON_CONSTANTS.F1_GATE.id,
+      type: 'door',
+      subtype: 'iron_gate',
+      name: 'Forgotten Crypt Iron Gate',
+      x: DUNGEON_CONSTANTS.F1_GATE.x,
+      y: DUNGEON_CONSTANTS.F1_GATE.y,
+      interactable: false,
+      state: { opened: false }
+    });
+
+    this.entities.set(DUNGEON_CONSTANTS.F1_PLATFORM.id, {
+      id: DUNGEON_CONSTANTS.F1_PLATFORM.id,
+      type: 'platform',
+      subtype: 'stone_platform',
+      name: 'Abyssal Chasm Platform',
+      x: DUNGEON_CONSTANTS.F1_PLATFORM.minX,
+      y: DUNGEON_CONSTANTS.F1_PLATFORM.y,
+      interactable: false,
+      state: { moving: true }
+    });
+
+    const f1Skeletons = [
+      { id: 'enemy_skel_f1_1', x: 960, y: 2500 },
+      { id: 'enemy_skel_f1_2', x: 1088, y: 2500 },
+      { id: 'enemy_skel_f1_3', x: 1024, y: 3260 }
+    ];
+    f1Skeletons.forEach(s => {
+      this.entities.set(s.id, {
+        id: s.id,
+        type: 'enemy',
+        subtype: 'skeleton',
+        name: 'Crypt Skeleton',
+        x: s.x,
+        y: s.y,
+        interactable: true,
+        state: { hp: 4, maxHp: 4, homeX: s.x, homeY: s.y, destroyed: false }
+      });
+    });
+
+    this.entities.set(DUNGEON_CONSTANTS.F1_STAIRS_DOWN.id, {
+      id: DUNGEON_CONSTANTS.F1_STAIRS_DOWN.id,
+      type: 'trigger',
+      subtype: 'stairs_down',
+      name: 'Abyssal Descent Stairs',
+      x: DUNGEON_CONSTANTS.F1_STAIRS_DOWN.x,
+      y: DUNGEON_CONSTANTS.F1_STAIRS_DOWN.y,
+      interactable: true,
+      state: { targetFloor: 'f2' }
+    });
+
+    // 13c. Floor 2: The Abyssal Sanctuary
+    this.entities.set(DUNGEON_CONSTANTS.F2_STAIRS_UP.id, {
+      id: DUNGEON_CONSTANTS.F2_STAIRS_UP.id,
+      type: 'trigger',
+      subtype: 'stairs_up',
+      name: 'Crypt Ascent Stairs',
+      x: DUNGEON_CONSTANTS.F2_STAIRS_UP.x,
+      y: DUNGEON_CONSTANTS.F2_STAIRS_UP.y,
+      interactable: true,
+      state: { targetFloor: 'f1' }
+    });
+
+    DUNGEON_CONSTANTS.F2_TORCHES.forEach(t => {
+      this.entities.set(t.id, {
+        id: t.id,
+        type: 'torch',
+        subtype: 'crypt_torch',
+        name: 'Sanctuary Ward Torch',
+        x: t.x,
+        y: t.y,
+        interactable: true,
+        state: { lit: true }
+      });
+    });
+
+    this.entities.set(MALAKOR_SPECS.id, {
+      id: MALAKOR_SPECS.id,
+      type: 'boss',
+      subtype: 'boss_malakor',
+      name: MALAKOR_SPECS.name,
+      x: DUNGEON_CONSTANTS.F2_BOSS_SPAWN.x,
+      y: DUNGEON_CONSTANTS.F2_BOSS_SPAWN.y,
+      interactable: true,
+      state: {
+        hp: MALAKOR_SPECS.maxHp,
+        maxHp: MALAKOR_SPECS.maxHp,
+        phase: 1,
+        shroudActive: false,
+        phase2Triggered: false,
+        homeX: DUNGEON_CONSTANTS.F2_BOSS_SPAWN.x,
+        homeY: DUNGEON_CONSTANTS.F2_BOSS_SPAWN.y,
+        destroyed: false
+      }
+    });
+
+    this.entities.set(DUNGEON_CONSTANTS.F2_RELIC_CHEST.id, {
+      id: DUNGEON_CONSTANTS.F2_RELIC_CHEST.id,
+      type: 'chest',
+      subtype: 'relic_chest',
+      name: 'Malakor’s Relic Chest',
+      x: DUNGEON_CONSTANTS.F2_RELIC_CHEST.x,
+      y: DUNGEON_CONSTANTS.F2_RELIC_CHEST.y,
+      interactable: false,
+      state: { opened: false, locked: true, active: false }
+    });
+
+    this.entities.set(DUNGEON_CONSTANTS.F2_EXIT_PORTAL.id, {
+      id: DUNGEON_CONSTANTS.F2_EXIT_PORTAL.id,
+      type: 'trigger',
+      subtype: 'portal',
+      name: 'Radiant Sanctuary Portal',
+      x: DUNGEON_CONSTANTS.F2_EXIT_PORTAL.x,
+      y: DUNGEON_CONSTANTS.F2_EXIT_PORTAL.y,
+      interactable: false,
+      state: { active: false, targetFloor: 'overworld' }
+    });
+
+    // Index all world entities into the spatial partitioning grid
     for (const ent of this.entities.values()) {
       this.spatialGrid.insert(ent);
     }
@@ -820,6 +981,127 @@ export class WorldManager {
               boss.y = nextY;
             }
             this.onEntityStateChanged?.(boss);
+          }
+        }
+      }
+
+      // 4. Floor 1 Abyssal Chasm Hazard & Moving Platform Check
+      for (const player of this.players.values()) {
+        if (player.y >= 2150 && player.y <= 3600) {
+          if (DungeonManager.isInsideAbyss(player.x, player.y)) {
+            const platformPos = DungeonManager.getPlatformPosition(now);
+            if (!DungeonManager.isOnMovingPlatform(player.x, player.y, platformPos.x, platformPos.y)) {
+              // Fallen into the abyss! Take 1 damage and respawn on the ledge
+              player.health = Math.max(1, player.health - 1);
+              player.x = DUNGEON_CONSTANTS.F1_PLATFORM_RESPAWN.x;
+              player.y = DUNGEON_CONSTANTS.F1_PLATFORM_RESPAWN.y;
+              this.onPlayerStatsUpdated?.(player);
+            }
+          }
+        }
+      }
+
+      // 5. Malakor the Tomb Warden Boss Patterns (Sunken Catacombs Floor 2)
+      const malakor = this.entities.get(MALAKOR_SPECS.id);
+      if (malakor && !malakor.state.destroyed) {
+        let playerInArena = false;
+        let targetPlayer: PlayerData | null = null;
+
+        for (const player of this.players.values()) {
+          if (player.y >= 4350 && player.y <= 5100 && player.x >= 750 && player.x <= 1300) {
+            playerInArena = true;
+            targetPlayer = player;
+            break;
+          }
+        }
+
+        if (playerInArena && targetPlayer) {
+          if (malakor.state.stunnedUntil && now < malakor.state.stunnedUntil) {
+            // Malakor is stunned from torch dispelling!
+          } else {
+            // Check Phase 2 transition trigger (HP <= 12)
+            if (malakor.state.hp <= MALAKOR_SPECS.phase2.thresholdHp && !malakor.state.phase2Triggered) {
+              malakor.state.phase2Triggered = true;
+              malakor.state.shroudActive = true;
+              // Extinguish all 4 Floor 2 arena torches
+              for (const t of DUNGEON_CONSTANTS.F2_TORCHES) {
+                const torch = this.entities.get(t.id);
+                if (torch) {
+                  torch.state.lit = false;
+                  this.onEntityStateChanged?.(torch);
+                }
+              }
+              this.onBossEvent?.({
+                type: 'boss_event',
+                action: 'darkness_shroud',
+                bossId: MALAKOR_SPECS.id,
+                x: malakor.x,
+                y: malakor.y
+              });
+              this.onEntityStateChanged?.(malakor);
+            }
+
+            this.malakorCycle = (this.malakorCycle + 1) % 4;
+
+            // Phase 2: Darkness Shroud & Seeking Soul Orbs
+            if (malakor.state.shroudActive) {
+              this.onBossEvent?.({
+                type: 'boss_event',
+                action: 'soul_barrage',
+                bossId: MALAKOR_SPECS.id,
+                x: malakor.x,
+                y: malakor.y,
+                targetX: targetPlayer.x,
+                targetY: targetPlayer.y
+              });
+            } else {
+              // Phase 1 / Unshrouded Attacks
+              if (this.malakorCycle === 1 || this.malakorCycle === 3) {
+                // Crypt Spike attack targeted at player
+                this.onBossEvent?.({
+                  type: 'boss_event',
+                  action: 'crypt_spike',
+                  bossId: MALAKOR_SPECS.id,
+                  x: malakor.x,
+                  y: malakor.y,
+                  targetX: targetPlayer.x,
+                  targetY: targetPlayer.y
+                });
+              } else if (this.malakorCycle === 2) {
+                // Scythe Cleave swipe if player close
+                const dist = Math.hypot(targetPlayer.x - malakor.x, targetPlayer.y - malakor.y);
+                this.onBossEvent?.({
+                  type: 'boss_event',
+                  action: 'scythe_cleave',
+                  bossId: MALAKOR_SPECS.id,
+                  x: malakor.x,
+                  y: malakor.y,
+                  targetX: targetPlayer.x,
+                  targetY: targetPlayer.y
+                });
+                if (dist <= MALAKOR_SPECS.phase1.scytheCleaveRange) {
+                  targetPlayer.health = Math.max(0, targetPlayer.health - MALAKOR_SPECS.phase1.scytheCleaveDamage);
+                  this.onPlayerStatsUpdated?.(targetPlayer);
+                }
+              }
+            }
+
+            // Periodic teleportation to arena cardinal points
+            if (!this.malakorTeleportTimer || now >= this.malakorTeleportTimer) {
+              this.malakorTeleportTimer = now + MALAKOR_SPECS.phase1.teleportIntervalMs;
+              const cardinalWards = [
+                { x: 920, y: 4600 },
+                { x: 1128, y: 4600 },
+                { x: 920, y: 4800 },
+                { x: 1128, y: 4800 },
+                { x: 1024, y: 4700 }
+              ];
+              const randPos = cardinalWards[Math.floor(Math.random() * cardinalWards.length)];
+              malakor.x = randPos.x;
+              malakor.y = randPos.y;
+              this.spatialGrid.update(malakor);
+              this.onEntityStateChanged?.(malakor);
+            }
           }
         }
       }
@@ -1310,11 +1592,124 @@ export class WorldManager {
     const entity = this.entities.get(targetId);
     if (!entity) return;
 
+    // Torch Lighting interaction (via light_torch, cut, or hit)
+    if ((action === 'light_torch' || action === 'cut' || action === 'hit_enemy') && entity.type === 'torch') {
+      if (!entity.state.lit) {
+        entity.state.lit = true;
+        this.onEntityStateChanged?.(entity);
+
+        // Check Floor 1 puzzle completion vs Floor 2 boss room shroud dispelling
+        const isF1Torch = DUNGEON_CONSTANTS.F1_TORCHES.some(t => t.id === entity.id);
+        if (isF1Torch) {
+          const f1Solved = DUNGEON_CONSTANTS.F1_TORCHES.every(t => this.entities.get(t.id)?.state.lit);
+          if (f1Solved) {
+            const gate = this.entities.get(DUNGEON_CONSTANTS.F1_GATE.id);
+            if (gate && !gate.state.opened) {
+              gate.state.opened = true;
+              this.onEntityStateChanged?.(gate);
+            }
+            this.onTorchLitEvent?.(entity.id, entity.x, entity.y, true);
+          } else {
+            this.onTorchLitEvent?.(entity.id, entity.x, entity.y, false);
+          }
+        } else {
+          // Check Floor 2 boss room shroud dispelling (all 4 torches)
+          const f2TorchesLit = DUNGEON_CONSTANTS.F2_TORCHES.every(t => this.entities.get(t.id)?.state.lit);
+          const malakor = this.entities.get(MALAKOR_SPECS.id);
+          if (f2TorchesLit && malakor && !malakor.state.destroyed && malakor.state.shroudActive) {
+            malakor.state.shroudActive = false;
+            malakor.state.stunnedUntil = Date.now() + MALAKOR_SPECS.phase2.stunDurationMs;
+            this.onEntityStateChanged?.(malakor);
+            this.onBossEvent?.({
+              type: 'boss_event',
+              action: 'crash_stun',
+              bossId: MALAKOR_SPECS.id,
+              x: malakor.x,
+              y: malakor.y
+            });
+            this.onTorchLitEvent?.(entity.id, entity.x, entity.y, true);
+          } else {
+            this.onTorchLitEvent?.(entity.id, entity.x, entity.y, false);
+          }
+        }
+      }
+      return;
+    }
+
+    // Dungeon entrance, stairs, portal and relic chest interactions
+    if (action === 'enter_dungeon' || action === 'warp_floor' || action === 'press' || action === 'talk') {
+      if (entity.id === 'stairs_catacombs_entrance') {
+        const player = this.players.get(playerId);
+        if (player) {
+          player.x = DUNGEON_CONSTANTS.F1_SPAWN.x;
+          player.y = DUNGEON_CONSTANTS.F1_SPAWN.y;
+        }
+        this.onDungeonTransition?.(playerId, 'f1', DUNGEON_CONSTANTS.F1_SPAWN.x, DUNGEON_CONSTANTS.F1_SPAWN.y, CATACOMBS_FLOORS.f1.name, CATACOMBS_FLOORS.f1.subtitle);
+        return;
+      }
+      if (entity.id === DUNGEON_CONSTANTS.F1_STAIRS_UP.id) {
+        const player = this.players.get(playerId);
+        if (player) {
+          player.x = DUNGEON_CONSTANTS.OVERWORLD_EXIT_WARP.x;
+          player.y = DUNGEON_CONSTANTS.OVERWORLD_EXIT_WARP.y;
+        }
+        this.onDungeonTransition?.(playerId, 'overworld', DUNGEON_CONSTANTS.OVERWORLD_EXIT_WARP.x, DUNGEON_CONSTANTS.OVERWORLD_EXIT_WARP.y, 'Ruins Sanctuary', 'Surface World');
+        return;
+      }
+      if (entity.id === DUNGEON_CONSTANTS.F1_STAIRS_DOWN.id) {
+        const player = this.players.get(playerId);
+        if (player) {
+          player.x = DUNGEON_CONSTANTS.F2_SPAWN.x;
+          player.y = DUNGEON_CONSTANTS.F2_SPAWN.y;
+        }
+        this.onDungeonTransition?.(playerId, 'f2', DUNGEON_CONSTANTS.F2_SPAWN.x, DUNGEON_CONSTANTS.F2_SPAWN.y, CATACOMBS_FLOORS.f2.name, CATACOMBS_FLOORS.f2.subtitle);
+        return;
+      }
+      if (entity.id === DUNGEON_CONSTANTS.F2_STAIRS_UP.id) {
+        const player = this.players.get(playerId);
+        if (player) {
+          player.x = 1024;
+          player.y = 3420;
+        }
+        this.onDungeonTransition?.(playerId, 'f1', 1024, 3420, CATACOMBS_FLOORS.f1.name, CATACOMBS_FLOORS.f1.subtitle);
+        return;
+      }
+      if (entity.id === DUNGEON_CONSTANTS.F2_EXIT_PORTAL.id && entity.state.active) {
+        const player = this.players.get(playerId);
+        if (player) {
+          player.x = DUNGEON_CONSTANTS.OVERWORLD_EXIT_WARP.x;
+          player.y = DUNGEON_CONSTANTS.OVERWORLD_EXIT_WARP.y;
+        }
+        this.onDungeonTransition?.(playerId, 'overworld', DUNGEON_CONSTANTS.OVERWORLD_EXIT_WARP.x, DUNGEON_CONSTANTS.OVERWORLD_EXIT_WARP.y, 'Ruins Sanctuary', 'Surface World');
+        return;
+      }
+      if (entity.id === DUNGEON_CONSTANTS.F2_RELIC_CHEST.id && !entity.state.locked && !entity.state.opened) {
+        entity.state.opened = true;
+        this.onEntityStateChanged?.(entity);
+        const relicDrop: ItemDropData = {
+          id: `item_relic_sun_stone_${Date.now()}`,
+          itemType: 'relic_sun_stone',
+          x: entity.x,
+          y: entity.y + 16,
+          value: 150
+        };
+        this.items.set(relicDrop.id, relicDrop);
+        this.onItemSpawned?.(relicDrop);
+        return;
+      }
+    }
+
     if (action === 'hit_enemy') {
       if (entity.state.destroyed) return;
       const healthPool = BehaviorRegistry.getHealthPool(entity);
       if (healthPool) {
         let dmg = damage || 1;
+
+        // Malakor Phase 2 Darkness Shroud 75% Damage Mitigation
+        if (entity.id === MALAKOR_SPECS.id && entity.state.shroudActive) {
+          dmg = Math.max(1, Math.round(dmg * (1 - MALAKOR_SPECS.phase2.darknessShroudMitigationPct)));
+        }
+
         const res = healthPool.onHurt(entity, dmg);
         if (res.isDestroyed) {
           // Necromancer Soul Harvest Passive Perk: restores 2 HP and 10 MP!
@@ -1326,12 +1721,31 @@ export class WorldManager {
           }
 
           if (entity.type === 'boss') {
+            const isMalakor = entity.id === MALAKOR_SPECS.id;
             this.onBossEvent?.({
               type: 'boss_event',
               action: 'defeated',
+              bossId: isMalakor ? MALAKOR_SPECS.id : undefined,
               x: entity.x,
               y: entity.y
             });
+
+            if (isMalakor) {
+              // Unlock Relic Chest & Activate Exit Portal
+              const chest = this.entities.get(DUNGEON_CONSTANTS.F2_RELIC_CHEST.id);
+              if (chest) {
+                chest.interactable = true;
+                chest.state.locked = false;
+                chest.state.active = true;
+                this.onEntityStateChanged?.(chest);
+              }
+              const portal = this.entities.get(DUNGEON_CONSTANTS.F2_EXIT_PORTAL.id);
+              if (portal) {
+                portal.interactable = true;
+                portal.state.active = true;
+                this.onEntityStateChanged?.(portal);
+              }
+            }
             const crownItem: ItemDropData = {
               id: `item_crown_${Date.now()}`,
               itemType: 'crown',

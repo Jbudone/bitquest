@@ -14,6 +14,7 @@ export class TextureGenerator {
     this.createDecalTextures(scene);
     this.createSpellTextures(scene);
     this.createEquipmentAndVanityTextures(scene);
+    this.createCatacombsTextures(scene);
   }
 
   private static createCanvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -3274,6 +3275,357 @@ export class TextureGenerator {
       ctxArch.fillRect(8, 11, 10, 2);
       ctxArch.fillRect(16, 9, 2, 6);
       scene.textures.addCanvas('class_icon_archer', cArch);
+    }
+  }
+
+  private static createCatacombsTextures(scene: Phaser.Scene) {
+    // 1. Dark Crypt Slate Floor Tile (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      ctx.fillStyle = '#181524'; // Deep crypt mortar
+      ctx.fillRect(0, 0, 32, 32);
+
+      // Slate flagstones
+      ctx.fillStyle = '#262238';
+      ctx.fillRect(1, 1, 14, 14);
+      ctx.fillRect(17, 1, 14, 14);
+      ctx.fillRect(1, 17, 14, 14);
+      ctx.fillRect(17, 17, 14, 14);
+
+      // Soft stone highlights & moss
+      ctx.fillStyle = '#38334f';
+      ctx.fillRect(2, 2, 12, 2);
+      ctx.fillRect(18, 2, 12, 2);
+      ctx.fillRect(2, 18, 12, 2);
+      ctx.fillRect(18, 18, 12, 2);
+
+      // Ancient glowing blue rune specks
+      ctx.fillStyle = '#6366f1';
+      ctx.fillRect(6, 6, 2, 2);
+      ctx.fillRect(22, 22, 2, 2);
+      scene.textures.addCanvas('tile_catacombs_floor', canvas);
+    }
+
+    // 2. Crypt Masonry Wall Tile (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      ctx.fillStyle = '#100d1c';
+      ctx.fillRect(0, 0, 32, 32);
+
+      // Heavy carved crypt blocks
+      ctx.fillStyle = '#2e2844';
+      ctx.fillRect(1, 1, 30, 14);
+      ctx.fillRect(1, 17, 14, 14);
+      ctx.fillRect(17, 17, 14, 14);
+
+      // Stone bevel highlights
+      ctx.fillStyle = '#453d61';
+      ctx.fillRect(2, 2, 28, 2);
+      ctx.fillRect(2, 18, 12, 2);
+      ctx.fillRect(18, 18, 12, 2);
+
+      // Carved deep fissures
+      ctx.fillStyle = '#0a0712';
+      ctx.fillRect(10, 6, 2, 6);
+      ctx.fillRect(12, 10, 4, 2);
+      scene.textures.addCanvas('tile_catacombs_wall', canvas);
+    }
+
+    // 3. Abyssal Chasm Void Tile (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      ctx.fillStyle = '#05030a';
+      ctx.fillRect(0, 0, 32, 32);
+
+      // Distant eerie void specks
+      ctx.fillStyle = '#1e1035';
+      ctx.fillRect(4, 12, 2, 2);
+      ctx.fillRect(20, 6, 2, 2);
+      ctx.fillRect(14, 24, 2, 2);
+      scene.textures.addCanvas('tile_catacombs_abyss', canvas);
+    }
+
+    // 4. Descending Crypt Stairs (48x48)
+    {
+      const [canvas, ctx] = this.createCanvas(48, 48);
+      ctx.fillStyle = '#120f21';
+      ctx.fillRect(0, 0, 48, 48);
+
+      // 4 tiered stone steps descending downward into dark void
+      for (let s = 0; s < 4; s++) {
+        const y = s * 11 + 2;
+        const color = s === 0 ? '#433c5e' : s === 1 ? '#342e4a' : s === 2 ? '#241f36' : '#141121';
+        ctx.fillStyle = color;
+        ctx.fillRect(4, y, 40, 10);
+        ctx.fillStyle = '#5c547d';
+        ctx.fillRect(4, y, 40, 2);
+      }
+      scene.textures.addCanvas('prop_crypt_stairs_down', canvas);
+    }
+
+    // 5. Ascending Crypt Stairs (48x48)
+    {
+      const [canvas, ctx] = this.createCanvas(48, 48);
+      ctx.fillStyle = '#141121';
+      ctx.fillRect(0, 0, 48, 48);
+
+      for (let s = 0; s < 4; s++) {
+        const y = 48 - (s + 1) * 11 - 2;
+        const color = s === 3 ? '#625985' : s === 2 ? '#4e466c' : s === 1 ? '#3a3454' : '#26223b';
+        ctx.fillStyle = color;
+        ctx.fillRect(4, y, 40, 10);
+        ctx.fillStyle = '#8379ab';
+        ctx.fillRect(4, y, 40, 2);
+      }
+      scene.textures.addCanvas('prop_crypt_stairs_up', canvas);
+    }
+
+    // 6. Crypt Torch Sconce (Unlit) (32x48)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 48);
+      // Wall plate & bracket
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(12, 14, 8, 20);
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(14, 16, 4, 16);
+      // Bowl & charcoal wick
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(8, 10, 16, 6);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(12, 6, 8, 6);
+      scene.textures.addCanvas('prop_crypt_torch_unlit', canvas);
+    }
+
+    // 7. Crypt Torch Sconce (Lit) (32x48)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 48);
+      // Bracket
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(12, 14, 8, 20);
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(14, 16, 4, 16);
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(8, 10, 16, 6);
+      // Roaring golden flame
+      ctx.fillStyle = '#ea580c';
+      ctx.beginPath();
+      ctx.arc(16, 8, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(16, 7, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fef08a';
+      ctx.beginPath();
+      ctx.arc(16, 5, 3, 0, Math.PI * 2);
+      ctx.fill();
+      scene.textures.addCanvas('prop_crypt_torch_lit', canvas);
+    }
+
+    // 8. Crypt Iron Gate (Closed) (64x64)
+    {
+      const [canvas, ctx] = this.createCanvas(64, 64);
+      // Stone arch frame
+      ctx.fillStyle = '#262238';
+      ctx.fillRect(0, 0, 12, 64);
+      ctx.fillRect(52, 0, 12, 64);
+      ctx.fillRect(0, 0, 64, 12);
+      ctx.fillStyle = '#3f385c';
+      ctx.fillRect(2, 2, 60, 4);
+
+      // Heavy vertical iron bars & spikes
+      ctx.fillStyle = '#475569';
+      for (let x = 16; x <= 48; x += 8) {
+        ctx.fillRect(x, 12, 4, 46);
+        // Spiked bottom
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillRect(x + 1, 56, 2, 6);
+        ctx.fillStyle = '#475569';
+      }
+      // Horizontal lock bars
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(12, 24, 40, 5);
+      ctx.fillRect(12, 42, 40, 5);
+      // Ancient glowing lock rune
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(30, 31, 4, 4);
+      scene.textures.addCanvas('prop_crypt_gate_closed', canvas);
+    }
+
+    // 9. Crypt Iron Gate (Opened) (64x64)
+    {
+      const [canvas, ctx] = this.createCanvas(64, 64);
+      // Stone arch frame
+      ctx.fillStyle = '#262238';
+      ctx.fillRect(0, 0, 12, 64);
+      ctx.fillRect(52, 0, 12, 64);
+      ctx.fillRect(0, 0, 64, 12);
+      ctx.fillStyle = '#3f385c';
+      ctx.fillRect(2, 2, 60, 4);
+
+      // Bars pulled up into archway ceiling
+      ctx.fillStyle = '#475569';
+      for (let x = 16; x <= 48; x += 8) {
+        ctx.fillRect(x, 12, 4, 12);
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillRect(x + 1, 22, 2, 4);
+        ctx.fillStyle = '#475569';
+      }
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(30, 8, 4, 4);
+      scene.textures.addCanvas('prop_crypt_gate_opened', canvas);
+    }
+
+    // 10. Moving Stone Platform (72x44)
+    {
+      const [canvas, ctx] = this.createCanvas(72, 44);
+      // Floating runic stone slab
+      ctx.fillStyle = '#1e1a2f';
+      ctx.fillRect(2, 8, 68, 30);
+      ctx.fillStyle = '#342e4e';
+      ctx.fillRect(4, 4, 64, 28);
+      ctx.fillStyle = '#4e4672';
+      ctx.fillRect(6, 6, 60, 6);
+
+      // Glowing rune inlays (cyan)
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(12, 16, 12, 3);
+      ctx.fillRect(30, 16, 12, 3);
+      ctx.fillRect(48, 16, 12, 3);
+      ctx.fillRect(18, 14, 3, 7);
+      ctx.fillRect(36, 14, 3, 7);
+      ctx.fillRect(54, 14, 3, 7);
+      scene.textures.addCanvas('prop_moving_platform', canvas);
+    }
+
+    // 11. Crypt Spikes Hazard (48x48)
+    {
+      const [canvas, ctx] = this.createCanvas(48, 48);
+      // Ground fissure
+      ctx.fillStyle = '#1e1111';
+      ctx.fillRect(6, 32, 36, 10);
+      // 3 sharp bone/obsidian spikes
+      const spikeX = [12, 24, 36];
+      spikeX.forEach(sx => {
+        ctx.fillStyle = '#cbd5e1';
+        ctx.beginPath();
+        ctx.moveTo(sx - 5, 36);
+        ctx.lineTo(sx, 6);
+        ctx.lineTo(sx + 5, 36);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#7f1d1d'; // Crimson blood edge
+        ctx.fillRect(sx - 1, 8, 2, 8);
+      });
+      scene.textures.addCanvas('prop_crypt_spikes', canvas);
+    }
+
+    // 12. Boss: Malakor the Tomb Warden (64x72)
+    {
+      const [canvas, ctx] = this.createCanvas(64, 72);
+      // Dark flowing spectral robes
+      ctx.fillStyle = '#130c24';
+      ctx.beginPath();
+      ctx.moveTo(32, 14);
+      ctx.lineTo(10, 64);
+      ctx.lineTo(54, 64);
+      ctx.closePath();
+      ctx.fill();
+
+      // Violet inner shroud
+      ctx.fillStyle = '#3b0764';
+      ctx.fillRect(20, 24, 24, 38);
+
+      // Hood & shadow face
+      ctx.fillStyle = '#1a0b36';
+      ctx.beginPath();
+      ctx.arc(32, 20, 14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#05020a';
+      ctx.fillRect(24, 16, 16, 10);
+
+      // Glowing spectral eyes (magenta/cyan)
+      ctx.fillStyle = '#f43f5e';
+      ctx.fillRect(26, 19, 3, 3);
+      ctx.fillStyle = '#06b6d4';
+      ctx.fillRect(35, 19, 3, 3);
+
+      // Bone Crown
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(24, 8, 16, 4);
+      ctx.fillRect(24, 4, 3, 4);
+      ctx.fillRect(30, 2, 4, 6);
+      ctx.fillRect(37, 4, 3, 4);
+
+      // Curved Soul Scythe in right hand
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(50, 10, 4, 54);
+      ctx.fillStyle = '#94a3b8';
+      ctx.beginPath();
+      ctx.arc(52, 14, 16, Math.PI, Math.PI * 1.75);
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#c084fc';
+      ctx.stroke();
+      scene.textures.addCanvas('boss_malakor', canvas);
+    }
+
+    // 13. Relic Chest (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Rich gilded chest
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(4, 10, 24, 18);
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(4, 6, 24, 8);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(2, 12, 28, 3);
+      ctx.fillRect(14, 12, 4, 6);
+      // Radiant Sun Gem on chest lid
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(16, 8, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(15, 7, 2, 2);
+      scene.textures.addCanvas('prop_relic_chest', canvas);
+    }
+
+    // 14. Radiant Exit Portal (48x64)
+    {
+      const [canvas, ctx] = this.createCanvas(48, 64);
+      // Swirling portal vortex
+      const grad = ctx.createRadialGradient(24, 32, 4, 24, 32, 22);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.3, '#38bdf8');
+      grad.addColorStop(0.7, '#6366f1');
+      grad.addColorStop(1, 'rgba(15, 23, 42, 0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.ellipse(24, 32, 20, 28, 0, 0, Math.PI * 2);
+      ctx.fill();
+      scene.textures.addCanvas('prop_catacombs_portal', canvas);
+    }
+
+    // 15. Sun Stone Relic Item (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(12, 12, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fef08a';
+      ctx.beginPath();
+      ctx.arc(12, 12, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(10, 10, 3, 3);
+      // Sun rays
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(11, 1, 2, 3);
+      ctx.fillRect(11, 20, 2, 3);
+      ctx.fillRect(1, 11, 3, 2);
+      ctx.fillRect(20, 11, 3, 2);
+      scene.textures.addCanvas('item_relic_sun_stone', canvas);
     }
   }
 }

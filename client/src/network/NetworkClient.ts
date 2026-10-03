@@ -28,7 +28,7 @@ export class NetworkClient {
   public onEmoteBroadcast?: (emote: EmoteEvent) => void;
   public onWorldFlagUpdated?: (key: string, value: boolean) => void;
   public onDialogueEvent?: (data: { npcId: string; speaker: string; portrait: string; text: string; responses?: { text: string; nextKey?: string; action?: string }[] }) => void;
-  public onBossEvent?: (event: { action: 'spawn' | 'stomp' | 'spore' | 'defeated'; x?: number; y?: number }) => void;
+  public onBossEvent?: (event: { action: 'spawn' | 'stomp' | 'spore' | 'charge' | 'crash_stun' | 'defeated'; x?: number; y?: number; targetX?: number; targetY?: number }) => void;
   public onConnectionChange?: (connected: boolean) => void;
 
   public connect(url?: string) {

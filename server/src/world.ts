@@ -377,6 +377,11 @@ export class WorldManager {
         }
 
         if (playerInArena && targetPlayer) {
+          // If boss is currently stunned, skip action cycle
+          if (boss.state.stunnedUntil && Date.now() < boss.state.stunnedUntil) {
+            return;
+          }
+
           this.bossCycle = (this.bossCycle + 1) % 4;
 
           if (this.bossCycle === 1) {
@@ -398,8 +403,35 @@ export class WorldManager {
           } else if (this.bossCycle === 3) {
             // Charge towards player!
             const angle = Math.atan2(targetPlayer.y - boss.y, targetPlayer.x - boss.x);
-            boss.x += Math.cos(angle) * 32;
-            boss.y += Math.sin(angle) * 32;
+            const nextX = boss.x + Math.cos(angle) * 44;
+            const nextY = boss.y + Math.sin(angle) * 44;
+
+            this.onBossEvent?.({
+              type: 'boss_event',
+              action: 'charge',
+              x: boss.x,
+              y: boss.y,
+              targetX: targetPlayer.x,
+              targetY: targetPlayer.y
+            });
+
+            // Check if charge hits pillars (pillars at x: 920, 1128, y: 240) or arena boundaries
+            const nearLeftPillar = Math.hypot(nextX - 920, nextY - 240) < 36;
+            const nearRightPillar = Math.hypot(nextX - 1128, nextY - 240) < 36;
+            const hitWall = nextX < 850 || nextX > 1200 || nextY < 180 || nextY > 440;
+
+            if (nearLeftPillar || nearRightPillar || hitWall) {
+              boss.state.stunnedUntil = Date.now() + 2800;
+              this.onBossEvent?.({
+                type: 'boss_event',
+                action: 'crash_stun',
+                x: boss.x,
+                y: boss.y
+              });
+            } else {
+              boss.x = nextX;
+              boss.y = nextY;
+            }
             this.onEntityStateChanged?.(boss);
           }
         }
@@ -547,7 +579,10 @@ export class WorldManager {
       this.onEntityStateChanged?.(entity);
     } else if (action === 'hit_enemy') {
       // Sword or Pot strike on Enemy / Boss
-      const dmg = damage || 1;
+      let dmg = damage || 1;
+      if (entity.type === 'boss' && entity.state.stunnedUntil && Date.now() < entity.state.stunnedUntil) {
+        dmg += 1; // Bonus critical strike damage on stunned boss
+      }
       entity.state.hp = Math.max(0, (entity.state.hp || 1) - dmg);
 
       if (entity.state.hp <= 0) {

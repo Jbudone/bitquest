@@ -1041,6 +1041,106 @@ export class TextureGenerator {
       ctx.fillRect(3, 3, 2, 2);
       scene.textures.addCanvas('particle_leaf_autumn', canvas);
     }
+    {
+      // Curved Slash Arc Ribbon (64x64)
+      const [canvas, ctx] = this.createCanvas(64, 64);
+      ctx.translate(32, 32);
+      ctx.beginPath();
+      ctx.arc(0, 0, 28, -Math.PI * 0.75, Math.PI * 0.25, false);
+      ctx.arc(0, 0, 16, Math.PI * 0.25, -Math.PI * 0.75, true);
+      ctx.closePath();
+      const grad = ctx.createRadialGradient(0, 0, 16, 0, 0, 28);
+      grad.addColorStop(0, 'rgba(56, 189, 248, 0)');
+      grad.addColorStop(0.5, 'rgba(255, 255, 255, 0.95)');
+      grad.addColorStop(1, 'rgba(14, 165, 233, 0.85)');
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, 28, -Math.PI * 0.5, Math.PI * 0.2, false);
+      ctx.stroke();
+      scene.textures.addCanvas('slash_arc', canvas);
+    }
+    {
+      // Critical Strike Curved Slash Arc (64x64)
+      const [canvas, ctx] = this.createCanvas(64, 64);
+      ctx.translate(32, 32);
+      ctx.beginPath();
+      ctx.arc(0, 0, 30, -Math.PI * 0.8, Math.PI * 0.3, false);
+      ctx.arc(0, 0, 14, Math.PI * 0.3, -Math.PI * 0.8, true);
+      ctx.closePath();
+      const grad = ctx.createRadialGradient(0, 0, 14, 0, 0, 30);
+      grad.addColorStop(0, 'rgba(239, 68, 68, 0)');
+      grad.addColorStop(0.5, 'rgba(255, 255, 255, 1)');
+      grad.addColorStop(0.8, 'rgba(245, 158, 11, 0.9)');
+      grad.addColorStop(1, 'rgba(220, 38, 38, 0.6)');
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.strokeStyle = '#fef08a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 30, -Math.PI * 0.6, Math.PI * 0.25, false);
+      ctx.stroke();
+      scene.textures.addCanvas('slash_arc_crit', canvas);
+    }
+    {
+      // Dizzy Spinning Comic Star (16x16)
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.moveTo(8, 0);
+      ctx.quadraticCurveTo(8, 6, 14, 8);
+      ctx.quadraticCurveTo(8, 10, 8, 16);
+      ctx.quadraticCurveTo(8, 10, 2, 8);
+      ctx.quadraticCurveTo(8, 6, 8, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#fde047';
+      ctx.beginPath();
+      ctx.moveTo(8, 2);
+      ctx.quadraticCurveTo(8, 6, 12, 8);
+      ctx.quadraticCurveTo(8, 10, 8, 14);
+      ctx.quadraticCurveTo(8, 10, 4, 8);
+      ctx.quadraticCurveTo(8, 6, 8, 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(7, 7, 2, 2);
+      scene.textures.addCanvas('particle_dizzy_star', canvas);
+    }
+    {
+      // Area Threat Telegraph Ring (80x80)
+      const [canvas, ctx] = this.createCanvas(80, 80);
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.22)';
+      ctx.beginPath();
+      ctx.arc(40, 40, 36, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(40, 40, 36, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = '#fca5a5';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(40, 40, 26, 0, Math.PI * 2);
+      ctx.stroke();
+      scene.textures.addCanvas('telegraph_ring', canvas);
+    }
+    {
+      // Impact Spark (16x16)
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(7, 1, 2, 14);
+      ctx.fillRect(1, 7, 14, 2);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(5, 5, 6, 6);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(6, 6, 4, 4);
+      scene.textures.addCanvas('impact_spark', canvas);
+    }
 
     // 6. Light Glow (128x128)
     {

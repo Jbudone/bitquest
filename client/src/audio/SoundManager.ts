@@ -743,7 +743,7 @@ export class SoundManager {
     osc.frequency.setValueAtTime(320, now);
     osc.frequency.exponentialRampToValueAtTime(120, now + 0.08);
 
-    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.setValueAtTime(0.25 * this.sfxVol, now);
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
 
     osc.connect(gain);
@@ -751,6 +751,76 @@ export class SoundManager {
 
     osc.start(now);
     osc.stop(now + 0.08);
+  }
+
+  public playCritStrike() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Heavy punchy bass thump + crisp metallic harmonic crack
+    const bass = this.ctx.createOscillator();
+    const bassGain = this.ctx.createGain();
+    bass.type = 'triangle';
+    bass.frequency.setValueAtTime(140, now);
+    bass.frequency.exponentialRampToValueAtTime(35, now + 0.18);
+    bassGain.gain.setValueAtTime(0.4 * this.sfxVol, now);
+    bassGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    bass.connect(bassGain);
+    bassGain.connect(this.soundDestination);
+    bass.start(now);
+    bass.stop(now + 0.18);
+
+    const crack = this.ctx.createOscillator();
+    const crackGain = this.ctx.createGain();
+    crack.type = 'sawtooth';
+    crack.frequency.setValueAtTime(880, now);
+    crack.frequency.exponentialRampToValueAtTime(220, now + 0.12);
+    crackGain.gain.setValueAtTime(0.3 * this.sfxVol, now);
+    crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    crack.connect(crackGain);
+    crackGain.connect(this.soundDestination);
+    crack.start(now);
+    crack.stop(now + 0.12);
+  }
+
+  public playStunBonk() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Woody hollow bonk + twang
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(260, now);
+    osc.frequency.exponentialRampToValueAtTime(110, now + 0.08);
+    osc.frequency.linearRampToValueAtTime(150, now + 0.16);
+    gain.gain.setValueAtTime(0.35 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.22);
+  }
+
+  public playTelegraphHum() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(440, now + 0.45);
+    gain.gain.setValueAtTime(0.08 * this.sfxVol, now);
+    gain.gain.linearRampToValueAtTime(0.18 * this.sfxVol, now + 0.35);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.5);
   }
 
   public playBossStomp() {

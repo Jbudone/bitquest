@@ -46,6 +46,11 @@ export class WorldScene extends Phaser.Scene {
   private promptActionText!: Phaser.GameObjects.Text;
   private promptAlpha = 0;
 
+  // Combat feel & telegraphing
+  private hitstopTimer: any = null;
+  public bossStunnedUntil = 0;
+  private bossDizzyStars: Phaser.GameObjects.Sprite[] = [];
+
   constructor() {
     super({ key: 'WorldScene' });
   }
@@ -644,52 +649,159 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  private handleBossEvent(event: { action: 'spawn' | 'stomp' | 'spore' | 'defeated'; x?: number; y?: number }) {
+  private handleBossEvent(event: { action: 'spawn' | 'stomp' | 'spore' | 'charge' | 'crash_stun' | 'defeated'; x?: number; y?: number; targetX?: number; targetY?: number }) {
     const x = event.x ?? 1024;
     const y = event.y ?? 280;
+    const bossSprite = this.entityObjects.get('boss_baron') as Phaser.GameObjects.Sprite | undefined;
 
     if (event.action === 'stomp') {
-      sounds.playBossStomp();
-      this.triggerCameraShake(200, 0.007);
+      // 1. Anticipation squash & threat telegraph ring
+      if (bossSprite) {
+        this.tweens.add({
+          targets: bossSprite,
+          scaleX: 1.35,
+          scaleY: 0.65,
+          duration: 200,
+          yoyo: true,
+          repeat: 1,
+          ease: 'Quad.easeInOut'
+        });
+      }
 
-      // Expanding Shockwave Ring
-      const ring = this.add.sprite(x, y, 'shockwave_ring');
-      ring.setScale(0.5);
-      ring.setAlpha(1);
+      sounds.playTelegraphHum();
+
+      // Threat Telegraph Ground Ring (pulsating hazard ring for 600ms)
+      const telegraph = this.add.sprite(x, y + 10, 'telegraph_ring');
+      telegraph.setDepth(y - 1);
+      telegraph.setScale(0.5);
+      telegraph.setAlpha(0.35);
 
       this.tweens.add({
-        targets: ring,
-        scale: 3.2,
-        alpha: 0,
-        duration: 450,
+        targets: telegraph,
+        scale: 1.9,
+        alpha: 0.9,
+        duration: 550,
         ease: 'Quad.easeOut',
-        onComplete: () => ring.destroy()
-      });
+        onComplete: () => {
+          telegraph.destroy();
 
-      // Shockwave damage check
-      if (this.localPlayer && !this.localPlayer.isRolling && !this.localPlayer.godMode && !this.playerInvulnerable) {
-        const dist = Math.hypot(this.localPlayer.x - x, this.localPlayer.y - y);
-        if (dist < 75) {
-          this.hurtPlayer(1);
+          // 2. Heavy Ground Stomp execution!
+          sounds.playBossStomp();
+          this.triggerCameraShake(220, 0.009);
+
+          // Expanding Shockwave Ring
+          const ring = this.add.sprite(x, y, 'shockwave_ring');
+          ring.setScale(0.5);
+          ring.setAlpha(1);
+
+          this.tweens.add({
+            targets: ring,
+            scale: 3.4,
+            alpha: 0,
+            duration: 450,
+            ease: 'Quad.easeOut',
+            onComplete: () => ring.destroy()
+          });
+
+          // Shockwave damage check
+          if (this.localPlayer && !this.localPlayer.isRolling && !this.localPlayer.godMode && !this.playerInvulnerable) {
+            const dist = Math.hypot(this.localPlayer.x - x, this.localPlayer.y - y);
+            if (dist < 80) {
+              this.hurtPlayer(1);
+            }
+          }
         }
-      }
+      });
     } else if (event.action === 'spore') {
+      if (bossSprite) {
+        this.tweens.add({
+          targets: bossSprite,
+          scaleX: 0.75,
+          scaleY: 1.25,
+          duration: 180,
+          yoyo: true,
+          ease: 'Quad.easeInOut'
+        });
+      }
       sounds.playBossRoar();
 
-      // Launch 3 Spore projectiles
-      const angles = [-0.5, 0, 0.5];
-      angles.forEach(angOffset => {
-        const spore = this.add.sprite(x, y, 'boss_spore');
-        const targetAng = Math.PI / 2 + angOffset; // towards south/player
-        const speed = 140;
-        this.sporeProjectiles.push({
-          sprite: spore,
-          vx: Math.cos(targetAng) * speed,
-          vy: Math.sin(targetAng) * speed,
-          life: 2500
+      this.time.delayedCall(280, () => {
+        // Launch 3 Spore projectiles
+        const angles = [-0.5, 0, 0.5];
+        angles.forEach(angOffset => {
+          const spore = this.add.sprite(x, y, 'boss_spore');
+          const targetAng = Math.PI / 2 + angOffset; // towards south/player
+          const speed = 140;
+          this.sporeProjectiles.push({
+            sprite: spore,
+            vx: Math.cos(targetAng) * speed,
+            vy: Math.sin(targetAng) * speed,
+            life: 2500
+          });
         });
       });
+    } else if (event.action === 'charge') {
+      if (bossSprite) {
+        // Recoil anticipation wind-up
+        this.tweens.add({
+          targets: bossSprite,
+          scaleX: 0.8,
+          scaleY: 1.3,
+          duration: 180,
+          yoyo: true,
+          ease: 'Quad.easeInOut'
+        });
+      }
+    } else if (event.action === 'crash_stun') {
+      // Charger crashed into obstacle!
+      sounds.playStunBonk();
+      this.triggerCameraShake(260, 0.012);
+      this.bossStunnedUntil = this.time.now + 2800;
+
+      if (bossSprite) {
+        // Impact rebound bounce
+        this.tweens.add({
+          targets: bossSprite,
+          scaleX: 1.45,
+          scaleY: 0.6,
+          duration: 140,
+          yoyo: true,
+          ease: 'Quad.easeInOut'
+        });
+
+        // Impact spark burst
+        for (let i = 0; i < 8; i++) {
+          const spark = this.add.sprite(bossSprite.x, bossSprite.y, 'particle_stone_spark');
+          const spAng = Math.random() * Math.PI * 2;
+          const spDist = 20 + Math.random() * 20;
+          this.tweens.add({
+            targets: spark,
+            x: bossSprite.x + Math.cos(spAng) * spDist,
+            y: bossSprite.y + Math.sin(spAng) * spDist,
+            alpha: 0,
+            scale: 0.2,
+            duration: 200 + Math.random() * 100,
+            onComplete: () => spark.destroy()
+          });
+        }
+
+        // Clean up previous dizzy stars if any
+        this.bossDizzyStars.forEach(s => s.destroy());
+        this.bossDizzyStars = [];
+
+        // 3 Spinning Dizzy Stars orbiting boss cap
+        for (let i = 0; i < 3; i++) {
+          const star = this.add.sprite(bossSprite.x, bossSprite.y - 28, 'particle_dizzy_star');
+          star.setDepth(bossSprite.depth + 10);
+          this.bossDizzyStars.push(star);
+        }
+
+        this.showFloatingText(bossSprite.x, bossSprite.y - 36, '💫 STUNNED! 💫', '#facc15', true);
+      }
     } else if (event.action === 'defeated') {
+      this.bossDizzyStars.forEach(s => s.destroy());
+      this.bossDizzyStars = [];
+
       sounds.playVictory();
       this.triggerCameraShake(350, 0.012);
       chronicles.recordStat('bossesDefeated', 1);
@@ -945,6 +1057,73 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  public triggerHitstop(durationMs = 40, isCrit = false) {
+    if (this.hitstopTimer) {
+      clearTimeout(this.hitstopTimer);
+    }
+    const originalTimeScale = this.time.timeScale;
+    this.time.timeScale = 0.04;
+    this.triggerCameraShake(isCrit ? 120 : 70, isCrit ? 0.008 : 0.004);
+
+    this.hitstopTimer = setTimeout(() => {
+      this.time.timeScale = originalTimeScale;
+      this.hitstopTimer = null;
+    }, durationMs);
+  }
+
+  public renderSlashTrail(x: number, y: number, dir: Direction, isCrit = false) {
+    let facingAngle = Math.PI / 2; // down
+    let ox = 0;
+    let oy = 14;
+    if (dir === 'up') {
+      facingAngle = -Math.PI / 2;
+      oy = -14;
+    } else if (dir === 'left') {
+      facingAngle = Math.PI;
+      ox = -14;
+      oy = 0;
+    } else if (dir === 'right') {
+      facingAngle = 0;
+      ox = 14;
+      oy = 0;
+    }
+
+    const slash = this.add.sprite(x + ox, y + oy, isCrit ? 'slash_arc_crit' : 'slash_arc');
+    slash.setRotation(facingAngle);
+    slash.setDepth(this.localPlayer ? this.localPlayer.depth + 2 : 2000);
+    slash.setScale(0.7);
+    slash.setAlpha(0.95);
+
+    this.tweens.add({
+      targets: slash,
+      scaleX: 1.35,
+      scaleY: 1.35,
+      rotation: facingAngle + (dir === 'left' ? -0.35 : 0.35),
+      alpha: 0,
+      duration: 150,
+      ease: 'Quad.easeOut',
+      onComplete: () => slash.destroy()
+    });
+
+    // Outward spark particles along perimeter
+    for (let i = 0; i < 4; i++) {
+      const spAng = facingAngle - 0.65 + (i / 3) * 1.3;
+      const spDist = 32 + Math.random() * 12;
+      const spark = this.add.sprite(x + ox + Math.cos(spAng) * 12, y + oy + Math.sin(spAng) * 12, 'particle_stone_spark');
+      spark.setDepth(slash.depth + 1);
+      this.tweens.add({
+        targets: spark,
+        x: x + ox + Math.cos(spAng) * spDist,
+        y: y + oy + Math.sin(spAng) * spDist,
+        alpha: 0,
+        scale: 0.25,
+        duration: 120 + Math.random() * 60,
+        ease: 'Quad.easeOut',
+        onComplete: () => spark.destroy()
+      });
+    }
+  }
+
   private handleActionAttack() {
     if (!this.localPlayer) return;
 
@@ -968,6 +1147,9 @@ export class WorldScene extends Phaser.Scene {
 
       const cleaveRadius = 46;
       const cleaveHalfAngle = Math.PI / 3; // 60 deg each side = 120 deg cone
+
+      // Visual: Curved slash ribbon trail and arc sparks
+      this.renderSlashTrail(px, py, dir, false);
 
       // 1. Cleave bushes
       for (const [id, obj] of this.entityObjects.entries()) {
@@ -997,33 +1179,65 @@ export class WorldScene extends Phaser.Scene {
               const angle = Math.atan2(sprite.y - py, sprite.x - px);
               const diff = Math.abs(Phaser.Math.Angle.Wrap(angle - facingAngle));
               if (diff <= cleaveHalfAngle) {
-                const isCrit = Math.random() < 0.25;
+                const isStunnedBoss = id.startsWith('boss_') && this.bossStunnedUntil > this.time.now;
+                const isCrit = isStunnedBoss || Math.random() < 0.25;
                 const damage = isCrit ? 2 : 1;
 
                 network.sendInteract(id, 'hit_enemy', undefined, undefined, damage);
+
+                // Deep Combat Audio & Hitstop Micro-Pause
                 if (isCrit) {
-                  sounds.playPreset('hit');
+                  sounds.playCritStrike();
                 } else {
                   sounds.playEnemyHit();
                 }
+                this.triggerHitstop(isCrit ? 55 : 35, isCrit);
 
-                // Flash damage animation
+                // Cross impact spark flash
+                const spark = this.add.sprite((px + sprite.x) / 2, (py + sprite.y) / 2, 'impact_spark');
+                spark.setScale(isCrit ? 1.6 : 1.1);
+                spark.setDepth(3500);
+                this.tweens.add({
+                  targets: spark,
+                  scale: 0.1,
+                  alpha: 0,
+                  rotation: Math.PI / 4,
+                  duration: 120,
+                  ease: 'Quad.easeOut',
+                  onComplete: () => spark.destroy()
+                });
+
+                // Flash damage tint animation
                 sprite.setTintFill(isCrit ? 0xfef08a : 0xffffff);
                 this.time.delayedCall(120, () => sprite.clearTint());
 
-                // Knockback recoil
+                // Directional knockback impulse with map boundary safety
+                const knockDist = isCrit ? 26 : 14;
+                const targetX = Phaser.Math.Clamp(sprite.x + Math.cos(angle) * knockDist, 40, 2000);
+                const targetY = Phaser.Math.Clamp(sprite.y + Math.sin(angle) * knockDist, 40, 1750);
                 this.tweens.add({
                   targets: sprite,
-                  x: sprite.x + Math.cos(angle) * (isCrit ? 18 : 12),
-                  y: sprite.y + Math.sin(angle) * (isCrit ? 18 : 12),
-                  duration: 120,
+                  x: targetX,
+                  y: targetY,
+                  duration: 130,
                   ease: 'Quad.easeOut'
                 });
 
+                // Kinetic squash-and-stretch
+                sprite.setScale(isCrit ? 1.4 : 1.25, isCrit ? 0.65 : 0.8);
+                this.tweens.add({
+                  targets: sprite,
+                  scaleX: 1.0,
+                  scaleY: 1.0,
+                  duration: 180,
+                  ease: 'Back.easeOut'
+                });
+
+                const critLabel = isStunnedBoss ? `-${damage} STUN CRIT! ⚡` : `-${damage} CRIT! ⚡`;
                 this.showFloatingText(
                   sprite.x,
-                  sprite.y - 12,
-                  isCrit ? `-${damage} CRIT! ⚡` : `-${damage} 💥`,
+                  sprite.y - 14,
+                  isCrit ? critLabel : `-${damage} 💥`,
                   isCrit ? '#f59e0b' : '#fbbf24',
                   isCrit
                 );
@@ -1563,6 +1777,24 @@ export class WorldScene extends Phaser.Scene {
         if (sp.life <= 0) {
           sp.sprite.destroy();
           this.sporeProjectiles.splice(i, 1);
+        }
+      }
+
+      // 3b. Orbiting Dizzy Stars above Stunned Boss
+      if (this.bossDizzyStars.length > 0) {
+        if (this.time.now < this.bossStunnedUntil) {
+          const boss = this.entityObjects.get('boss_baron') as Phaser.GameObjects.Sprite | undefined;
+          if (boss) {
+            const t = this.time.now * 0.005;
+            this.bossDizzyStars.forEach((star, idx) => {
+              const ang = t + (idx / 3) * Math.PI * 2;
+              star.setPosition(boss.x + Math.cos(ang) * 20, boss.y - 28 + Math.sin(ang) * 7);
+              star.setDepth(boss.depth + 10);
+            });
+          }
+        } else {
+          this.bossDizzyStars.forEach(s => s.destroy());
+          this.bossDizzyStars = [];
         }
       }
 

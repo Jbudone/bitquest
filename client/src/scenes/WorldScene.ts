@@ -51,6 +51,15 @@ export class WorldScene extends Phaser.Scene {
   public bossStunnedUntil = 0;
   private bossDizzyStars: Phaser.GameObjects.Sprite[] = [];
 
+  // Seamless Building Interiors & Roof-Lift
+  private cottages: Array<{
+    id: string;
+    label: string;
+    bounds: Phaser.Geom.Rectangle;
+    roofTiles: Phaser.GameObjects.Image[];
+    isInside: boolean;
+  }> = [];
+
   constructor() {
     super({ key: 'WorldScene' });
   }
@@ -214,9 +223,9 @@ export class WorldScene extends Phaser.Scene {
 
     // 5. Town Square Cottages
     // West: Post Office / Barnaby's Roost (tileX: 22, tileY: 25, 4x3)
-    this.createCottage(22, 25, 4, 3, 'Post & Courier');
+    this.createCottage(22, 25, 4, 3, 'Post & Courier', 'courier');
     // East: Grandma Bramble's Blackberry Bakery (tileX: 38, tileY: 25, 4x3)
-    this.createCottage(38, 25, 4, 3, 'Bramble Jam Bakery');
+    this.createCottage(38, 25, 4, 3, 'Bramble Jam Bakery', 'bakery');
 
     // 6. Ancient Ruins Perimeter Walls (North, x: 20 to 43, y: 16)
     for (let x = 20; x <= 43; x++) {
@@ -281,23 +290,80 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  private createCottage(tileX: number, tileY: number, w: number, h: number, label: string) {
+  private createCottage(tileX: number, tileY: number, w: number, h: number, label: string, theme: 'courier' | 'bakery') {
     const TILE = 32;
-    // Roof
-    for (let x = 0; x < w; x++) {
-      const rx = (tileX + x) * TILE + 16;
-      const ry = (tileY - 1) * TILE + 16;
-      const roof = this.add.image(rx, ry, 'tile_roof_red').setDepth(ry + 20);
-      this.roofTiles.push({ image: roof, x: rx, y: ry });
-    }
-    // Walls
+    const roofTiles: Phaser.GameObjects.Image[] = [];
+
+    // 1. Interior Wooden Floor Planks (Warm parquet oak)
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
-        const wall = this.obstacles.create((tileX + x) * TILE + 16, (tileY + y) * TILE + 16, 'tile_wall_wood');
-        wall.refreshBody();
+        const floor = this.add.image((tileX + x) * TILE + 16, (tileY + y) * TILE + 16, 'tile_floor_interior');
+        floor.setDepth(2);
       }
     }
-    // Sign above door
+
+    // 2. Outer Walls with Open Doorway (x = 1 and 2 on south wall)
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const isNorth = (y === 0);
+        const isSouth = (y === h - 1);
+        const isWest = (x === 0);
+        const isEast = (x === w - 1);
+        const isDoorway = isSouth && (x === 1 || x === 2);
+
+        if ((isNorth || isSouth || isWest || isEast) && !isDoorway) {
+          const wall = this.obstacles.create((tileX + x) * TILE + 16, (tileY + y) * TILE + 16, 'tile_wall_wood');
+          wall.setDepth((tileY + y) * TILE + 16);
+          wall.refreshBody();
+        }
+      }
+    }
+
+    // 3. Cozy Furnishings & Interior Props
+    if (theme === 'bakery') {
+      // Fireplace with glowing embers against north wall
+      const fp = this.add.sprite((tileX + 1) * TILE + 16, (tileY) * TILE + 18, 'prop_fireplace');
+      fp.setDepth((tileY + 1) * TILE);
+
+      // Bakery shop counter with jam jars
+      const counter = this.add.sprite((tileX + 3) * TILE + 8, (tileY + 1) * TILE + 16, 'prop_counter_wood');
+      counter.setDepth((tileY + 1) * TILE + 10);
+      const col = this.obstacles.create((tileX + 3) * TILE + 8, (tileY + 1) * TILE + 16, undefined);
+      col.setVisible(false);
+      col.body.setSize(24, 18);
+
+      // Round berry hearth rug
+      const rug = this.add.image((tileX + 1.5) * TILE + 16, (tileY + 1.2) * TILE + 16, 'prop_rug_round');
+      rug.setDepth(3);
+    } else if (theme === 'courier') {
+      // Scholarly bookshelf with books & rolled parchment
+      const shelf = this.add.sprite((tileX + 1) * TILE + 16, (tileY) * TILE + 18, 'prop_bookshelf');
+      shelf.setDepth((tileY + 1) * TILE);
+
+      // Courier dispatch desk
+      const counter = this.add.sprite((tileX + 3) * TILE + 8, (tileY + 1) * TILE + 16, 'prop_counter_wood');
+      counter.setDepth((tileY + 1) * TILE + 10);
+      const col = this.obstacles.create((tileX + 3) * TILE + 8, (tileY + 1) * TILE + 16, undefined);
+      col.setVisible(false);
+      col.body.setSize(24, 18);
+
+      // Blue sapphire runner rug
+      const rug = this.add.image((tileX + 1.5) * TILE + 16, (tileY + 1.2) * TILE + 16, 'prop_rug_blue');
+      rug.setDepth(3);
+    }
+
+    // 4. Overhead Roof Layer (Depth higher than interior, smoothly fades on entry)
+    const roofDepth = (tileY + h) * TILE + 35;
+    for (let ry = tileY - 1; ry <= tileY + h - 2; ry++) {
+      for (let rx = tileX; rx < tileX + w; rx++) {
+        const roof = this.add.image(rx * TILE + 16, ry * TILE + 16, 'tile_roof_red');
+        roof.setDepth(roofDepth);
+        roofTiles.push(roof);
+        this.roofTiles.push({ image: roof, x: rx * TILE + 16, y: ry * TILE + 16 });
+      }
+    }
+
+    // 5. Sign above door
     const signText = this.add.text((tileX + w / 2) * TILE, (tileY - 1) * TILE - 4, label, {
       fontFamily: 'monospace',
       fontSize: '10px',
@@ -306,6 +372,21 @@ export class WorldScene extends Phaser.Scene {
       strokeThickness: 2
     });
     signText.setOrigin(0.5, 1);
+    signText.setDepth(roofDepth + 1);
+
+    // 6. Register Cottage Building for Roof-Lift Manager
+    const minX = tileX * TILE;
+    const minY = (tileY - 0.5) * TILE;
+    const widthPx = w * TILE;
+    const heightPx = (h + 0.5) * TILE;
+
+    this.cottages.push({
+      id: `cottage_${tileX}_${tileY}`,
+      label,
+      bounds: new Phaser.Geom.Rectangle(minX, minY, widthPx, heightPx),
+      roofTiles,
+      isInside: false
+    });
   }
 
   private setupNetwork() {
@@ -1643,13 +1724,32 @@ export class WorldScene extends Phaser.Scene {
         this.localPlayer.shadowSprite.setRotation(0);
       }
 
-      // Dynamic Roof & Canopy Punch-Hole (soft transparency when player walks under structures)
-      for (const rf of this.roofTiles) {
-        const dist = Math.hypot(px - rf.x, py - rf.y);
-        if (dist < 52) {
-          rf.image.setAlpha(0.35 + (dist / 52) * 0.55);
-        } else {
-          if (rf.image.alpha < 1) rf.image.setAlpha(1);
+      // Dynamic Building Interior Roof-Lift & Canopy Punch-Hole
+      for (const cottage of this.cottages) {
+        const isInside = cottage.bounds.contains(px, py);
+        if (isInside !== cottage.isInside) {
+          cottage.isInside = isInside;
+          const targetAlpha = isInside ? 0.20 : 1.0;
+          this.tweens.add({
+            targets: cottage.roofTiles,
+            alpha: targetAlpha,
+            duration: 220,
+            ease: 'Sine.easeInOut'
+          });
+          if (isInside) {
+            sounds.playFootstep('wood');
+          }
+        }
+      }
+
+      if (!this.cottages.some(c => c.isInside)) {
+        for (const rf of this.roofTiles) {
+          const dist = Math.hypot(px - rf.x, py - rf.y);
+          if (dist < 52) {
+            rf.image.setAlpha(0.35 + (dist / 52) * 0.55);
+          } else {
+            if (rf.image.alpha < 1) rf.image.setAlpha(1);
+          }
         }
       }
 

@@ -301,6 +301,176 @@ export class TextureGenerator {
 
       scene.textures.addCanvas('tile_fungal_canopy', canvas);
     }
+
+    // 13. Cozy Interior Wooden Floor Planks (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      ctx.fillStyle = '#854d0e';
+      ctx.fillRect(0, 0, 32, 32);
+
+      // 4 horizontal oak planks
+      for (let i = 0; i < 4; i++) {
+        const y = i * 8;
+        ctx.fillStyle = i % 2 === 0 ? '#92400e' : '#78350f';
+        ctx.fillRect(0, y, 32, 7);
+        ctx.fillStyle = '#5c2b09'; // plank groove
+        ctx.fillRect(0, y + 7, 32, 1);
+
+        // Staggered vertical seams
+        const seamX = (i * 12 + 8) % 32;
+        ctx.fillRect(seamX, y, 1, 7);
+
+        // Brass nail accents
+        ctx.fillStyle = '#ca8a04';
+        ctx.fillRect(2, y + 3, 1, 1);
+        ctx.fillRect(30, y + 3, 1, 1);
+      }
+
+      scene.textures.addCanvas('tile_floor_interior', canvas);
+    }
+
+    // 14. Cozy Stone Fireplace (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Stone brick mantle
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(2, 4, 28, 28);
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(4, 2, 24, 4);
+
+      // Dark hearth opening
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.arc(16, 22, 9, Math.PI, 0, false);
+      ctx.fillRect(7, 22, 18, 10);
+      ctx.fill();
+
+      // Burning logs & glowing embers
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(9, 27, 14, 4);
+      ctx.fillStyle = '#ea580c';
+      ctx.beginPath();
+      ctx.arc(16, 26, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.arc(16, 25, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(15, 23, 2, 3);
+
+      scene.textures.addCanvas('prop_fireplace', canvas);
+    }
+
+    // 15. Scholarly Bookshelf (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(2, 2, 28, 30);
+      ctx.fillStyle = '#270e02'; // backing
+      ctx.fillRect(5, 5, 22, 11);
+      ctx.fillRect(5, 18, 22, 11);
+
+      // Top shelf books
+      const topColors = ['#dc2626', '#2563eb', '#16a34a', '#d97706', '#9333ea'];
+      let bx = 6;
+      topColors.forEach(c => {
+        ctx.fillStyle = c;
+        ctx.fillRect(bx, 6, 3, 10);
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(bx + 1, 8, 1, 2);
+        bx += 4;
+      });
+
+      // Bottom shelf books & parchment scroll
+      const btmColors = ['#0891b2', '#ea580c', '#4f46e5', '#ca8a04'];
+      let bbx = 6;
+      btmColors.forEach(c => {
+        ctx.fillStyle = c;
+        ctx.fillRect(bbx, 19, 4, 10);
+        bbx += 5;
+      });
+
+      scene.textures.addCanvas('prop_bookshelf', canvas);
+    }
+
+    // 16. Round Cozy Hearth Rug (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      ctx.fillStyle = '#991b1b';
+      ctx.beginPath();
+      ctx.arc(16, 16, 14, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Gold ornamental ring
+      ctx.strokeStyle = '#facc15';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(16, 16, 11, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Inner floral medallion
+      ctx.fillStyle = '#7f1d1d';
+      ctx.beginPath();
+      ctx.arc(16, 16, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(15, 15, 2, 2);
+
+      scene.textures.addCanvas('prop_rug_round', canvas);
+    }
+
+    // 17. Blue Courier Runner Rug (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      ctx.fillStyle = '#1e3a8a';
+      ctx.fillRect(4, 2, 24, 28);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(6, 4, 20, 24);
+
+      // Gold diamond emblems
+      ctx.fillStyle = '#facc15';
+      for (let y = 8; y <= 24; y += 8) {
+        ctx.beginPath();
+        ctx.moveTo(16, y - 3);
+        ctx.lineTo(19, y);
+        ctx.lineTo(16, y + 3);
+        ctx.lineTo(13, y);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      scene.textures.addCanvas('prop_rug_blue', canvas);
+    }
+
+    // 18. Wooden Shop & Bakery Counter (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Counter body & paneling
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(2, 10, 28, 20);
+      ctx.fillStyle = '#9a3412';
+      ctx.fillRect(0, 8, 32, 4);
+
+      // Drawers & knobs
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(5, 14, 10, 6);
+      ctx.fillRect(17, 14, 10, 6);
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(9, 16, 2, 2);
+      ctx.fillRect(21, 16, 2, 2);
+
+      // Jars on counter
+      ctx.fillStyle = '#dc2626'; // Strawberry jam jar
+      ctx.fillRect(6, 2, 6, 6);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(7, 3, 2, 2);
+      ctx.fillStyle = '#9333ea'; // Grape / berry jam jar
+      ctx.fillRect(18, 2, 6, 6);
+
+      scene.textures.addCanvas('prop_counter_wood', canvas);
+    }
   }
 
   private static createPlayerTextures(scene: Phaser.Scene) {

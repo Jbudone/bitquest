@@ -5,6 +5,7 @@ import { QuestJournalManager } from './QuestJournal';
 import { SettingsModal } from './SettingsModal';
 import { BiomeBannerManager } from './BiomeBanner';
 import { EmoteWheelManager } from './EmoteWheel';
+import { DialogueParser } from './DialogueParser';
 import { saveManager } from '../storage/SaveManager';
 import type { EmoteType } from '../../../shared/src/types';
 
@@ -16,6 +17,7 @@ export class UIManager {
   public emoteWheel: EmoteWheelManager;
   private selectedPalette = 0;
   private currentTypewriterTimer: any = null;
+  private fastForwardDialogue: (() => void) | null = null;
 
   constructor() {
     this.minimap = new MinimapManager();
@@ -50,6 +52,24 @@ export class UIManager {
       if (e.key === 'j' || e.key === 'J') {
         sounds.ensureContext();
         this.quests.toggleJournal();
+      }
+      if (e.key === ' ' || e.key === 'Enter') {
+        const dialogueModal = document.getElementById('dialogue-modal');
+        if (dialogueModal && dialogueModal.classList.contains('active')) {
+          if (this.fastForwardDialogue) {
+            this.fastForwardDialogue();
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+          const choicesEl = document.getElementById('dialogue-responses');
+          if (choicesEl && choicesEl.querySelectorAll('.dialogue-choice').length === 0) {
+            this.hideDialogue();
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+        }
       }
       if (e.key === 'Escape') {
         if (this.quests.isJournalOpen()) {
@@ -199,8 +219,19 @@ export class UIManager {
 
   private setupDialogueBox() {
     const closeBtn = document.getElementById('dialogue-close-btn');
-    closeBtn?.addEventListener('click', () => {
+    closeBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
       this.hideDialogue();
+    });
+
+    const modal = document.getElementById('dialogue-modal');
+    modal?.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('.dialogue-choice') || (e.target as HTMLElement).closest('.dialogue-close-btn')) {
+        return;
+      }
+      if (this.fastForwardDialogue) {
+        this.fastForwardDialogue();
+      }
     });
   }
 
@@ -231,44 +262,123 @@ export class UIManager {
     this.quests.handleEvent({ type: 'talk', targetId: data.npcId });
     choicesEl.innerHTML = '';
 
-    // Render portrait from Phaser texture if available
-    const game = (window as any).BitQuestGame;
-    const key = `portrait_${data.portrait}`;
-    if (game && game.textures.exists(key)) {
-      const tex = game.textures.get(key);
-      const canvas = tex.getSourceImage() as HTMLCanvasElement;
-      portraitEl.innerHTML = '';
-      const img = document.createElement('img');
-      img.src = canvas.toDataURL();
-      portraitEl.appendChild(img);
-    } else {
-      portraitEl.innerHTML = '💬';
-    }
+    const renderPortrait = (mood: string = 'default') => {
+      const game = (window as any).BitQuestGame;
+      const keyWithMood = `portrait_${data.portrait}_${mood}`;
+      const fallbackKey = `portrait_${data.portrait}`;
+      let texKey = fallbackKey;
+      if (game && game.textures.exists(keyWithMood)) {
+        texKey = keyWithMood;
+      } else if (game && !game.textures.exists(fallbackKey)) {
+        texKey = 'portrait_default';
+      }
 
+      if (game && game.textures.exists(texKey)) {
+        const tex = game.textures.get(texKey);
+        const canvas = tex.getSourceImage() as HTMLCanvasElement;
+        portraitEl.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = canvas.toDataURL();
+        portraitEl.appendChild(img);
+      } else {
+        portraitEl.innerHTML = '💬';
+      }
+
+      portraitEl.classList.remove('pop');
+      void portraitEl.offsetWidth; // trigger reflow for pop animation
+      portraitEl.classList.add('pop');
+    };
+
+    renderPortrait('default');
     modal.classList.add('active');
 
-    // Typewriter text effect with retro blip sounds
     if (this.currentTypewriterTimer) {
-      clearInterval(this.currentTypewriterTimer);
+      clearTimeout(this.currentTypewriterTimer);
+      this.currentTypewriterTimer = null;
     }
 
-    textEl.innerText = '';
-    let charIdx = 0;
-    const fullText = data.text;
+    textEl.innerHTML = '';
+    const parsed = DialogueParser.parse(data.text);
+    const tokens = parsed.tokens;
+    let tokenIdx = 0;
+    let currentMood = 'default';
+    let currentSpeed = 18;
 
-    this.currentTypewriterTimer = setInterval(() => {
-      if (charIdx < fullText.length) {
-        textEl.innerText += fullText[charIdx];
-        if (charIdx % 2 === 0 && fullText[charIdx] !== ' ') {
-          sounds.playDialogueBlip(data.speaker.toLowerCase());
-        }
-        charIdx++;
-      } else {
-        clearInterval(this.currentTypewriterTimer);
-        this.currentTypewriterTimer = null;
-        this.renderChoices(data.npcId, data.responses || []);
+    const appendCharSpan = (tok: { char: string; styles: string[]; charIndex: number }) => {
+      const span = document.createElement('span');
+      span.textContent = tok.char;
+      if (tok.styles.length > 0) {
+        span.className = tok.styles.join(' ');
       }
-    }, 18);
+      span.style.setProperty('--char-i', tok.charIndex.toString());
+      textEl.appendChild(span);
+    };
+
+    const finishTypewriter = () => {
+      if (this.currentTypewriterTimer) {
+        clearTimeout(this.currentTypewriterTimer);
+        this.currentTypewriterTimer = null;
+      }
+      this.fastForwardDialogue = null;
+
+      while (tokenIdx < tokens.length) {
+        const tok = tokens[tokenIdx]!;
+        if (tok.type === 'mood') {
+          currentMood = tok.mood;
+          renderPortrait(currentMood);
+        } else if (tok.type === 'char') {
+          appendCharSpan(tok);
+        }
+        tokenIdx++;
+      }
+      this.renderChoices(data.npcId, data.responses || []);
+    };
+
+    this.fastForwardDialogue = finishTypewriter;
+
+    const step = () => {
+      while (tokenIdx < tokens.length) {
+        const tok = tokens[tokenIdx]!;
+        if (tok.type === 'mood') {
+          currentMood = tok.mood;
+          renderPortrait(currentMood);
+          sounds.playDialogueBlip(data.speaker, currentMood, 1.25);
+          tokenIdx++;
+          continue;
+        }
+        if (tok.type === 'speed') {
+          currentSpeed = tok.speed;
+          tokenIdx++;
+          continue;
+        }
+        if (tok.type === 'pause') {
+          tokenIdx++;
+          this.currentTypewriterTimer = setTimeout(step, tok.duration);
+          return;
+        }
+        if (tok.type === 'char') {
+          appendCharSpan(tok);
+          tokenIdx++;
+          if (tok.char !== ' ' && tok.char !== '\n') {
+            sounds.playDialogueBlip(data.speaker, currentMood);
+          }
+
+          let delay = currentSpeed;
+          if (tok.char === ',' || tok.char === ';') {
+            delay += 110;
+          } else if (tok.char === '.' || tok.char === '!' || tok.char === '?') {
+            delay += 230;
+          }
+
+          this.currentTypewriterTimer = setTimeout(step, delay);
+          return;
+        }
+      }
+
+      finishTypewriter();
+    };
+
+    step();
   }
 
   private renderChoices(npcId: string, responses: { text: string; nextKey?: string; action?: string }[]) {
@@ -276,7 +386,13 @@ export class UIManager {
     if (!choicesEl) return;
     choicesEl.innerHTML = '';
 
-    if (responses.length === 0) return;
+    if (responses.length === 0) {
+      const prompt = document.createElement('div');
+      prompt.className = 'dialogue-prompt-continue';
+      prompt.innerText = '▼ Click to continue...';
+      choicesEl.appendChild(prompt);
+      return;
+    }
 
     responses.forEach((resp, idx) => {
       const btn = document.createElement('button');
@@ -297,9 +413,10 @@ export class UIManager {
       modal.classList.remove('active');
     }
     if (this.currentTypewriterTimer) {
-      clearInterval(this.currentTypewriterTimer);
+      clearTimeout(this.currentTypewriterTimer);
       this.currentTypewriterTimer = null;
     }
+    this.fastForwardDialogue = null;
   }
 
   public showToast(message: string) {

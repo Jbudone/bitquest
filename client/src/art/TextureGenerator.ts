@@ -1452,119 +1452,289 @@ export class TextureGenerator {
   }
 
   private static createPortraitTextures(scene: Phaser.Scene) {
-    const list = ['pelican', 'grandma', 'rooster', 'dog', 'baron', 'sign', 'default'];
-    list.forEach(p => {
-      const [canvas, ctx] = this.createCanvas(64, 64);
-      // Cozy retro dialogue frame border
-      ctx.fillStyle = '#1e1b18';
-      ctx.fillRect(0, 0, 64, 64);
-      ctx.fillStyle = '#362f2d';
-      ctx.fillRect(3, 3, 58, 58);
+    const characters = ['pelican', 'grandma', 'rooster', 'dog', 'baron', 'sign', 'default'];
+    const moods = ['default', 'happy', 'surprised', 'smug'];
 
-      if (p === 'pelican') {
-        ctx.fillStyle = '#e2e8f0';
-        ctx.fillRect(16, 20, 32, 34);
-        ctx.fillStyle = '#1e3a8a';
-        ctx.fillRect(14, 38, 36, 16);
-        ctx.fillStyle = '#f59e0b'; // beak
-        ctx.fillRect(20, 26, 28, 14);
-        ctx.fillStyle = '#1e40af'; // cap
-        ctx.fillRect(18, 12, 28, 10);
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(24, 22, 4, 4);
-      } else if (p === 'grandma') {
-        ctx.fillStyle = '#fed7aa';
-        ctx.fillRect(20, 20, 24, 26);
-        ctx.fillStyle = '#94a3b8'; // hair bun
-        ctx.fillRect(16, 10, 32, 14);
-        ctx.fillRect(24, 4, 16, 8);
-        ctx.fillStyle = '#c084fc';
-        ctx.fillRect(14, 44, 36, 16);
-        // glasses
-        ctx.strokeStyle = '#f8fafc';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(22, 26, 8, 8);
-        ctx.strokeRect(34, 26, 8, 8);
-        ctx.fillStyle = '#581c87'; // jam smudge on cheek
-        ctx.fillRect(38, 38, 4, 4);
-      } else if (p === 'rooster') {
-        ctx.fillStyle = '#fef08a';
-        ctx.fillRect(18, 20, 28, 32);
-        ctx.fillStyle = '#dc2626'; // crest
-        ctx.fillRect(24, 8, 16, 14);
-        ctx.fillStyle = '#ea580c'; // beak
-        ctx.fillRect(36, 28, 16, 8);
-        ctx.strokeStyle = '#eab308'; // monocle
-        ctx.lineWidth = 2;
-        ctx.strokeRect(26, 24, 8, 8);
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillRect(28, 26, 4, 4);
-      } else if (p === 'dog') {
-        ctx.fillStyle = '#f59e0b';
-        ctx.fillRect(16, 16, 32, 34);
-        ctx.fillStyle = '#b45309'; // floppy ears
-        ctx.fillRect(10, 18, 8, 20);
-        ctx.fillRect(46, 18, 8, 20);
-        ctx.fillStyle = '#0f172a'; // eyes & nose
-        ctx.fillRect(22, 26, 4, 4);
-        ctx.fillRect(38, 26, 4, 4);
-        ctx.fillRect(28, 36, 8, 6);
-        ctx.fillStyle = '#f43f5e'; // tongue
-        ctx.fillRect(30, 42, 6, 6);
-      } else if (p === 'baron') {
-        // Royal Mushroom King Baron von Truffle
-        ctx.fillStyle = '#701a75'; // Large royal cap
-        ctx.beginPath();
-        ctx.arc(32, 28, 24, Math.PI, 0, false);
-        ctx.fill();
-        ctx.fillStyle = '#a21caf';
-        ctx.beginPath();
-        ctx.ellipse(32, 28, 24, 6, 0, 0, Math.PI * 2);
-        ctx.fill();
-        // Golden Acorn Crown
-        ctx.fillStyle = '#eab308';
-        ctx.beginPath();
-        ctx.moveTo(22, 8);
-        ctx.lineTo(42, 8);
-        ctx.lineTo(44, 1);
-        ctx.lineTo(37, 5);
-        ctx.lineTo(32, 0);
-        ctx.lineTo(27, 5);
-        ctx.lineTo(20, 1);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#ef4444';
-        ctx.fillRect(31, 3, 2, 2);
-        // Cream Stalk Face
-        ctx.fillStyle = '#fef3c7';
-        ctx.fillRect(20, 32, 24, 22);
-        // Eyes
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(24, 36, 4, 4);
-        ctx.fillRect(36, 36, 4, 4);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(25, 36, 2, 2);
-        ctx.fillRect(37, 36, 2, 2);
-        // Mossy Mustache
-        ctx.fillStyle = '#15803d';
-        ctx.beginPath();
-        ctx.ellipse(26, 46, 8, 4, -0.2, 0, Math.PI * 2);
-        ctx.ellipse(38, 46, 8, 4, 0.2, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (p === 'sign') {
-        ctx.fillStyle = '#b08b59';
-        ctx.fillRect(12, 12, 40, 40);
-        ctx.fillStyle = '#3d2511';
-        ctx.fillRect(16, 18, 32, 3);
-        ctx.fillRect(16, 26, 26, 3);
-        ctx.fillRect(16, 34, 30, 3);
-        ctx.fillRect(16, 42, 18, 3);
-      } else {
-        ctx.fillStyle = '#e2e8f0';
-        ctx.fillRect(20, 20, 24, 24);
-      }
+    characters.forEach(p => {
+      moods.forEach(mood => {
+        const [canvas, ctx] = this.createCanvas(64, 64);
+        // Cozy retro dialogue frame border
+        ctx.fillStyle = '#1e1b18';
+        ctx.fillRect(0, 0, 64, 64);
+        ctx.fillStyle = '#362f2d';
+        ctx.fillRect(3, 3, 58, 58);
 
-      scene.textures.addCanvas(`portrait_${p}`, canvas);
+        if (p === 'pelican') {
+          // Body & Coat
+          ctx.fillStyle = '#e2e8f0';
+          ctx.fillRect(16, 20, 32, 34);
+          ctx.fillStyle = '#1e3a8a';
+          ctx.fillRect(14, 38, 36, 16);
+          // Sailor Cap
+          ctx.fillStyle = '#1e40af';
+          ctx.fillRect(18, mood === 'surprised' ? 9 : 12, 28, 10);
+          ctx.fillStyle = '#facc15'; // cap badge
+          ctx.fillRect(30, mood === 'surprised' ? 12 : 15, 4, 4);
+
+          // Beak & Expression
+          ctx.fillStyle = '#f59e0b';
+          if (mood === 'happy') {
+            ctx.fillRect(20, 28, 28, 14);
+            ctx.fillStyle = '#ea580c'; // open beak slit
+            ctx.fillRect(24, 34, 20, 4);
+            ctx.fillStyle = '#f43f5e'; // tongue
+            ctx.fillRect(28, 36, 6, 2);
+            // Joyful curved eye
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(26, 24, 4, Math.PI, 0, false);
+            ctx.stroke();
+          } else if (mood === 'surprised') {
+            ctx.fillRect(20, 30, 26, 16); // agape beak
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(26, 36, 8, 6);
+            // Wide startled eye
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(22, 20, 8, 8);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(25, 23, 3, 3);
+            // Sweat drop
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillRect(44, 18, 4, 6);
+          } else if (mood === 'smug') {
+            ctx.fillRect(20, 25, 30, 12);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(24, 23, 6, 2); // squinting confident eye
+            // Gleam sparkle
+            ctx.fillStyle = '#fef08a';
+            ctx.fillRect(46, 22, 2, 6);
+            ctx.fillRect(44, 24, 6, 2);
+          } else {
+            // Default
+            ctx.fillRect(20, 26, 28, 14);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(24, 22, 4, 4);
+          }
+        } else if (p === 'grandma') {
+          // Face & Hair Bun
+          ctx.fillStyle = '#fed7aa';
+          ctx.fillRect(20, 20, 24, 26);
+          ctx.fillStyle = '#94a3b8'; // hair bun
+          ctx.fillRect(16, 10, 32, 14);
+          ctx.fillRect(24, 4, 16, 8);
+          // Purple Dress
+          ctx.fillStyle = '#c084fc';
+          ctx.fillRect(14, 44, 36, 16);
+
+          // Glasses
+          ctx.strokeStyle = '#f8fafc';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(22, 26, 8, 8);
+          ctx.strokeRect(34, 26, 8, 8);
+          ctx.fillStyle = '#581c87'; // jam smudge on cheek
+          ctx.fillRect(38, 38, 4, 4);
+
+          if (mood === 'happy') {
+            // Blushing pink cheeks
+            ctx.fillStyle = '#fb7185';
+            ctx.fillRect(20, 34, 4, 3);
+            ctx.fillRect(40, 34, 4, 3);
+            // Sweet smile
+            ctx.fillStyle = '#be185d';
+            ctx.fillRect(28, 40, 8, 3);
+          } else if (mood === 'surprised') {
+            // Raised eyebrows
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(22, 22, 8, 2);
+            ctx.fillRect(34, 22, 8, 2);
+            // Little round mouth
+            ctx.fillStyle = '#991b1b';
+            ctx.fillRect(30, 39, 4, 4);
+          } else if (mood === 'smug') {
+            // Knowing wink
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(24, 30, 4, 2);
+            ctx.fillStyle = '#fb7185';
+            ctx.fillRect(40, 34, 4, 3);
+            // Smirk
+            ctx.fillStyle = '#7c2d12';
+            ctx.fillRect(29, 40, 8, 2);
+            ctx.fillRect(35, 38, 2, 2);
+          } else {
+            // Default mouth
+            ctx.fillStyle = '#9a3412';
+            ctx.fillRect(29, 40, 6, 2);
+          }
+        } else if (p === 'rooster') {
+          // Feathers & Crest
+          ctx.fillStyle = '#fef08a';
+          ctx.fillRect(18, 20, 28, 32);
+          ctx.fillStyle = '#dc2626'; // crest
+          ctx.fillRect(24, mood === 'surprised' ? 4 : 8, 16, mood === 'surprised' ? 18 : 14);
+
+          // Monocle
+          ctx.strokeStyle = '#eab308';
+          ctx.lineWidth = 2;
+          if (mood === 'surprised') {
+            // Monocle flew off eye!
+            ctx.strokeRect(20, 16, 8, 8);
+            ctx.beginPath();
+            ctx.moveTo(28, 22);
+            ctx.lineTo(34, 28);
+            ctx.stroke();
+            // Startled wide eyes
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(28, 24, 6, 6);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(30, 26, 2, 2);
+          } else {
+            ctx.strokeRect(26, 24, 8, 8);
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillRect(28, 26, 4, 4);
+          }
+
+          // Beak
+          ctx.fillStyle = '#ea580c';
+          if (mood === 'happy') {
+            ctx.fillRect(36, 28, 16, 10);
+            ctx.fillStyle = '#f43f5e';
+            ctx.fillRect(40, 34, 8, 3);
+          } else if (mood === 'smug') {
+            ctx.fillRect(36, 26, 18, 7); // tilted upwards
+            ctx.fillStyle = '#ffffff'; // monocle glint
+            ctx.fillRect(27, 25, 2, 2);
+          } else {
+            ctx.fillRect(36, 28, 16, 8);
+          }
+        } else if (p === 'dog') {
+          ctx.fillStyle = '#f59e0b';
+          ctx.fillRect(16, 16, 32, 34);
+          ctx.fillStyle = '#b45309'; // floppy ears
+          if (mood === 'surprised') {
+            // Perked upright ears!
+            ctx.fillRect(14, 6, 8, 18);
+            ctx.fillRect(42, 6, 8, 18);
+          } else {
+            ctx.fillRect(10, 18, 8, 20);
+            ctx.fillRect(46, 18, 8, 20);
+          }
+
+          // Eyes & Nose
+          ctx.fillStyle = '#0f172a';
+          if (mood === 'happy') {
+            // Happy closed eyes
+            ctx.fillRect(22, 26, 6, 2);
+            ctx.fillRect(36, 26, 6, 2);
+            ctx.fillRect(28, 36, 8, 6); // nose
+            ctx.fillStyle = '#f43f5e'; // big tongue
+            ctx.fillRect(28, 42, 10, 8);
+          } else if (mood === 'surprised') {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(20, 24, 8, 8);
+            ctx.fillRect(36, 24, 8, 8);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(23, 27, 3, 3);
+            ctx.fillRect(39, 27, 3, 3);
+            ctx.fillRect(28, 36, 8, 6);
+          } else if (mood === 'smug') {
+            // Cool squint
+            ctx.fillRect(22, 26, 6, 3);
+            ctx.fillRect(36, 26, 6, 3);
+            ctx.fillRect(28, 36, 8, 6);
+            ctx.fillStyle = '#f43f5e';
+            ctx.fillRect(34, 41, 4, 4); // cheeky side tongue
+          } else {
+            ctx.fillRect(22, 26, 4, 4);
+            ctx.fillRect(38, 26, 4, 4);
+            ctx.fillRect(28, 36, 8, 6);
+            ctx.fillStyle = '#f43f5e';
+            ctx.fillRect(30, 42, 6, 6);
+          }
+        } else if (p === 'baron') {
+          // Royal Mushroom Cap
+          ctx.fillStyle = '#701a75';
+          ctx.beginPath();
+          ctx.arc(32, 28, 24, Math.PI, 0, false);
+          ctx.fill();
+          ctx.fillStyle = '#a21caf';
+          ctx.beginPath();
+          ctx.ellipse(32, 28, 24, 6, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Acorn Crown
+          ctx.fillStyle = '#eab308';
+          const crownTilt = mood === 'surprised' ? -4 : 0;
+          ctx.beginPath();
+          ctx.moveTo(22 + crownTilt, 8);
+          ctx.lineTo(42 + crownTilt, 8);
+          ctx.lineTo(44 + crownTilt, 1);
+          ctx.lineTo(37 + crownTilt, 5);
+          ctx.lineTo(32 + crownTilt, 0);
+          ctx.lineTo(27 + crownTilt, 5);
+          ctx.lineTo(20 + crownTilt, 1);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = '#ef4444';
+          ctx.fillRect(31 + crownTilt, 3, 2, 2);
+
+          // Stalk Face
+          ctx.fillStyle = '#fef3c7';
+          ctx.fillRect(20, 32, 24, 22);
+
+          // Eyes
+          if (mood === 'happy') {
+            // Sinister jolly grin
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(24, 35, 5, 2);
+            ctx.fillRect(35, 35, 5, 2);
+          } else if (mood === 'surprised') {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(22, 34, 7, 7);
+            ctx.fillRect(35, 34, 7, 7);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(24, 36, 3, 3);
+            ctx.fillRect(37, 36, 3, 3);
+          } else if (mood === 'smug') {
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(24, 36, 5, 2);
+            ctx.fillRect(35, 36, 5, 2);
+            ctx.fillStyle = '#fbbf24'; // gleaming eye
+            ctx.fillRect(25, 35, 2, 2);
+          } else {
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(24, 36, 4, 4);
+            ctx.fillRect(36, 36, 4, 4);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(25, 36, 2, 2);
+            ctx.fillRect(37, 36, 2, 2);
+          }
+
+          // Mossy Mustache
+          ctx.fillStyle = '#15803d';
+          ctx.beginPath();
+          const mustacheAngle = mood === 'smug' ? 0.35 : (mood === 'surprised' ? -0.3 : 0.2);
+          ctx.ellipse(26, 46, 8, 4, -mustacheAngle, 0, Math.PI * 2);
+          ctx.ellipse(38, 46, 8, 4, mustacheAngle, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (p === 'sign') {
+          ctx.fillStyle = '#b08b59';
+          ctx.fillRect(12, 12, 40, 40);
+          ctx.fillStyle = '#3d2511';
+          ctx.fillRect(16, 18, 32, 3);
+          ctx.fillRect(16, 26, 26, 3);
+          ctx.fillRect(16, 34, 30, 3);
+          ctx.fillRect(16, 42, 18, 3);
+        } else {
+          ctx.fillStyle = '#e2e8f0';
+          ctx.fillRect(20, 20, 24, 24);
+        }
+
+        scene.textures.addCanvas(`portrait_${p}_${mood}`, canvas);
+        if (mood === 'default') {
+          scene.textures.addCanvas(`portrait_${p}`, canvas);
+        }
+      });
     });
   }
 }

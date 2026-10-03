@@ -491,31 +491,76 @@ export class SoundManager {
     });
   }
 
-  public playDialogueBlip(speaker: string) {
+  public playDialogueBlip(speaker: string, mood?: string, pitchModifier: number = 1.0) {
     this.ensureContext();
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
+    const lower = speaker.toLowerCase();
 
+    let oscType: OscillatorType = 'sine';
     let baseFreq = 380;
-    if (speaker.includes('pelican') || speaker.includes('rooster')) baseFreq = 540;
-    if (speaker.includes('grandma')) baseFreq = 320;
-    if (speaker.includes('dog')) baseFreq = 620;
+    let duration = 0.042;
+    let gainVal = 0.11 * this.sfxVol;
+    let pitchGlide = false;
+
+    if (lower.includes('grandma') || lower.includes('bramble')) {
+      oscType = 'triangle';
+      baseFreq = 320;
+      duration = 0.048;
+      gainVal = 0.10 * this.sfxVol;
+    } else if (lower.includes('rooster') || lower.includes('reginald') || lower.includes('cluck')) {
+      oscType = 'square';
+      baseFreq = 660;
+      duration = 0.034;
+      gainVal = 0.07 * this.sfxVol;
+    } else if (lower.includes('pelican') || lower.includes('barnaby')) {
+      oscType = 'sawtooth';
+      baseFreq = 215;
+      duration = 0.045;
+      gainVal = 0.09 * this.sfxVol;
+    } else if (lower.includes('baron') || lower.includes('truffle')) {
+      oscType = 'sawtooth';
+      baseFreq = 138;
+      duration = 0.052;
+      gainVal = 0.12 * this.sfxVol;
+    } else if (lower.includes('dog') || lower.includes('buster') || lower.includes('pup')) {
+      oscType = 'sine';
+      baseFreq = 620;
+      pitchGlide = true;
+      duration = 0.038;
+      gainVal = 0.11 * this.sfxVol;
+    } else if (lower.includes('sign') || lower.includes('slab') || lower.includes('board')) {
+      oscType = 'triangle';
+      baseFreq = 220;
+      duration = 0.028;
+      gainVal = 0.08 * this.sfxVol;
+    }
+
+    let moodMult = 1.0;
+    if (mood === 'surprised') moodMult = 1.28;
+    else if (mood === 'happy') moodMult = 1.14;
+    else if (mood === 'smug') moodMult = 0.90;
+
+    const jitter = (Math.random() * 24 - 12);
+    const finalFreq = Math.max(80, (baseFreq * moodMult * pitchModifier) + jitter);
 
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
-    osc.type = 'sine';
-    const pitch = baseFreq + (Math.random() * 60 - 30);
-    osc.frequency.setValueAtTime(pitch, now);
+    osc.type = oscType;
+    osc.frequency.setValueAtTime(finalFreq, now);
+    if (pitchGlide) {
+      osc.frequency.exponentialRampToValueAtTime(finalFreq * 1.25, now + duration);
+    }
 
-    gain.gain.setValueAtTime(0.12, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+    gain.gain.setValueAtTime(gainVal, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
     osc.connect(gain);
     gain.connect(this.soundDestination);
 
     osc.start(now);
-    osc.stop(now + 0.04);
+    osc.stop(now + duration);
   }
 
   public playEmoteSound(emote?: string) {

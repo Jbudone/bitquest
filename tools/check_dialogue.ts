@@ -26,11 +26,12 @@ export function runDialogueCheck(): DialogueOverflowResult {
       // Check line length
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i]!;
-        if (line.length > MAX_CHARS_PER_LINE) {
+        const visibleLine = line.replace(/\{[^}]+\}/g, '');
+        if (visibleLine.length > MAX_CHARS_PER_LINE) {
           overflowIssues.push({
             key: `${npcKey}.${subKey}`,
-            issue: `Line ${i + 1} exceeds max width (${line.length} > ${MAX_CHARS_PER_LINE} chars)`,
-            textSample: line.slice(0, 40) + '...'
+            issue: `Line ${i + 1} exceeds max width (${visibleLine.length} > ${MAX_CHARS_PER_LINE} chars)`,
+            textSample: visibleLine.slice(0, 40) + '...'
           });
         }
       }

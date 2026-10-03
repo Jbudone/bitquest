@@ -5,7 +5,7 @@ export const STARTER_DIALOGUES: Record<string, Record<string, DialogueNode>> = {
     greeting: {
       speaker: 'Barnaby the Pelican Courier',
       portrait: 'pelican',
-      text: 'HWAFF! *pant pant* Greetings traveler! You haven\'t happened to see a satchel of extremely sensitive love letters addressed to the village blacksmith, have you? A gust of wind took it over the town pond!',
+      text: 'HWAFF! *pant pant* Greetings traveler! {mood:surprised}You haven\'t happened to see a satchel of {shake}extremely sensitive{/shake} {gold}love letters{/gold} addressed to the blacksmith? A gust took it right over the town pond!',
       responses: [
         { text: 'Did you really drop someone\'s love letters in the pond?', nextDialogueKey: 'letters_excuse' },
         { text: 'I\'ll keep an eye out for floating paper.', nextDialogueKey: 'thanks' },
@@ -15,7 +15,7 @@ export const STARTER_DIALOGUES: Record<string, Record<string, DialogueNode>> = {
     letters_excuse: {
       speaker: 'Barnaby the Pelican Courier',
       portrait: 'pelican',
-      text: 'I didn\'t DROP them! The wind committed postal larceny! The Mayor says if I lose one more parcel, they will demote me to pond goose. A GOOSE, I say! The indignity!',
+      text: '{mood:surprised}I didn\'t DROP them! The wind committed postal larceny! The Mayor says if I lose one more parcel, they will demote me to {shake}pond goose{/shake}. A {red}GOOSE{/red}, I say! The indignity!',
       responses: [
         { text: 'Stay strong, Barnaby.', nextDialogueKey: 'thanks' }
       ]
@@ -23,7 +23,7 @@ export const STARTER_DIALOGUES: Record<string, Record<string, DialogueNode>> = {
     flattery: {
       speaker: 'Barnaby the Pelican Courier',
       portrait: 'pelican',
-      text: 'Why, thank you! It takes three hours of preening with certified Oakhaven bayberry wax. But alas, style cannot deliver mail on time!',
+      text: '{mood:smug}Why, thank you! It takes {wave}three whole hours of preening{/wave} with certified Oakhaven bayberry wax. But alas, style cannot deliver mail on time!',
       responses: [
         { text: 'Good luck with the deliveries!', nextDialogueKey: 'thanks' }
       ]
@@ -31,7 +31,7 @@ export const STARTER_DIALOGUES: Record<string, Record<string, DialogueNode>> = {
     thanks: {
       speaker: 'Barnaby the Pelican Courier',
       portrait: 'pelican',
-      text: 'If you find anything shiny or soggy, bring it to me! I dropped 3 Postal Letters across Whispering Meadow, Fungal Hollow, and the South Lake. Find them and I will reward you 30 shiny coins!',
+      text: '{mood:happy}If you find anything shiny or soggy, bring it to me! I dropped {gold}3 Postal Letters{/gold} across {cyan}Whispering Meadow{/cyan}, {purple}Fungal Hollow{/purple}, and South Lake. Bring them for {gold}30 shiny coins{/gold}!',
       responses: [
         { text: 'I\'ll search every corner of the realm, Barnaby!', nextDialogueKey: 'searching' }
       ]
@@ -39,7 +39,7 @@ export const STARTER_DIALOGUES: Record<string, Record<string, DialogueNode>> = {
     searching: {
       speaker: 'Barnaby the Pelican Courier',
       portrait: 'pelican',
-      text: 'Bless your feathered heart! The letters have a red wax seal. Keep your eyes peeled near the bridges and mushroom hollows!',
+      text: '{mood:happy}Bless your feathered heart! The letters have a {red}red wax seal{/red}. Keep your eyes peeled near the bridges and mushroom hollows!',
     }
   },
 
@@ -47,7 +47,7 @@ export const STARTER_DIALOGUES: Record<string, Record<string, DialogueNode>> = {
     greeting: {
       speaker: 'Grandma Bramble',
       portrait: 'grandma',
-      text: 'Oh hello there, dearie! Have a warm scone. The wild Sproutlings in Whispering Meadow keep nibbling my fresh strawberries! If you bring me sweet strawberries, I will bake you something special.',
+      text: '{mood:happy}Oh hello there, dearie! Have a warm scone. The wild Sproutlings in Whispering Meadow keep nibbling my fresh {red}sweet strawberries{/red}! If you bring me strawberries, I will bake you something special.',
       responses: [
         { text: 'Why are you whispering about legal jam, Grandma?', nextDialogueKey: 'jam_whisper' },
         { text: 'The scone smells wonderful, thank you!', nextDialogueKey: 'scone' },
@@ -57,7 +57,7 @@ export const STARTER_DIALOGUES: Record<string, Record<string, DialogueNode>> = {
     jam_whisper: {
       speaker: 'Grandma Bramble',
       portrait: 'grandma',
-      text: 'Hush now! The Tax Collector has ears in every bush. Let\'s just say Mayor Higgins tried to put a 20% tariff on sweet preserves, and now his fountain mysteriously flows with syrup.',
+      text: '{mood:smug}Hush now! The Tax Collector has ears in every bush. Let\'s just say Mayor Higgins tried to put a 20% tariff on sweet preserves, and now his fountain {wave}mysteriously flows with syrup{/wave}.',
       responses: [
         { text: 'You sabotaged the town fountain?!', nextDialogueKey: 'fountain' }
       ]
@@ -65,17 +65,17 @@ export const STARTER_DIALOGUES: Record<string, Record<string, DialogueNode>> = {
     fountain: {
       speaker: 'Grandma Bramble',
       portrait: 'grandma',
-      text: 'I prefer the term "creative civic plumbing". Now go on, explore the square! Cut some overgrown weeds if you want to find pocket silver.',
+      text: '{mood:happy}I prefer the term {gold}"creative civic plumbing"{/gold}. Now go on, explore the square! Cut some overgrown weeds if you want to find pocket silver.',
     },
     scone: {
       speaker: 'Grandma Bramble',
       portrait: 'grandma',
-      text: 'Eat up, my child! Adventurers need plenty of carbohydrates to lift heavy clay pots and dash around.',
+      text: '{mood:happy}Eat up, my child! Adventurers need plenty of carbohydrates to lift heavy clay pots and dash around.',
     },
     ruins: {
       speaker: 'Grandma Bramble',
       portrait: 'grandma',
-      text: 'Ah, the Sunken Gate! Legend says two brave souls must stand on the dual stone switches simultaneously to break the ancient moss seal. Beyond lies the Sanctuary where the Truffle Baron hoards stolen glints!',
+      text: '{mood:surprised}Ah, the Sunken Gate! Legend says two brave souls must stand on the dual stone switches simultaneously to break the ancient moss seal. Beyond lies the Sanctuary where the {shake}{purple}Truffle Baron{/purple}{/shake} hoards stolen glints!',
     }
   },
 
@@ -83,7 +83,7 @@ export const STARTER_DIALOGUES: Record<string, Record<string, DialogueNode>> = {
     greeting: {
       speaker: 'Sir Reginald (The Monocled Rooster)',
       portrait: 'rooster',
-      text: '*adjusts monocle with wing* Cluck. Traveler! That pompous fungal usurper, Baron von Truffle, has seized the Sunken Sanctuary and stolen the town\'s sacred Golden Acorn Crown!',
+      text: '{mood:smug}*adjusts monocle with wing* Cluck. Traveler! That pompous fungal usurper, {shake}{red}Baron von Truffle{/red}{/shake}, has seized the Sunken Sanctuary and stolen the town\'s sacred {gold}Golden Acorn Crown{/gold}!',
       responses: [
         { text: 'Tell me about the Baron!', nextDialogueKey: 'baron_info' },
         { text: 'How do I reach the Sanctuary?', nextDialogueKey: 'gate_info' },
@@ -93,7 +93,7 @@ export const STARTER_DIALOGUES: Record<string, Record<string, DialogueNode>> = {
     baron_info: {
       speaker: 'Sir Reginald (The Monocled Rooster)',
       portrait: 'rooster',
-      text: 'He is a creature of immense vanity! He stomps the ground sending shockwaves and spews homing spores! But when he charges into stone pillars, he stuns himself! That is your moment to strike!',
+      text: '{mood:surprised}He is a creature of immense vanity! He stomps sending shockwaves and spews {purple}homing spores{/purple}! But when he charges into stone pillars, he {shake}stuns himself{/shake}! That is your moment to strike!',
       responses: [
         { text: 'I will defeat him and reclaim the Golden Crown!', nextDialogueKey: 'oath' }
       ]
@@ -101,17 +101,17 @@ export const STARTER_DIALOGUES: Record<string, Record<string, DialogueNode>> = {
     gate_info: {
       speaker: 'Sir Reginald (The Monocled Rooster)',
       portrait: 'rooster',
-      text: 'The Ancient Gate to the north is locked by twin Sun Stones. Stand on one switch and place a heavy clay pot on the other to unlock the path!',
+      text: '{mood:smug}The Ancient Gate to the north is locked by {gold}twin Sun Stones{/gold}. Stand on one switch and place a heavy clay pot on the other to unlock the path!',
     },
     oath: {
       speaker: 'Sir Reginald (The Monocled Rooster)',
       portrait: 'rooster',
-      text: 'Magnificent courage! Return with the Golden Acorn Crown and you shall be knighted Champion of Oakhaven!',
+      text: '{mood:happy}Magnificent courage! Return with the {gold}Golden Acorn Crown{/gold} and you shall be knighted {gold}Champion of Oakhaven{/gold}!',
     },
     majesty: {
       speaker: 'Sir Reginald (The Monocled Rooster)',
       portrait: 'rooster',
-      text: 'Ah, a creature of culture! Take heed: the clay pots scattered across this square contain both treasure and the weight of shattered ceramic dreams.',
+      text: '{mood:smug}Ah, a creature of culture! Take heed: the clay pots scattered across this square contain both treasure and the weight of shattered ceramic dreams.',
     }
   },
 
@@ -119,7 +119,7 @@ export const STARTER_DIALOGUES: Record<string, Record<string, DialogueNode>> = {
     greeting: {
       speaker: 'Baron von Truffle (Sovereign of Spores)',
       portrait: 'baron',
-      text: 'MWAHAHA! Who dares disturb the royal moistness of the Truffle Throne?! This Golden Acorn Crown belongs to MY magnificent cap! Kneel or be turned to compost!',
+      text: '{mood:smug}{shake}MWAHAHA!{/shake} Who dares disturb the royal moistness of the Truffle Throne?! This {gold}{rainbow}Golden Acorn Crown{/rainbow}{/gold} belongs to {wave}MY magnificent cap{/wave}! Kneel or be turned to {red}compost{/red}!',
       responses: [
         { text: 'Return the village crown, you overgrown toadstool!', action: 'fight_boss' }
       ]
@@ -130,7 +130,7 @@ export const STARTER_DIALOGUES: Record<string, Record<string, DialogueNode>> = {
     greeting: {
       speaker: 'Buster the Village Pup',
       portrait: 'dog',
-      text: '*wag wag wag wag* Woof! *Buster rolls onto his belly and looks up at you with pure adoration*',
+      text: '{mood:happy}*wag wag wag wag* {wave}Woof!{/wave} *Buster rolls onto his belly and looks up at you with {gold}pure adoration{/gold}*',
       responses: [
         { text: '[Pet Buster on the head]', action: 'pet_dog' },
         { text: '[Offer a belly rub]', action: 'pet_dog' }

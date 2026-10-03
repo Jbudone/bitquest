@@ -1,3 +1,5 @@
+import { AdaptiveMusicDirector } from './AdaptiveMusicDirector';
+
 export class SoundManager {
   private ctx: AudioContext | null = null;
   private initialized = false;
@@ -5,6 +7,7 @@ export class SoundManager {
   private sfxGain: GainNode | null = null;
   private bgmGain: GainNode | null = null;
   private envFilter: BiquadFilterNode | null = null;
+  private musicDirector: AdaptiveMusicDirector | null = null;
   private masterVol = 0.8;
   private sfxVol = 0.8;
   private bgmVol = 0.6;
@@ -39,6 +42,8 @@ export class SoundManager {
       this.bgmGain = this.ctx.createGain();
       this.bgmGain.gain.setValueAtTime(this.bgmVol, this.ctx.currentTime);
       this.bgmGain.connect(this.envFilter);
+
+      this.musicDirector = new AdaptiveMusicDirector(this.ctx, this.bgmGain);
     }
     this.initialized = true;
   }
@@ -95,6 +100,17 @@ export class SoundManager {
     this.bgmGain.gain.cancelScheduledValues(now);
     this.bgmGain.gain.setValueAtTime(ducked, now);
     this.bgmGain.gain.exponentialRampToValueAtTime(Math.max(0.001, current), now + durationMs / 1000);
+  }
+
+  public transitionBgm(biomeId: string, crossfadeSec = 2.0) {
+    this.ensureContext();
+    if (this.musicDirector) {
+      this.musicDirector.transition(biomeId, crossfadeSec);
+    }
+  }
+
+  public stopBgm() {
+    this.musicDirector?.stop();
   }
 
   public updateHealthHeartbeat(currentHp: number, maxHp: number) {

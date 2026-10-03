@@ -467,6 +467,12 @@ export class WorldScene extends Phaser.Scene {
     this.playerGlow.setBlendMode(Phaser.BlendModes.ADD);
     this.playerGlow.setScale(1.4);
     this.playerGlow.setAlpha(0.65);
+
+    // Initialize procedural ambient BGM
+    const initBiome = (spawnY < 540) ? 'ancient_ruins' : ((spawnY >= 1280) ? 'crystal_lake' : ((spawnX < 640) ? 'fungal_hollow' : ((spawnX >= 640 && spawnX <= 1408 && spawnY >= 640 && spawnY < 1280) ? 'oakhaven_town' : 'whispering_meadow')));
+    this.currentBiome = initBiome;
+    this.updateBiomeColorGrading(initBiome);
+    sounds.transitionBgm(initBiome, 1.5);
   }
 
   public spawnOtherPlayer(p: PlayerData) {
@@ -1565,6 +1571,11 @@ export class WorldScene extends Phaser.Scene {
         biomeName = 'Crystal Lake & Pier';
         biomeSub = 'Shimmering waters where ancient ripples tell forgotten tales';
         biomeIcon = '🌊';
+      } else if (px < 640 && py >= 540 && py < 1280) {
+        biomeId = 'fungal_hollow';
+        biomeName = 'Fungal Hollow';
+        biomeSub = 'Enchanted groves of glowing spore caps and wandering grumbles';
+        biomeIcon = '🍄';
       } else if (px >= 640 && px <= 1408 && py >= 640 && py < 1280) {
         biomeId = 'oakhaven_town';
         biomeName = 'Oakhaven Town Plaza';
@@ -1581,6 +1592,8 @@ export class WorldScene extends Phaser.Scene {
           icon: biomeIcon
         });
         this.updateBiomeColorGrading(biomeId);
+        sounds.playBiomeChime();
+        sounds.transitionBgm(biomeId, 2.2);
       }
 
       // Spatial 2D Audio, DSP Low-Pass & Heartbeat Pass
@@ -1996,6 +2009,9 @@ export class WorldScene extends Phaser.Scene {
     } else if (biomeId === 'whispering_meadow') {
       targetColor = 0x10b981;
       targetAlpha = 0.05;
+    } else if (biomeId === 'fungal_hollow') {
+      targetColor = 0xa855f7; // Mystical violet spore ambient
+      targetAlpha = 0.10;
     } else if (biomeId === 'oakhaven_town') {
       targetColor = 0xf59e0b;
       targetAlpha = 0.08;

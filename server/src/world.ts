@@ -27,6 +27,7 @@ import { SPELL_DEFINITIONS, StatusEffectManager } from '../../shared/src/magic';
 import { EquipmentManager } from '../../shared/src/equipment';
 import { ClassManager } from '../../shared/src/classes';
 import { DUNGEON_CONSTANTS, MALAKOR_SPECS, DungeonManager, CATACOMBS_FLOORS, type DungeonFloorId } from '../../shared/src/dungeon';
+import { FishingEngine, FISH_SPECIES, type FishSpecies, type PlayerFishLog } from '../../shared/src/fishing';
 
 function pointToSegmentDistance(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
   const dx = x2 - x1;
@@ -69,6 +70,32 @@ export class WorldManager {
   public onMinionSpawned?: (minionId: string, ownerId: string, x: number, y: number, subtype: string) => void;
   public onDungeonTransition?: (playerId: string, floorId: 'f1' | 'f2' | 'overworld', x: number, y: number, title: string, subtitle: string) => void;
   public onTorchLitEvent?: (torchId: string, x: number, y: number, roomSolved?: boolean) => void;
+  public onFishingStarted?: (playerId: string, startX: number, startY: number, targetX: number, targetY: number) => void;
+  public onFishingBite?: (playerId: string, biteTime: number, speciesHint: string, sweetSpotWidth: number, pullResistance: number) => void;
+  public onFishingTensionSync?: (playerId: string, tension: number, sweetSpotCenter: number, reelProgress: number) => void;
+  public onFishingResolved?: (playerId: string, result: 'caught' | 'escaped' | 'snapped' | 'cancelled', speciesId?: string, sizeCm?: number, value?: number, isPersonalBest?: boolean) => void;
+  public onFishLogSync?: (playerId: string, log: PlayerFishLog) => void;
+
+  public activeFishingSessions = new Map<string, {
+    playerId: string;
+    startX: number;
+    startY: number;
+    targetX: number;
+    targetY: number;
+    floor: string;
+    species: FishSpecies;
+    sizeCm: number;
+    state: 'waiting' | 'bite' | 'reeling';
+    castAt: number;
+    biteAt: number;
+    biteExpiresAt: number;
+    tension: number;
+    sweetSpotCenter: number;
+    sweetSpotWidth: number;
+    reelProgress: number;
+    isHoldingReel: boolean;
+    timeInMinigame: number;
+  }>();
 
   public flyingPots = new Map<string, {
     potId: string;
@@ -88,6 +115,7 @@ export class WorldManager {
     this.startRespawnLoop();
     this.startAiLoop();
     this.startProjectileLoop();
+    this.startFishingLoop();
   }
 
   private initDefaultEntities() {
@@ -686,6 +714,184 @@ export class WorldManager {
       this.items.set(item.id, item);
       this.onItemSpawned?.(item);
     }
+  }
+
+  // ==========================================
+  // Cozy Bobber Fishing Engine (Issue #23)
+  // ==========================================
+  private startFishingLoop() {
+    let lastTick = Date.now();
+    setInterval(() => {
+      const now = Date.now();
+      const dt = Math.min(0.1, (now - lastTick) / 1000);
+      lastTick = now;
+
+      for (const [playerId, session] of this.activeFishingSessions.entries()) {
+        const player = this.players.get(playerId);
+        if (!player || player.health <= 0) {
+          this.cancelFishing(playerId, 'cancelled');
+          continue;
+        }
+
+        if (session.state === 'waiting') {
+          if (now >= session.biteAt) {
+            session.state = 'bite';
+            session.biteExpiresAt = now + 1800; // 1.8s bite reaction window
+            this.onFishingBite?.(
+              playerId,
+              session.biteAt,
+              session.species.name,
+              session.species.sweetSpotWidthPct,
+              session.species.pullResistance
+            );
+          }
+        } else if (session.state === 'bite') {
+          if (now >= session.biteExpiresAt) {
+            // Fish got away
+            this.cancelFishing(playerId, 'escaped');
+          }
+        } else if (session.state === 'reeling') {
+          const res = FishingEngine.updateTensionStep(dt, session, session.isHoldingReel);
+          this.onFishingTensionSync?.(playerId, res.tension, res.sweetSpotCenter, res.reelProgress);
+
+          if (res.snapped) {
+            this.cancelFishing(playerId, 'snapped');
+          } else if (res.escaped) {
+            this.cancelFishing(playerId, 'escaped');
+          } else if (res.caught) {
+            this.resolveFishingCatch(playerId, session);
+          }
+        }
+      }
+    }, 50); // 20Hz loop
+  }
+
+  public startFishing(playerId: string, targetX: number, targetY: number): boolean {
+    const player = this.players.get(playerId);
+    if (!player || player.health <= 0) return false;
+
+    // Check distance between player and target water (28px to 160px)
+    const dist = Math.hypot(targetX - player.x, targetY - player.y);
+    if (dist < FishingEngine.MIN_CAST_DISTANCE || dist > FishingEngine.MAX_CAST_DISTANCE) {
+      return false;
+    }
+
+    const floor = DungeonManager.getFloorFromY(player.y);
+    if (!FishingEngine.isWaterPixel(targetX, targetY, floor)) {
+      return false;
+    }
+
+    const biome = FishingEngine.getWaterBiome(targetX, targetY, floor);
+    const isPier = FishingEngine.isPierHotspot(targetX, targetY);
+    const species = FishingEngine.rollFish(biome, isPier);
+    const sizeCm = FishingEngine.rollFishSize(species);
+
+    const now = Date.now();
+    const biteDelayMs = 2000 + Math.floor(Math.random() * 2500);
+
+    const session = {
+      playerId,
+      startX: player.x,
+      startY: player.y,
+      targetX,
+      targetY,
+      floor,
+      species,
+      sizeCm,
+      state: 'waiting' as const,
+      castAt: now,
+      biteAt: now + biteDelayMs,
+      biteExpiresAt: 0,
+      tension: 0.50,
+      sweetSpotCenter: 0.50,
+      sweetSpotWidth: species.sweetSpotWidthPct,
+      reelProgress: 0.15,
+      isHoldingReel: false,
+      timeInMinigame: 0
+    };
+
+    this.activeFishingSessions.set(playerId, session);
+    player.anim = 'fishing_cast';
+    this.onFishingStarted?.(playerId, player.x, player.y, targetX, targetY);
+    return true;
+  }
+
+  public reelFishing(playerId: string, isHolding: boolean) {
+    const session = this.activeFishingSessions.get(playerId);
+    if (!session) return;
+    const player = this.players.get(playerId);
+
+    if (session.state === 'bite') {
+      // Hook the bite!
+      session.state = 'reeling';
+      session.isHoldingReel = isHolding;
+      session.timeInMinigame = 0;
+      session.tension = 0.50;
+      if (player) player.anim = 'fishing_reel';
+    } else if (session.state === 'reeling') {
+      session.isHoldingReel = isHolding;
+    }
+  }
+
+  public cancelFishing(playerId: string, reason: 'caught' | 'escaped' | 'snapped' | 'cancelled' = 'cancelled') {
+    const session = this.activeFishingSessions.get(playerId);
+    if (!session) return;
+    this.activeFishingSessions.delete(playerId);
+    const player = this.players.get(playerId);
+    if (player) {
+      player.anim = 'idle';
+    }
+    this.onFishingResolved?.(playerId, reason);
+  }
+
+  private resolveFishingCatch(playerId: string, session: any) {
+    this.activeFishingSessions.delete(playerId);
+    const player = this.players.get(playerId);
+    if (!player) return;
+
+    player.anim = 'idle';
+
+    if (session.species.isTreasure && session.species.id === 'sunken_chest') {
+      // Sunken treasure chest: awards coins and spawns loot
+      const coinReward = 60 + Math.floor(Math.random() * 40);
+      player.coins = (player.coins || 0) + coinReward;
+      for (let i = 0; i < 4; i++) {
+        const item: ItemDropData = {
+          id: `item_sunken_${Date.now()}_${i}`,
+          itemType: i === 0 ? 'acorn' : 'coin',
+          x: player.x + (i - 1.5) * 16,
+          y: player.y + 16,
+          value: i === 0 ? 5 : 10
+        };
+        this.items.set(item.id, item);
+        this.onItemSpawned?.(item);
+      }
+      this.onFishingResolved?.(playerId, 'caught', session.species.id, session.sizeCm, coinReward, true);
+    } else {
+      // Normal fish or boot catch
+      const value = session.species.baseValue;
+      player.coins = (player.coins || 0) + value;
+
+      if (!player.fishLog) player.fishLog = {};
+      const { isPersonalBest } = FishingEngine.recordCatchInLog(player.fishLog, session.species.id, session.sizeCm);
+      this.db.saveFishLog(playerId, player.fishLog);
+
+      const dropType = session.species.id === 'waterlogged_boot' ? 'waterlogged_boot' : `fish_${session.species.id}`;
+      const item: ItemDropData = {
+        id: `item_catch_${Date.now()}`,
+        itemType: dropType,
+        x: player.x,
+        y: player.y + 12,
+        value
+      };
+      this.items.set(item.id, item);
+      this.onItemSpawned?.(item);
+
+      this.onFishingResolved?.(playerId, 'caught', session.species.id, session.sizeCm, value, isPersonalBest);
+      this.onFishLogSync?.(playerId, player.fishLog);
+    }
+
+    this.onPlayerStatsUpdated?.(player);
   }
 
   public handleLeverPull(playerId: string, targetId: string) {
@@ -1472,7 +1678,8 @@ export class WorldManager {
       coins: saved?.coins ?? 0,
       acorns: 0,
       equipment,
-      vanity
+      vanity,
+      fishLog: saved?.fishLog || {}
     };
     this.players.set(id, player);
     this.db.savePlayer(id, name, color, paletteIndex, equipment, vanity, classId);

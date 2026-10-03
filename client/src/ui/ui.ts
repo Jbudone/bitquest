@@ -7,6 +7,7 @@ import { BiomeBannerManager } from './BiomeBanner';
 import { EmoteWheelManager } from './EmoteWheel';
 import { DialogueParser } from './DialogueParser';
 import { EquipmentSheetManager } from './EquipmentSheet';
+import { FishLogbookManager } from './FishLogbook';
 import { saveManager } from '../storage/SaveManager';
 import type { EmoteType, CharacterClassId } from '../../../shared/src/types';
 import { ClassManager } from '../../../shared/src/classes';
@@ -18,6 +19,7 @@ export class UIManager {
   public biomes: BiomeBannerManager;
   public emoteWheel: EmoteWheelManager;
   public equipmentSheet: EquipmentSheetManager;
+  public fishLogbook: FishLogbookManager;
   private selectedPalette = 0;
   public selectedClass: CharacterClassId = 'warrior';
   private currentTypewriterTimer: any = null;
@@ -36,6 +38,7 @@ export class UIManager {
       worldScene?.triggerEmote(emote);
     });
     this.equipmentSheet = new EquipmentSheetManager();
+    this.fishLogbook = new FishLogbookManager();
 
     document.getElementById('gear-toggle-btn')?.addEventListener('click', () => {
       this.equipmentSheet.toggle();
@@ -67,6 +70,10 @@ export class UIManager {
         sounds.ensureContext();
         this.equipmentSheet.toggle();
       }
+      if (e.key === 'b' || e.key === 'B') {
+        sounds.ensureContext();
+        this.fishLogbook.toggle();
+      }
       if (e.key === ' ' || e.key === 'Enter' || e.key === 'e' || e.key === 'E' || e.key === 'k' || e.key === 'K') {
         const dialogueModal = document.getElementById('dialogue-modal');
         if (dialogueModal && dialogueModal.classList.contains('active')) {
@@ -86,6 +93,11 @@ export class UIManager {
         }
       }
       if (e.key === 'Escape') {
+        if (this.fishLogbook.isOpen) {
+          this.fishLogbook.close();
+          e.stopPropagation();
+          return;
+        }
         if (this.equipmentSheet.isOpen) {
           this.equipmentSheet.close();
           e.stopPropagation();

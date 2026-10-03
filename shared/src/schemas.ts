@@ -18,7 +18,10 @@ export const PlayerAnimStateSchema = z.enum([
   'sit',
   'hurt',
   'stun',
-  'cast'
+  'cast',
+  'fishing_cast',
+  'fishing_wait',
+  'fishing_reel'
 ]);
 export type PlayerAnimState = z.infer<typeof PlayerAnimStateSchema>;
 
@@ -114,7 +117,13 @@ export const PlayerDataSchema = z.object({
     head: null,
     armor: null,
     weapon: null
-  })
+  }),
+  fishLog: z.record(z.string(), z.object({
+    speciesId: z.string(),
+    caughtCount: z.number().int(),
+    maxSizeCm: z.number(),
+    firstCaughtAt: z.number()
+  })).default({})
 });
 export type PlayerData = z.infer<typeof PlayerDataSchema>;
 
@@ -204,7 +213,18 @@ export const ItemTypeSchema = z.enum([
   'vanity_hood_ranger',
   'vanity_cape_hero',
   'vanity_armor_knight',
-  'proj_arrow'
+  'proj_arrow',
+  'fishing_rod_bamboo',
+  'fish_copper_minnow',
+  'fish_glowing_perch',
+  'fish_brook_trout',
+  'fish_mossy_bass',
+  'fish_shimmer_salmon',
+  'fish_moonlit_catfish',
+  'fish_golden_carp',
+  'fish_spectral_koi',
+  'sunken_chest',
+  'waterlogged_boot'
 ]);
 export type ItemType = z.infer<typeof ItemTypeSchema>;
 
@@ -217,7 +237,10 @@ export const ItemCategorySchema = z.enum([
   'offhand',
   'armor',
   'relic',
-  'vanity'
+  'vanity',
+  'tool',
+  'fish',
+  'treasure'
 ]);
 export type ItemCategory = z.infer<typeof ItemCategorySchema>;
 

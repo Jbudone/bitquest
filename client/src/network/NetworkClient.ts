@@ -50,6 +50,11 @@ export class NetworkClient {
   public onPotCaught?: (data: { potId: string; catcherId: string; x: number; y: number }) => void;
   public onDungeonTransition?: (data: { floorId: 'f1' | 'f2' | 'overworld'; x: number; y: number; title: string; subtitle: string }) => void;
   public onTorchLitEvent?: (data: { torchId: string; x: number; y: number; roomSolved?: boolean }) => void;
+  public onFishingStarted?: (data: { playerId: string; startX: number; startY: number; targetX: number; targetY: number }) => void;
+  public onFishingBite?: (data: { playerId: string; biteTime: number; speciesHint: string; sweetSpotWidth: number; pullResistance: number }) => void;
+  public onFishingTensionSync?: (data: { playerId: string; tension: number; sweetSpotCenter: number; reelProgress: number }) => void;
+  public onFishingResolved?: (data: { playerId: string; result: 'caught' | 'escaped' | 'snapped' | 'cancelled'; speciesId?: string; sizeCm?: number; value?: number; isPersonalBest?: boolean }) => void;
+  public onFishLogSync?: (data: { playerId: string; log: any }) => void;
   public onReconcile?: (ackSeq: number, x: number, y: number) => void;
   public onConnectionChange?: (connected: boolean) => void;
 
@@ -181,6 +186,21 @@ export class NetworkClient {
       case 'torch_lit_event':
         this.onTorchLitEvent?.(packet);
         break;
+      case 'fishing_started':
+        this.onFishingStarted?.(packet);
+        break;
+      case 'fishing_bite':
+        this.onFishingBite?.(packet);
+        break;
+      case 'fishing_tension_sync':
+        this.onFishingTensionSync?.(packet);
+        break;
+      case 'fishing_resolved':
+        this.onFishingResolved?.(packet);
+        break;
+      case 'fish_log_sync':
+        this.onFishLogSync?.(packet);
+        break;
       case 'reconcile':
         this.onReconcile?.(packet.ackSeq, packet.x, packet.y);
         break;
@@ -234,6 +254,18 @@ export class NetworkClient {
 
   public sendPotCatch(potId: string) {
     this.send({ type: 'pot_catch', potId });
+  }
+
+  public sendFishingCast(targetX: number, targetY: number) {
+    this.send({ type: 'fishing_cast', targetX, targetY });
+  }
+
+  public sendFishingReel(isHolding: boolean) {
+    this.send({ type: 'fishing_reel', isHolding });
+  }
+
+  public sendFishingCancel() {
+    this.send({ type: 'fishing_cancel' });
   }
 
   public sendChat(text: string) {

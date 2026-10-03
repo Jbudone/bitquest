@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import type { PlayerEquipment, PlayerVanity, CharacterClassId } from '../../shared/src/types';
+import type { PlayerEquipment, PlayerVanity, CharacterClassId, PlayerFishLog } from '../../shared/src/types';
 
 export interface WorldStateData {
   worldFlags: Record<string, boolean>;
@@ -13,6 +13,7 @@ export interface WorldStateData {
     classId?: CharacterClassId;
     equipment?: PlayerEquipment;
     vanity?: PlayerVanity;
+    fishLog?: PlayerFishLog;
     lastSeen: number;
   }>;
 }
@@ -101,5 +102,12 @@ export class WorldDatabase {
       this.data.players[id].lastSeen = Date.now();
     }
     this.save();
+  }
+
+  public saveFishLog(id: string, log: PlayerFishLog): void {
+    if (this.data.players[id]) {
+      this.data.players[id].fishLog = { ...log };
+      this.save();
+    }
   }
 }

@@ -12,6 +12,7 @@ import { BehaviorRegistry } from '../../../shared/src/behaviors/registry';
 import { SPELL_DEFINITIONS, type SpellDefinition, type SpellId, StatusEffectManager } from '../../../shared/src/magic';
 import { ClassManager, CLASS_DEFINITIONS, type CharacterClassId, type ClassAbilityId } from '../../../shared/src/classes';
 import { DUNGEON_CONSTANTS, MALAKOR_SPECS, DungeonManager, CATACOMBS_FLOORS, type DungeonFloorId } from '../../../shared/src/dungeon';
+import { FishingEngine, FISH_SPECIES } from '../../../shared/src/fishing';
 
 export class WorldScene extends Phaser.Scene {
   public localPlayer: Player | null = null;
@@ -22,6 +23,21 @@ export class WorldScene extends Phaser.Scene {
   public itemObjects = new Map<string, { sprite: Phaser.GameObjects.Sprite; shapeText?: Phaser.GameObjects.Text; data: ItemDropData }>();
   public playerGlow?: Phaser.GameObjects.Image;
   public particles!: ParticlePipeline;
+
+  // Cozy Bobber Fishing (Task 7.5 / Issue #23)
+  public isLocalFishing = false;
+  public fishingPhase: 'idle' | 'waiting' | 'bite' | 'reeling' = 'idle';
+  private activeFishingBobber: Phaser.GameObjects.Sprite | null = null;
+  private fishingLineGfx: Phaser.GameObjects.Graphics | null = null;
+  private fishingTargetPos = { x: 0, y: 0 };
+  private remoteBobbers = new Map<string, { sprite: Phaser.GameObjects.Sprite; lineGfx: Phaser.GameObjects.Graphics; targetX: number; targetY: number }>();
+  private waterRipples: Array<{ circle: Phaser.GameObjects.Arc; radius: number; maxRadius: number; alpha: number }> = [];
+  private tensionHudContainer: Phaser.GameObjects.Container | null = null;
+  private tensionNeedle: Phaser.GameObjects.Rectangle | null = null;
+  private tensionSweetZone: Phaser.GameObjects.Rectangle | null = null;
+  private tensionProgressBar: Phaser.GameObjects.Rectangle | null = null;
+  private tensionHintText: Phaser.GameObjects.Text | null = null;
+  private biteAlertText: Phaser.GameObjects.Text | null = null;
 
   // The Sunken Catacombs Dungeon (Task 7.4)
   public activeFloor: 'overworld' | 'f1' | 'f2' = 'overworld';
@@ -200,12 +216,61 @@ export class WorldScene extends Phaser.Scene {
         FIVE: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FIVE),
         SIX: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SIX),
         Z: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z),
-        X: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X)
+        X: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X),
+        F: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F)
       };
 
-      // Space / J: Attack / Throw
-      this.keys.SPACE.on('down', () => this.handleActionAttack());
-      this.keys.J.on('down', () => this.handleActionAttack());
+      // F: Fishing Cast & Reel
+      this.keys.F.on('down', () => this.handleActionFishing(true));
+      this.keys.F.on('up', () => this.handleActionFishing(false));
+
+      // Pointer / Click / Touch to Cast and Reel
+      this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+        if (this.isLocalFishing) {
+          this.handleReelInput(true);
+          return;
+        }
+        if (this.localPlayer) {
+          const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+          const dist = Math.hypot(worldPoint.x - this.localPlayer.x, worldPoint.y - this.localPlayer.y);
+          if (dist >= FishingEngine.MIN_CAST_DISTANCE && dist <= FishingEngine.MAX_CAST_DISTANCE) {
+            if (FishingEngine.isWaterPixel(worldPoint.x, worldPoint.y, this.activeFloor)) {
+              this.castFishingLine(worldPoint.x, worldPoint.y);
+            }
+          }
+        }
+      });
+      this.input.on('pointerup', () => {
+        if (this.isLocalFishing) {
+          this.handleReelInput(false);
+        }
+      });
+
+      // Space / J: Attack / Throw (or Reel during fishing!)
+      this.keys.SPACE.on('down', () => {
+        if (this.isLocalFishing) {
+          this.handleReelInput(true);
+        } else {
+          this.handleActionAttack();
+        }
+      });
+      this.keys.SPACE.on('up', () => {
+        if (this.isLocalFishing) {
+          this.handleReelInput(false);
+        }
+      });
+      this.keys.J.on('down', () => {
+        if (this.isLocalFishing) {
+          this.handleReelInput(true);
+        } else {
+          this.handleActionAttack();
+        }
+      });
+      this.keys.J.on('up', () => {
+        if (this.isLocalFishing) {
+          this.handleReelInput(false);
+        }
+      });
 
       // Shift / L: Dodge Roll
       this.keys.SHIFT.on('down', () => this.localPlayer?.roll());
@@ -870,6 +935,67 @@ export class WorldScene extends Phaser.Scene {
         sounds.playGateRumble();
         this.triggerCameraShake(200, 0.005);
         this.showFloatingText(data.x, data.y - 25, "✨ PUZZLE SOLVED!", "#22c55e", true);
+      }
+    };
+
+    // Fishing Network Event Handlers (Issue #23)
+    network.onFishingStarted = (data) => {
+      sounds.playCastLine();
+      this.spawnFishingBobber(data.playerId, data.startX, data.startY, data.targetX, data.targetY);
+      if (this.localPlayer && data.playerId === network.yourId) {
+        this.isLocalFishing = true;
+        this.fishingPhase = 'waiting';
+        this.fishingTargetPos.x = data.targetX;
+        this.fishingTargetPos.y = data.targetY;
+        this.showFloatingText(data.targetX, data.targetY - 14, "🎣 Line Cast...", "#38bdf8", false);
+      }
+    };
+
+    network.onFishingBite = (data) => {
+      if (this.localPlayer && data.playerId === network.yourId) {
+        this.fishingPhase = 'bite';
+        sounds.playBobberBite();
+        this.emitWaterRipple(this.fishingTargetPos.x, this.fishingTargetPos.y, 28);
+        this.showBiteAlert(this.fishingTargetPos.x, this.fishingTargetPos.y - 20);
+        this.createTensionHud();
+      }
+    };
+
+    network.onFishingTensionSync = (data) => {
+      if (this.localPlayer && data.playerId === network.yourId) {
+        this.fishingPhase = 'reeling';
+        sounds.playReelTick();
+        this.updateTensionHud(data.tension, data.sweetSpotCenter, data.reelProgress);
+      }
+    };
+
+    network.onFishingResolved = (data) => {
+      this.cleanupFishingSession(data.playerId);
+      if (this.localPlayer && data.playerId === network.yourId) {
+        this.isLocalFishing = false;
+        this.fishingPhase = 'idle';
+        this.destroyTensionHud();
+
+        if (data.result === 'caught') {
+          sounds.playFishCatch();
+          this.showFloatingText(this.localPlayer.x, this.localPlayer.y - 30, "✨ CAUGHT!", "#facc15", true);
+          this.emitGoldSparkles(this.localPlayer.x, this.localPlayer.y);
+          if (data.speciesId && data.sizeCm) {
+            (window as any).BitQuestUI?.fishLogbook?.showCatchBanner(data.speciesId, data.sizeCm, !!data.isPersonalBest);
+          }
+        } else if (data.result === 'snapped') {
+          sounds.playLineSnap();
+          this.showFloatingText(this.localPlayer.x, this.localPlayer.y - 25, "❌ LINE SNAPPED!", "#ef4444", true);
+        } else if (data.result === 'escaped') {
+          sounds.playBushCut();
+          this.showFloatingText(this.localPlayer.x, this.localPlayer.y - 25, "💨 FISH GOT AWAY!", "#94a3b8", false);
+        }
+      }
+    };
+
+    network.onFishLogSync = (data) => {
+      if (this.localPlayer && data.playerId === network.yourId) {
+        (window as any).BitQuestUI?.fishLogbook?.updateLog(data.log);
       }
     };
 
@@ -3017,6 +3143,7 @@ export class WorldScene extends Phaser.Scene {
   update(time: number, delta: number) {
     if (this.localPlayer) {
       this.localPlayer.updateMovement(this.cursors, this.keys, delta);
+      this.updateFishing(time, delta);
 
       // Update moving stone platform position and riding kinematics
       const platformSprite = this.entityObjects.get(DUNGEON_CONSTANTS.F1_PLATFORM.id) as Phaser.GameObjects.Sprite | undefined;
@@ -4020,5 +4147,327 @@ export class WorldScene extends Phaser.Scene {
         this.ambientOverlay.setFillStyle(targetColor);
       }
     });
+  }
+
+  // ==========================================
+  // Cozy Bobber Fishing Engine (Task 7.5 / Issue #23)
+  // ==========================================
+
+  public handleActionFishing(isDown: boolean) {
+    if (!this.localPlayer) return;
+    if (isDown) {
+      if (this.isLocalFishing) {
+        if (this.fishingPhase === 'bite' || this.fishingPhase === 'reeling') {
+          this.handleReelInput(true);
+        } else if (this.fishingPhase === 'waiting') {
+          // Cancel cast
+          network.sendFishingCancel();
+        }
+      } else {
+        // Not fishing: try to find nearest water in facing direction
+        const found = FishingEngine.findNearestWater(
+          this.localPlayer.x,
+          this.localPlayer.y,
+          this.localPlayer.direction,
+          this.activeFloor
+        );
+        if (found.found) {
+          this.castFishingLine(found.x, found.y);
+        } else {
+          this.showFloatingText(this.localPlayer.x, this.localPlayer.y - 22, "Stand near water to fish! 🌊", "#38bdf8", false);
+        }
+      }
+    } else {
+      if (this.isLocalFishing) {
+        this.handleReelInput(false);
+      }
+    }
+  }
+
+  public handleReelInput(isHolding: boolean) {
+    if (!this.isLocalFishing) return;
+    network.sendFishingReel(isHolding);
+  }
+
+  public castFishingLine(targetX: number, targetY: number) {
+    if (!this.localPlayer) return;
+    sounds.ensureContext();
+    network.sendFishingCast(targetX, targetY);
+  }
+
+  private spawnFishingBobber(playerId: string, startX: number, startY: number, targetX: number, targetY: number) {
+    const isLocal = this.localPlayer && playerId === network.yourId;
+
+    // Line Graphics
+    const lineGfx = this.add.graphics();
+    lineGfx.setDepth(940);
+
+    // Animated Bobber Sprite
+    const bobber = this.add.sprite(startX, startY, 'prop_bobber');
+    bobber.setDepth(950);
+
+    // Parabolic cast trajectory tween
+    this.tweens.add({
+      targets: bobber,
+      x: targetX,
+      y: targetY,
+      duration: 380,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        sounds.playBobberPlop();
+        this.emitWaterRipple(targetX, targetY, 24);
+      }
+    });
+
+    if (isLocal) {
+      if (this.activeFishingBobber) this.activeFishingBobber.destroy();
+      if (this.fishingLineGfx) this.fishingLineGfx.destroy();
+      this.activeFishingBobber = bobber;
+      this.fishingLineGfx = lineGfx;
+      this.fishingTargetPos.x = targetX;
+      this.fishingTargetPos.y = targetY;
+    } else {
+      this.remoteBobbers.set(playerId, {
+        sprite: bobber,
+        lineGfx,
+        targetX,
+        targetY
+      });
+    }
+  }
+
+  private cleanupFishingSession(playerId: string) {
+    const isLocal = this.localPlayer && playerId === network.yourId;
+    if (isLocal) {
+      if (this.activeFishingBobber) {
+        this.activeFishingBobber.destroy();
+        this.activeFishingBobber = null;
+      }
+      if (this.fishingLineGfx) {
+        this.fishingLineGfx.destroy();
+        this.fishingLineGfx = null;
+      }
+      if (this.biteAlertText) {
+        this.biteAlertText.destroy();
+        this.biteAlertText = null;
+      }
+    } else {
+      const remote = this.remoteBobbers.get(playerId);
+      if (remote) {
+        remote.sprite.destroy();
+        remote.lineGfx.destroy();
+        this.remoteBobbers.delete(playerId);
+      }
+    }
+  }
+
+  private showBiteAlert(x: number, y: number) {
+    if (this.biteAlertText) this.biteAlertText.destroy();
+    this.biteAlertText = this.add.text(x, y, '!', {
+      fontFamily: "'Press Start 2P', monospace, sans-serif",
+      fontSize: '20px',
+      color: '#facc15',
+      stroke: '#0f172a',
+      strokeThickness: 4
+    }).setOrigin(0.5).setDepth(2000);
+
+    this.tweens.add({
+      targets: this.biteAlertText,
+      y: y - 10,
+      scaleX: 1.3,
+      scaleY: 1.3,
+      duration: 180,
+      yoyo: true,
+      repeat: 3
+    });
+  }
+
+  private createTensionHud() {
+    if (this.tensionHudContainer) this.destroyTensionHud();
+    if (!this.localPlayer) return;
+
+    this.tensionHudContainer = this.add.container(this.localPlayer.x, this.localPlayer.y - 48);
+    this.tensionHudContainer.setDepth(3000);
+
+    // Dark backdrop
+    const bg = this.add.graphics();
+    bg.fillStyle(0x090d16, 0.90);
+    bg.fillRoundedRect(-36, -14, 72, 28, 4);
+    bg.lineStyle(1.5, 0x38bdf8, 1);
+    bg.strokeRoundedRect(-36, -14, 72, 28, 4);
+
+    // Tension Track (56px wide)
+    const track = this.add.graphics();
+    track.fillStyle(0x1e293b, 1);
+    track.fillRect(-28, -6, 56, 8);
+
+    // Sweet Spot Zone (green)
+    this.tensionSweetZone = this.add.rectangle(-28, -2, 16, 8, 0x22c55e, 0.85);
+
+    // Tension Needle (yellow indicator line)
+    this.tensionNeedle = this.add.rectangle(0, -2, 3, 12, 0xfacc15, 1);
+
+    // Reel Progress Track (thin bar underneath)
+    const progTrack = this.add.graphics();
+    progTrack.fillStyle(0x334155, 1);
+    progTrack.fillRect(-28, 6, 56, 4);
+
+    // Reel Progress Fill (cyan)
+    this.tensionProgressBar = this.add.rectangle(-28, 8, 2, 4, 0x06b6d4, 1).setOrigin(0, 0.5);
+
+    // Text label
+    this.tensionHintText = this.add.text(0, -18, 'REEL! [F]/[SPACE]', {
+      fontFamily: "'Press Start 2P', monospace, sans-serif",
+      fontSize: '7px',
+      color: '#facc15',
+      stroke: '#0f172a',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+
+    this.tensionHudContainer.add([
+      bg,
+      track,
+      this.tensionSweetZone,
+      this.tensionNeedle,
+      progTrack,
+      this.tensionProgressBar,
+      this.tensionHintText
+    ]);
+  }
+
+  private updateTensionHud(tension: number, sweetSpotCenter: number, reelProgress: number) {
+    if (!this.tensionHudContainer || !this.localPlayer) return;
+
+    // Position container above player
+    this.tensionHudContainer.setPosition(this.localPlayer.x, this.localPlayer.y - 48);
+
+    // Update needle (-28 to +28)
+    if (this.tensionNeedle) {
+      const nx = -28 + Math.max(0, Math.min(1, tension)) * 56;
+      this.tensionNeedle.x = nx;
+    }
+
+    // Update sweet spot zone
+    if (this.tensionSweetZone) {
+      const zx = -28 + Math.max(0, Math.min(1, sweetSpotCenter)) * 56;
+      this.tensionSweetZone.x = zx;
+    }
+
+    // Update progress bar width
+    if (this.tensionProgressBar) {
+      const pw = Math.max(2, Math.min(56, reelProgress * 56));
+      this.tensionProgressBar.width = pw;
+    }
+  }
+
+  private destroyTensionHud() {
+    if (this.tensionHudContainer) {
+      this.tensionHudContainer.destroy();
+      this.tensionHudContainer = null;
+      this.tensionNeedle = null;
+      this.tensionSweetZone = null;
+      this.tensionProgressBar = null;
+      this.tensionHintText = null;
+    }
+    if (this.biteAlertText) {
+      this.biteAlertText.destroy();
+      this.biteAlertText = null;
+    }
+  }
+
+  public emitWaterRipple(x: number, y: number, maxRadius = 24) {
+    const circle = this.add.arc(x, y, 4, 0, 360, false, undefined, 0);
+    circle.setStrokeStyle(1.5, 0x67e8f9, 0.85);
+    circle.setDepth(930);
+    this.waterRipples.push({
+      circle,
+      radius: 4,
+      maxRadius,
+      alpha: 0.85
+    });
+  }
+
+  public emitGoldSparkles(x: number, y: number) {
+    for (let i = 0; i < 14; i++) {
+      const angle = (i / 14) * Math.PI * 2;
+      const speed = 25 + Math.random() * 30;
+      const p = this.add.circle(x, y, Math.random() < 0.5 ? 3 : 2, 0xfacc15);
+      p.setDepth(3500);
+
+      this.tweens.add({
+        targets: p,
+        x: x + Math.cos(angle) * speed,
+        y: y + Math.sin(angle) * speed - 15,
+        alpha: 0,
+        scale: 0.2,
+        duration: 450 + Math.random() * 200,
+        ease: 'Cubic.easeOut',
+        onComplete: () => p.destroy()
+      });
+    }
+  }
+
+  private updateFishing(time: number, delta: number) {
+    const dt = delta / 1000;
+
+    // 1. Water ripples expansion & decay
+    for (let i = this.waterRipples.length - 1; i >= 0; i--) {
+      const r = this.waterRipples[i];
+      r.radius += 18 * dt;
+      r.alpha -= 0.65 * dt;
+      if (r.alpha <= 0 || r.radius >= r.maxRadius) {
+        r.circle.destroy();
+        this.waterRipples.splice(i, 1);
+      } else {
+        r.circle.setRadius(r.radius);
+        r.circle.setStrokeStyle(1.5, 0x67e8f9, r.alpha);
+      }
+    }
+
+    // 2. Local player fishing line & bobber
+    if (this.isLocalFishing && this.activeFishingBobber && this.fishingLineGfx && this.localPlayer) {
+      // Bobber floating motion
+      const bobY = this.fishingPhase === 'bite'
+        ? this.fishingTargetPos.y + 4
+        : this.fishingTargetPos.y + Math.sin(time * 0.005) * 2;
+      this.activeFishingBobber.y = bobY;
+
+      // Draw fishing line
+      this.fishingLineGfx.clear();
+      const tipX = this.localPlayer.x + (this.localPlayer.direction === 'left' ? -12 : (this.localPlayer.direction === 'right' ? 12 : 0));
+      const tipY = this.localPlayer.y - 10;
+      const midX = (tipX + this.activeFishingBobber.x) / 2;
+      const midY = Math.max(tipY, this.activeFishingBobber.y) - 6 + Math.sin(time * 0.004) * 2;
+
+      this.fishingLineGfx.lineStyle(1.5, 0x475569, 0.85);
+      this.fishingLineGfx.beginPath();
+      this.fishingLineGfx.moveTo(tipX, tipY);
+      this.fishingLineGfx.quadraticCurveTo(midX, midY, this.activeFishingBobber.x, this.activeFishingBobber.y);
+      this.fishingLineGfx.strokePath();
+
+      // Gentle water ripple emission
+      if (Math.random() < 0.02) {
+        this.emitWaterRipple(this.activeFishingBobber.x, this.activeFishingBobber.y + 2, 16);
+      }
+    }
+
+    // 3. Remote other players fishing lines
+    for (const [playerId, r] of this.remoteBobbers.entries()) {
+      const other = this.otherPlayers.get(playerId);
+      if (other && r.lineGfx && r.sprite) {
+        r.sprite.y = r.targetY + Math.sin(time * 0.005) * 2;
+        r.lineGfx.clear();
+        const tipX = other.x;
+        const tipY = other.y - 10;
+        const midX = (tipX + r.sprite.x) / 2;
+        const midY = Math.max(tipY, r.sprite.y) - 6;
+
+        r.lineGfx.lineStyle(1.5, 0x475569, 0.75);
+        r.lineGfx.beginPath();
+        r.lineGfx.moveTo(tipX, tipY);
+        r.lineGfx.quadraticCurveTo(midX, midY, r.sprite.x, r.sprite.y);
+        r.lineGfx.strokePath();
+      }
+    }
   }
 }

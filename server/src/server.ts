@@ -224,6 +224,67 @@ world.onTorchLitEvent = (torchId, x, y, roomSolved) => {
   });
 };
 
+world.onFishingStarted = (playerId, startX, startY, targetX, targetY) => {
+  broadcast({
+    type: 'fishing_started',
+    playerId,
+    startX,
+    startY,
+    targetX,
+    targetY
+  });
+};
+
+world.onFishingBite = (playerId, biteTime, speciesHint, sweetSpotWidth, pullResistance) => {
+  const socket = sockets.get(playerId);
+  if (socket) {
+    socket.send(JSON.stringify({
+      type: 'fishing_bite',
+      playerId,
+      biteTime,
+      speciesHint,
+      sweetSpotWidth,
+      pullResistance
+    }));
+  }
+};
+
+world.onFishingTensionSync = (playerId, tension, sweetSpotCenter, reelProgress) => {
+  const socket = sockets.get(playerId);
+  if (socket) {
+    socket.send(JSON.stringify({
+      type: 'fishing_tension_sync',
+      playerId,
+      tension,
+      sweetSpotCenter,
+      reelProgress
+    }));
+  }
+};
+
+world.onFishingResolved = (playerId, result, speciesId, sizeCm, value, isPersonalBest) => {
+  broadcast({
+    type: 'fishing_resolved',
+    playerId,
+    result,
+    speciesId,
+    sizeCm,
+    value,
+    isPersonalBest
+  });
+};
+
+world.onFishLogSync = (playerId, log) => {
+  const socket = sockets.get(playerId);
+  if (socket) {
+    socket.send(JSON.stringify({
+      type: 'fish_log_sync',
+      playerId,
+      log
+    }));
+  }
+};
+
 // 25Hz World Tick Loop with Delta State Compression
 const deltaSync = new DeltaSyncEngine();
 let tickCounter = 0;
@@ -574,6 +635,21 @@ const server = Bun.serve<SocketData>({
 
           case 'pot_catch': {
             world.catchPot(id, msg.potId);
+            break;
+          }
+
+          case 'fishing_cast': {
+            world.startFishing(id, msg.targetX, msg.targetY);
+            break;
+          }
+
+          case 'fishing_reel': {
+            world.reelFishing(id, msg.isHolding);
+            break;
+          }
+
+          case 'fishing_cancel': {
+            world.cancelFishing(id, 'cancelled');
             break;
           }
 

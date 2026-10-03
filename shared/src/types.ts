@@ -2,6 +2,7 @@ export * from './schemas';
 export * from './equipment';
 export * from './classes';
 export * from './dungeon';
+export * from './fishing';
 import type { 
   Direction, 
   PlayerAnimState, 
@@ -19,6 +20,7 @@ import type {
 } from './schemas';
 import type { PlayerEquipment, PlayerVanity, AggregatedEquipmentStats } from './equipment';
 import type { CharacterClassId, ClassAbilityId } from './classes';
+import type { PlayerFishLog } from './fishing';
 
 // Network protocol packets
 export type ClientPacket =
@@ -33,6 +35,9 @@ export type ClientPacket =
   | { type: 'shoot_arrow'; x: number; y: number; direction: Direction; damage: number }
   | { type: 'pot_throw'; potId: string; startX: number; startY: number; targetX: number; targetY: number }
   | { type: 'pot_catch'; potId: string }
+  | { type: 'fishing_cast'; targetX: number; targetY: number }
+  | { type: 'fishing_reel'; isHolding: boolean }
+  | { type: 'fishing_cancel' }
   | { type: 'chat'; text: string }
   | { type: 'emote'; emote: EmoteType }
   | { type: 'dialogue_choice'; npcId: string; choiceIndex: number }
@@ -66,5 +71,11 @@ export type ServerPacket =
   | { type: 'player_stats_updated'; id: string; health: number; maxHealth: number; mana: number; maxMana: number; coins: number; acorns: number }
   | { type: 'boss_event'; action: 'spawn' | 'stomp' | 'spore' | 'charge' | 'crash_stun' | 'defeated' | 'crypt_spike' | 'scythe_cleave' | 'darkness_shroud' | 'soul_barrage'; bossId?: string; x?: number; y?: number; targetX?: number; targetY?: number }
   | { type: 'dungeon_transition'; floorId: 'f1' | 'f2' | 'overworld'; x: number; y: number; title: string; subtitle: string }
-  | { type: 'torch_lit_event'; torchId: string; x: number; y: number; roomSolved?: boolean };
+  | { type: 'torch_lit_event'; torchId: string; x: number; y: number; roomSolved?: boolean }
+  | { type: 'fishing_started'; playerId: string; startX: number; startY: number; targetX: number; targetY: number }
+  | { type: 'fishing_bite'; playerId: string; biteTime: number; speciesHint: string; sweetSpotWidth: number; pullResistance: number }
+  | { type: 'fishing_tension_sync'; playerId: string; tension: number; sweetSpotCenter: number; reelProgress: number }
+  | { type: 'fishing_resolved'; playerId: string; result: 'caught' | 'escaped' | 'snapped' | 'cancelled'; speciesId?: string; sizeCm?: number; value?: number; isPersonalBest?: boolean }
+  | { type: 'fish_log_sync'; playerId: string; log: PlayerFishLog };
+
 

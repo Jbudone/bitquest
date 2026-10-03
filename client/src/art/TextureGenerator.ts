@@ -3627,5 +3627,249 @@ export class TextureGenerator {
       ctx.fillRect(20, 11, 3, 2);
       scene.textures.addCanvas('item_relic_sun_stone', canvas);
     }
+
+    // ==========================================
+    // Cozy Bobber Fishing Textures (Issue #23)
+    // ==========================================
+
+    // 16. Fishing Bobber (16x16)
+    {
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      // Subtle oval water shadow
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.4)';
+      ctx.beginPath();
+      ctx.ellipse(8, 14, 5, 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Top antenna stem
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(7, 1, 2, 3);
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(7, 0, 2, 2);
+
+      // Top red dome
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(8, 8, 5, Math.PI, 0);
+      ctx.fill();
+      // Red highlight
+      ctx.fillStyle = '#f87171';
+      ctx.fillRect(6, 5, 2, 2);
+
+      // Middle dark band
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(3, 8, 10, 1);
+
+      // Bottom white hemisphere
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.arc(8, 8, 5, 0, Math.PI);
+      ctx.fill();
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(5, 11, 6, 2);
+
+      scene.textures.addCanvas('prop_bobber', canvas);
+    }
+
+    // 17. Bamboo Fishing Rod (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Diagonal bamboo cane
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = '#a3e635';
+      ctx.beginPath();
+      ctx.moveTo(3, 21);
+      ctx.lineTo(21, 3);
+      ctx.stroke();
+
+      // Bamboo ring nodes
+      ctx.fillStyle = '#4d7c0f';
+      ctx.fillRect(7, 16, 3, 2);
+      ctx.fillRect(12, 11, 3, 2);
+      ctx.fillRect(17, 6, 3, 2);
+
+      // Brass reel at handle
+      ctx.fillStyle = '#eab308';
+      ctx.beginPath();
+      ctx.arc(6, 18, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#713f12';
+      ctx.fillRect(5, 17, 2, 2);
+
+      scene.textures.addCanvas('item_fishing_rod_bamboo', canvas);
+    }
+
+    // 18. Fish Species Icons (24x24 pixel art)
+    const drawFishBase = (
+      key: string,
+      bodyColor: string,
+      finColor: string,
+      bellyColor: string,
+      decorFn?: (ctx: CanvasRenderingContext2D) => void
+    ) => {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Tail fin
+      ctx.fillStyle = finColor;
+      ctx.beginPath();
+      ctx.moveTo(3, 8);
+      ctx.lineTo(8, 12);
+      ctx.lineTo(3, 16);
+      ctx.closePath();
+      ctx.fill();
+
+      // Dorsal fin
+      ctx.beginPath();
+      ctx.moveTo(11, 7);
+      ctx.lineTo(15, 4);
+      ctx.lineTo(17, 7);
+      ctx.closePath();
+      ctx.fill();
+
+      // Main streamlined body
+      ctx.fillStyle = bodyColor;
+      ctx.beginPath();
+      ctx.ellipse(14, 12, 7, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Soft light belly
+      ctx.fillStyle = bellyColor;
+      ctx.beginPath();
+      ctx.ellipse(14, 14, 5, 2.5, 0, 0, Math.PI);
+      ctx.fill();
+
+      // Eye
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(17, 10, 2, 2);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(18, 10, 1, 1);
+
+      if (decorFn) decorFn(ctx);
+
+      scene.textures.addCanvas(key, canvas);
+    };
+
+    // Copper Minnow
+    drawFishBase('fish_copper_minnow', '#d97706', '#b45309', '#fed7aa', (ctx) => {
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(12, 11, 2, 2);
+    });
+
+    // Glowing Perch
+    drawFishBase('fish_glowing_perch', '#0891b2', '#06b6d4', '#cffafe', (ctx) => {
+      ctx.fillStyle = '#67e8f9';
+      ctx.fillRect(10, 10, 2, 2);
+      ctx.fillRect(14, 11, 2, 2);
+    });
+
+    // Azure Brook Trout
+    drawFishBase('fish_brook_trout', '#2563eb', '#1d4ed8', '#bfdbfe', (ctx) => {
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(11, 10, 1, 1);
+      ctx.fillRect(13, 12, 1, 1);
+      ctx.fillRect(15, 11, 1, 1);
+    });
+
+    // Mossy Bog Bass
+    drawFishBase('fish_mossy_bass', '#15803d', '#166534', '#bbf7d0', (ctx) => {
+      ctx.fillStyle = '#14532d';
+      ctx.fillRect(11, 8, 2, 7);
+      ctx.fillRect(14, 8, 2, 7);
+    });
+
+    // Shimmering River Salmon
+    drawFishBase('fish_shimmer_salmon', '#db2777', '#be185d', '#fbcfe8', (ctx) => {
+      ctx.fillStyle = '#f472b6';
+      ctx.fillRect(10, 11, 6, 2);
+    });
+
+    // Moonlit Catfish
+    drawFishBase('fish_moonlit_catfish', '#7c3aed', '#6d28d9', '#ddd6fe', (ctx) => {
+      // Long whisker barbel
+      ctx.strokeStyle = '#c4b5fd';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(19, 13);
+      ctx.lineTo(23, 16);
+      ctx.stroke();
+    });
+
+    // Ancient Golden Carp
+    drawFishBase('fish_golden_carp', '#eab308', '#ca8a04', '#fef08a', (ctx) => {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(11, 10, 2, 2);
+      ctx.fillRect(14, 12, 2, 2);
+      // Golden crown crest
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(13, 5, 3, 2);
+    });
+
+    // Abyssal Spectral Koi
+    drawFishBase('fish_spectral_koi', '#9333ea', '#a855f7', '#f3e8ff', (ctx) => {
+      // Wispy translucent glow halo
+      ctx.fillStyle = 'rgba(192, 132, 252, 0.4)';
+      ctx.beginPath();
+      ctx.arc(14, 12, 9, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // 19. Waterlogged Sunken Lockbox (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Dark waterlogged wood
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(3, 7, 18, 14);
+      // Tarnished brass iron bands
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(5, 7, 3, 14);
+      ctx.fillRect(16, 7, 3, 14);
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(10, 12, 4, 5);
+      // Clinging green waterweed
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(2, 17, 4, 3);
+      ctx.fillRect(18, 15, 3, 4);
+      scene.textures.addCanvas('sunken_chest', canvas);
+      scene.textures.addCanvas('item_sunken_chest', canvas);
+    }
+
+    // 20. Old Waterlogged Boot (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Muddy worn boot
+      ctx.fillStyle = '#3f2212';
+      ctx.fillRect(7, 4, 7, 12);
+      ctx.fillRect(7, 13, 14, 6);
+      // Rubber heel and sole
+      ctx.fillStyle = '#1c1917';
+      ctx.fillRect(6, 17, 15, 3);
+      // Hanging pond weed
+      ctx.fillStyle = '#65a30d';
+      ctx.fillRect(15, 12, 3, 4);
+      ctx.fillRect(18, 14, 2, 5);
+      scene.textures.addCanvas('waterlogged_boot', canvas);
+      scene.textures.addCanvas('item_waterlogged_boot', canvas);
+    }
+
+    // 21. Silver Fish Hook UI Icon (16x16)
+    {
+      const [canvas, ctx] = this.createCanvas(16, 16);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#94a3b8';
+      ctx.beginPath();
+      ctx.arc(8, 9, 5, 0, Math.PI);
+      ctx.lineTo(3, 6);
+      ctx.stroke();
+      // Hook point barb
+      ctx.fillStyle = '#e2e8f0';
+      ctx.beginPath();
+      ctx.moveTo(3, 6);
+      ctx.lineTo(5, 8);
+      ctx.lineTo(2, 8);
+      ctx.closePath();
+      ctx.fill();
+      // Eyelet loop
+      ctx.strokeRect(12, 3, 2, 4);
+      scene.textures.addCanvas('ui_fish_icon_hook', canvas);
+    }
   }
 }

@@ -123,7 +123,8 @@ export const PlayerDataSchema = z.object({
     caughtCount: z.number().int(),
     maxSizeCm: z.number(),
     firstCaughtAt: z.number()
-  })).default({})
+  })).default({}),
+  inventory: z.array(z.string()).default(['Wooden Practice Stick'])
 });
 export type PlayerData = z.infer<typeof PlayerDataSchema>;
 
@@ -146,7 +147,8 @@ export const EntityTypeSchema = z.enum([
   'prop',
   'torch',
   'platform',
-  'campfire'
+  'campfire',
+  'merchant'
 ]);
 export type EntityType = z.infer<typeof EntityTypeSchema>;
 

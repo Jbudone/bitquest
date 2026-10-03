@@ -29,6 +29,7 @@ import { ClassManager } from '../../shared/src/classes';
 import { DUNGEON_CONSTANTS, MALAKOR_SPECS, DungeonManager, CATACOMBS_FLOORS, type DungeonFloorId } from '../../shared/src/dungeon';
 import { FishingEngine, FISH_SPECIES, type FishSpecies, type PlayerFishLog } from '../../shared/src/fishing';
 import { WeatherEngine, CAMPFIRES, type WeatherType, type WeatherState, type DayPhase, type CampfireDefinition } from '../../shared/src/weather';
+import { ShopEngine, MERCHANTS, SHOP_ITEMS, type ShopItem, type MerchantDefinition, type CurrencyType } from '../../shared/src/shop';
 
 function pointToSegmentDistance(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
   const dx = x2 - x1;
@@ -79,6 +80,8 @@ export class WorldManager {
   public onWeatherSync?: (weather: WeatherType, timeOfDaySec: number, transitionProgress: number, windAngle: number, windSpeed: number) => void;
   public onLightningStrike?: (x: number, y: number) => void;
   public onCampfireRest?: (playerId: string, campfireId: string, healedHp: number, restoredMana: number) => void;
+  public onShopSync?: (playerId: string, merchantId: string, merchantName: string, merchantTitle: string, portrait: string, greeting: string, wares: ShopItem[], playerCoins: number, playerAcorns: number, inventory: string[]) => void;
+  public onShopTransactionResult?: (playerId: string, success: boolean, message: string, newCoins: number, newAcorns: number, inventory: string[], wares?: ShopItem[]) => void;
 
   public weatherState: WeatherState = {
     current: 'clear',
@@ -320,6 +323,32 @@ export class WorldManager {
       y: 1030,
       interactable: true,
       state: { dialogueKey: 'sir_reginald', direction: 'right' }
+    });
+
+    // 5b. Merchants & Wandering Traders (Task 7.7)
+    const pipDef = MERCHANTS.merchant_pip!;
+    this.entities.set(pipDef.id, {
+      id: pipDef.id,
+      type: 'merchant',
+      subtype: 'pip',
+      name: pipDef.name,
+      x: pipDef.x,
+      y: pipDef.y,
+      interactable: true,
+      state: { merchantId: pipDef.id, direction: 'down' }
+    });
+
+    const corvusDef = MERCHANTS.merchant_corvus!;
+    const corvusPos = ShopEngine.getWanderingTraderPosition(this.weatherState.timeOfDaySec);
+    this.entities.set(corvusDef.id, {
+      id: corvusDef.id,
+      type: 'merchant',
+      subtype: 'corvus',
+      name: corvusDef.name,
+      x: corvusPos.x,
+      y: corvusPos.y,
+      interactable: true,
+      state: { merchantId: corvusDef.id, direction: 'down', campfireId: corvusPos.campfireId }
     });
 
     // 6. Cute Wildlife in South Lake & Plaza
@@ -957,7 +986,20 @@ export class WorldManager {
       // 3. Campfire Restful Warmth & Healing Loop
       this.tickCampfireResting();
 
-      // 4. Periodic Weather Sync (every 3 seconds or immediately on weather change)
+      // 4. Update Wandering Trader campsite position
+      const corvusEnt = this.entities.get('merchant_corvus');
+      if (corvusEnt) {
+        const nextPos = ShopEngine.getWanderingTraderPosition(this.weatherState.timeOfDaySec);
+        if (corvusEnt.x !== nextPos.x || corvusEnt.y !== nextPos.y) {
+          corvusEnt.x = nextPos.x;
+          corvusEnt.y = nextPos.y;
+          corvusEnt.state.campfireId = nextPos.campfireId;
+          this.spatialGrid.update(corvusEnt);
+          this.onEntityStateChanged?.(corvusEnt);
+        }
+      }
+
+      // 5. Periodic Weather Sync (every 3 seconds or immediately on weather change)
       this.weatherSyncTimer += dt;
       if (weatherChanged || this.weatherSyncTimer >= 3.0) {
         this.weatherSyncTimer = 0;
@@ -989,6 +1031,20 @@ export class WorldManager {
   public setTimeOfDay(hour: number) {
     const normalizedHour = ((hour % 24) + 24) % 24;
     this.weatherState.timeOfDaySec = normalizedHour * WeatherEngine.SECONDS_PER_GAME_HOUR;
+    
+    // Reposition wandering trader immediately on time override
+    const corvusEnt = this.entities.get('merchant_corvus');
+    if (corvusEnt) {
+      const nextPos = ShopEngine.getWanderingTraderPosition(this.weatherState.timeOfDaySec);
+      if (corvusEnt.x !== nextPos.x || corvusEnt.y !== nextPos.y) {
+        corvusEnt.x = nextPos.x;
+        corvusEnt.y = nextPos.y;
+        corvusEnt.state.campfireId = nextPos.campfireId;
+        this.spatialGrid.update(corvusEnt);
+        this.onEntityStateChanged?.(corvusEnt);
+      }
+    }
+
     this.onWeatherSync?.(
       this.weatherState.current,
       this.weatherState.timeOfDaySec,
@@ -1031,6 +1087,172 @@ export class WorldManager {
         }
       }
     }
+  }
+
+  public openShop(playerId: string, merchantId: string) {
+    const player = this.players.get(playerId);
+    if (!player) return;
+    const merchant = MERCHANTS[merchantId];
+    if (!merchant) return;
+
+    // Proximity check (<= 120px)
+    const ent = this.entities.get(merchantId);
+    if (ent) {
+      const dist = Math.hypot(player.x - ent.x, player.y - ent.y);
+      if (dist > 120) return;
+    }
+
+    const wares = ShopEngine.getActiveMerchantWares(merchantId, this.weatherState.timeOfDaySec);
+    const inventory = (player as any).inventory || ['Wooden Practice Stick'];
+    this.onShopSync?.(
+      playerId,
+      merchant.id,
+      merchant.name,
+      merchant.title,
+      merchant.portrait,
+      merchant.greeting,
+      wares,
+      player.coins || 0,
+      player.acorns || 0,
+      inventory
+    );
+  }
+
+  public buyShopItem(playerId: string, merchantId: string, itemId: string, quantity: number = 1) {
+    const player = this.players.get(playerId);
+    if (!player) return;
+    const merchant = MERCHANTS[merchantId];
+    if (!merchant) return;
+
+    // Validate distance
+    const ent = this.entities.get(merchantId);
+    if (ent) {
+      const dist = Math.hypot(player.x - ent.x, player.y - ent.y);
+      if (dist > 120) {
+        this.onShopTransactionResult?.(
+          playerId,
+          false,
+          'Too far from merchant',
+          player.coins || 0,
+          player.acorns || 0,
+          (player as any).inventory || []
+        );
+        return;
+      }
+    }
+
+    const validation = ShopEngine.validateBuy(player, merchantId, itemId, quantity, this.weatherState.timeOfDaySec);
+    if (!validation.valid || !validation.item || validation.totalCost === undefined) {
+      this.onShopTransactionResult?.(
+        playerId,
+        false,
+        validation.reason || 'Transaction could not be completed',
+        player.coins || 0,
+        player.acorns || 0,
+        (player as any).inventory || []
+      );
+      return;
+    }
+
+    const item = validation.item;
+    const totalCost = validation.totalCost;
+
+    // Deduct cost
+    if (item.currency === 'acorn') {
+      player.acorns = Math.max(0, (player.acorns || 0) - totalCost);
+    } else {
+      player.coins = Math.max(0, (player.coins || 0) - totalCost);
+    }
+
+    // Add purchased items to player inventory
+    if (!(player as any).inventory) {
+      (player as any).inventory = ['Wooden Practice Stick'];
+    }
+    for (let i = 0; i < quantity; i++) {
+      (player as any).inventory.push(item.name);
+    }
+
+    // If consumable item with immediate healing/mana, can be consumed
+    if (item.consumableEffect) {
+      if (item.consumableEffect.healHp) {
+        player.health = Math.min(player.maxHealth, player.health + item.consumableEffect.healHp);
+      }
+      if (item.consumableEffect.restoreMp) {
+        player.mana = Math.min(player.maxMana, player.mana + item.consumableEffect.restoreMp);
+      }
+    }
+
+    const wares = ShopEngine.getActiveMerchantWares(merchantId, this.weatherState.timeOfDaySec);
+    this.onPlayerStatsUpdated?.(player);
+    this.onShopTransactionResult?.(
+      playerId,
+      true,
+      `Purchased ${quantity > 1 ? `${quantity}x ` : ''}${item.name}!`,
+      player.coins || 0,
+      player.acorns || 0,
+      (player as any).inventory,
+      wares
+    );
+  }
+
+  public sellShopItem(playerId: string, merchantId: string, inventoryIndex: number, quantity: number = 1) {
+    const player = this.players.get(playerId);
+    if (!player) return;
+    const merchant = MERCHANTS[merchantId];
+    if (!merchant) return;
+
+    // Validate distance
+    const ent = this.entities.get(merchantId);
+    if (ent) {
+      const dist = Math.hypot(player.x - ent.x, player.y - ent.y);
+      if (dist > 120) {
+        this.onShopTransactionResult?.(
+          playerId,
+          false,
+          'Too far from merchant',
+          player.coins || 0,
+          player.acorns || 0,
+          (player as any).inventory || []
+        );
+        return;
+      }
+    }
+
+    const validation = ShopEngine.validateSell(player, inventoryIndex, quantity);
+    if (!validation.valid || validation.totalGain === undefined || !validation.currency) {
+      this.onShopTransactionResult?.(
+        playerId,
+        false,
+        validation.reason || 'Could not sell this item',
+        player.coins || 0,
+        player.acorns || 0,
+        (player as any).inventory || []
+      );
+      return;
+    }
+
+    // Remove item from inventory
+    const inventory = (player as any).inventory as string[];
+    const removedItem = inventory.splice(inventoryIndex, 1)[0];
+
+    // Award currency
+    if (validation.currency === 'acorn') {
+      player.acorns = (player.acorns || 0) + validation.totalGain;
+    } else {
+      player.coins = (player.coins || 0) + validation.totalGain;
+    }
+
+    const wares = ShopEngine.getActiveMerchantWares(merchantId, this.weatherState.timeOfDaySec);
+    this.onPlayerStatsUpdated?.(player);
+    this.onShopTransactionResult?.(
+      playerId,
+      true,
+      `Sold ${removedItem} for +${validation.totalGain} ${validation.currency === 'acorn' ? 'acorns' : 'coins'}!`,
+      player.coins || 0,
+      player.acorns || 0,
+      inventory,
+      wares
+    );
   }
 
   public handleLeverPull(playerId: string, targetId: string) {
@@ -2146,6 +2368,12 @@ export class WorldManager {
         player.anim = player.anim === 'sit' ? 'idle' : 'sit';
         this.updatePlayerMove(playerId, player.x, player.y, player.direction, player.anim, player.carryingItem);
       }
+      return;
+    }
+
+    if (action === 'browse_shop' || entity.type === 'merchant') {
+      const merchantId = entity.state.merchantId || entity.id;
+      this.openShop(playerId, merchantId);
       return;
     }
 

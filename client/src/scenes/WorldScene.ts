@@ -1116,6 +1116,15 @@ export class WorldScene extends Phaser.Scene {
       }
     };
 
+    // Pip's Oddities Shop & Wandering Traders (Issue #25)
+    network.onShopSync = (data) => {
+      (window as any).BitQuestUI?.shopModal?.openShop(data);
+    };
+
+    network.onShopTransactionResult = (data) => {
+      (window as any).BitQuestUI?.shopModal?.handleTransactionResult(data);
+    };
+
     network.connect();
 
     const tryJoin = () => {
@@ -1326,6 +1335,27 @@ export class WorldScene extends Phaser.Scene {
       const sprite = this.add.sprite(ent.x, ent.y, tex);
       sprite.setDepth(ent.y);
       const shadow = this.add.sprite(ent.x, ent.y + 10, 'shadow_medium').setAlpha(0.6).setDepth(ent.y - 1);
+      this.entityShadows.set(ent.id, shadow);
+      obj = sprite;
+    } else if (ent.type === 'merchant') {
+      let texture = 'npc_pip';
+      if (ent.subtype === 'corvus') texture = 'npc_corvus';
+
+      if (ent.subtype === 'pip') {
+        const cart = this.add.image(ent.x - 22, ent.y - 6, 'prop_merchant_cart');
+        cart.setDepth(ent.y - 5);
+      }
+
+      const sprite = this.add.sprite(ent.x, ent.y, texture);
+      this.add.text(ent.x, ent.y - 20, ent.name || 'Merchant', {
+        fontFamily: 'monospace',
+        fontSize: '10px',
+        color: '#34d399',
+        stroke: '#000000',
+        strokeThickness: 2
+      }).setOrigin(0.5, 1);
+
+      const shadow = this.add.sprite(ent.x + 2, ent.y + 8, 'shadow_directional_45').setAlpha(0.6).setDepth(ent.y - 1);
       this.entityShadows.set(ent.id, shadow);
       obj = sprite;
     } else {
@@ -1597,6 +1627,14 @@ export class WorldScene extends Phaser.Scene {
             ease: 'Sine.easeOut'
           });
         }
+      }
+    } else if (ent.type === 'merchant') {
+      obj.setPosition(ent.x, ent.y);
+      obj.setDepth(ent.y);
+      const shadow = this.entityShadows.get(ent.id);
+      if (shadow) {
+        shadow.setPosition(ent.x + 2, ent.y + 8);
+        shadow.setDepth(ent.y - 1);
       }
     }
   }
@@ -2460,6 +2498,11 @@ export class WorldScene extends Phaser.Scene {
           sounds.playCampfireCrackle();
           return;
         }
+        if (ent.type === 'merchant') {
+          network.sendShopOpen(ent.state.merchantId || ent.id);
+          sounds.playShopOpen();
+          return;
+        }
         if (ent.type === 'trigger') {
           network.sendInteract(ent.id, 'enter_dungeon');
           return;
@@ -2525,6 +2568,9 @@ export class WorldScene extends Phaser.Scene {
     } else if (action === 'open_chest') {
       network.sendInteract(closestId, 'open');
       sounds.playChestOpen();
+    } else if (action === 'browse_shop') {
+      network.sendShopOpen(interaction.entity.state.merchantId || closestId);
+      sounds.playShopOpen();
     } else if (action === 'talk') {
       network.sendInteract(closestId, 'talk');
     } else if (action === 'pet') {

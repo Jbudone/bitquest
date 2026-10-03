@@ -179,6 +179,20 @@ export class BehaviorRegistry {
       }
     });
 
+    // 6b. Merchants & Traders (Pip the Badger & Corvus the Nomad)
+    this.interactables.set('merchant', {
+      action: 'browse_shop',
+      promptText: '[E] Browse Wares',
+      interactionRadius: 52,
+      priorityWeight: 90,
+      canInteract: () => true,
+      onInteract: (ent, ctx, world) => {
+        const merchantId = ent.state.merchantId || ent.id;
+        world.openShop?.(ctx.playerId, merchantId);
+        return { handled: true };
+      }
+    });
+
     // 7. Wildlife (e.g. Buster the Dog)
     this.interactables.set('wildlife', {
       action: 'pet',

@@ -59,6 +59,8 @@ export class NetworkClient {
   public onWeatherSync?: (data: { weather: WeatherType; timeOfDaySec: number; transitionProgress: number; windAngle: number; windSpeed: number }) => void;
   public onLightningStrike?: (data: { x: number; y: number }) => void;
   public onCampfireRest?: (data: { playerId: string; campfireId: string; healedHp: number; restoredMana: number }) => void;
+  public onShopSync?: (data: { merchantId: string; merchantName: string; merchantTitle: string; portrait: string; greeting: string; wares: any[]; playerCoins: number; playerAcorns: number; inventory: string[] }) => void;
+  public onShopTransactionResult?: (data: { success: boolean; message: string; newCoins: number; newAcorns: number; inventory: string[]; wares?: any[] }) => void;
   public onReconcile?: (ackSeq: number, x: number, y: number) => void;
   public onConnectionChange?: (connected: boolean) => void;
 
@@ -228,6 +230,12 @@ export class NetworkClient {
           restoredMana: packet.restoredMana
         });
         break;
+      case 'shop_sync':
+        this.onShopSync?.(packet);
+        break;
+      case 'shop_transaction_result':
+        this.onShopTransactionResult?.(packet);
+        break;
       case 'reconcile':
         this.onReconcile?.(packet.ackSeq, packet.x, packet.y);
         break;
@@ -325,6 +333,18 @@ export class NetworkClient {
 
   public sendAdminSetTime(hour: number) {
     this.sendAdminCommand('set_time', { hour });
+  }
+
+  public sendShopOpen(merchantId: string) {
+    this.send({ type: 'shop_open', merchantId });
+  }
+
+  public sendShopBuy(merchantId: string, itemId: string, quantity: number = 1) {
+    this.send({ type: 'shop_buy', merchantId, itemId, quantity });
+  }
+
+  public sendShopSell(merchantId: string, inventoryIndex: number, quantity: number = 1) {
+    this.send({ type: 'shop_sell', merchantId, inventoryIndex, quantity });
   }
 }
 

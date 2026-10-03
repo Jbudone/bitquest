@@ -8,6 +8,7 @@ import { EmoteWheelManager } from './EmoteWheel';
 import { DialogueParser } from './DialogueParser';
 import { EquipmentSheetManager } from './EquipmentSheet';
 import { FishLogbookManager } from './FishLogbook';
+import { ShopModal } from './ShopModal';
 import { saveManager } from '../storage/SaveManager';
 import type { EmoteType, CharacterClassId, WeatherType } from '../../../shared/src/types';
 import { ClassManager } from '../../../shared/src/classes';
@@ -21,6 +22,7 @@ export class UIManager {
   public emoteWheel: EmoteWheelManager;
   public equipmentSheet: EquipmentSheetManager;
   public fishLogbook: FishLogbookManager;
+  public shopModal: ShopModal;
   private selectedPalette = 0;
   public selectedClass: CharacterClassId = 'warrior';
   private currentTypewriterTimer: any = null;
@@ -40,6 +42,7 @@ export class UIManager {
     });
     this.equipmentSheet = new EquipmentSheetManager();
     this.fishLogbook = new FishLogbookManager();
+    this.shopModal = new ShopModal();
 
     document.getElementById('gear-toggle-btn')?.addEventListener('click', () => {
       this.equipmentSheet.toggle();

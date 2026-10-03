@@ -314,6 +314,39 @@ world.onCampfireRest = (playerId, campfireId, healedHp, restoredMana) => {
   });
 };
 
+world.onShopSync = (playerId, merchantId, merchantName, merchantTitle, portrait, greeting, wares, playerCoins, playerAcorns, inventory) => {
+  const socket = sockets.get(playerId);
+  if (socket) {
+    socket.send(JSON.stringify({
+      type: 'shop_sync',
+      merchantId,
+      merchantName,
+      merchantTitle,
+      portrait,
+      greeting,
+      wares,
+      playerCoins,
+      playerAcorns,
+      inventory
+    }));
+  }
+};
+
+world.onShopTransactionResult = (playerId, success, message, newCoins, newAcorns, inventory, wares) => {
+  const socket = sockets.get(playerId);
+  if (socket) {
+    socket.send(JSON.stringify({
+      type: 'shop_transaction_result',
+      success,
+      message,
+      newCoins,
+      newAcorns,
+      inventory,
+      wares
+    }));
+  }
+};
+
 // 25Hz World Tick Loop with Delta State Compression
 const deltaSync = new DeltaSyncEngine();
 let tickCounter = 0;
@@ -681,6 +714,21 @@ const server = Bun.serve<SocketData>({
 
           case 'fishing_cancel': {
             world.cancelFishing(id, 'cancelled');
+            break;
+          }
+
+          case 'shop_open': {
+            world.openShop(id, msg.merchantId);
+            break;
+          }
+
+          case 'shop_buy': {
+            world.buyShopItem(id, msg.merchantId, msg.itemId, msg.quantity);
+            break;
+          }
+
+          case 'shop_sell': {
+            world.sellShopItem(id, msg.merchantId, msg.inventoryIndex, msg.quantity);
             break;
           }
 

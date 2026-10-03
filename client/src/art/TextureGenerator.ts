@@ -2051,6 +2051,187 @@ export class TextureGenerator {
       ctx.fillRect(3, 8, 10, 6);
       scene.textures.addCanvas('wildlife_duck', canvas);
     }
+
+    // 6. Pip the Badger Merchant (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Soft Ground Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(16, 28, 10, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Badger Body & Fur (charcoal & slate grey)
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(10, 14, 12, 13);
+      // Paws
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(9, 25, 4, 3);
+      ctx.fillRect(19, 25, 4, 3);
+
+      // Emerald Green Merchant Vest & White Shirt
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(12, 14, 8, 11);
+      ctx.fillStyle = '#059669'; // Emerald vest panels
+      ctx.fillRect(10, 15, 3, 10);
+      ctx.fillRect(19, 15, 3, 10);
+      // Brass buttons
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(15, 17, 2, 2);
+      ctx.fillRect(15, 21, 2, 2);
+
+      // Leather Coin Pouch Belt
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(10, 23, 12, 2);
+      ctx.fillStyle = '#b45309'; // pouch
+      ctx.fillRect(18, 22, 4, 4);
+      ctx.fillStyle = '#fde047'; // gleaming gold coin in pouch
+      ctx.fillRect(19, 23, 2, 2);
+
+      // Badger Head & Iconic Facial Stripes (black/white)
+      ctx.fillStyle = '#f8fafc'; // White base head
+      ctx.fillRect(10, 6, 12, 8);
+      ctx.fillStyle = '#0f172a'; // Bold lateral black stripes
+      ctx.fillRect(10, 7, 3, 7);
+      ctx.fillRect(19, 7, 3, 7);
+      ctx.fillRect(12, 6, 8, 2); // Forehead stripe
+      // Cute Badger Snout & Nose
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(14, 10, 4, 4);
+      ctx.fillStyle = '#0f172a'; // black nose
+      ctx.fillRect(15, 12, 2, 2);
+      // Sparking eyes
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(12, 9, 2, 2);
+      ctx.fillRect(18, 9, 2, 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(12, 9, 1, 1);
+      ctx.fillRect(18, 9, 1, 1);
+
+      // Flamboyant Merchant's Feather Cap
+      ctx.fillStyle = '#047857';
+      ctx.fillRect(9, 4, 14, 3);
+      ctx.fillRect(11, 2, 10, 2);
+      // Iridescent red-gold pheasant feather
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(20, 0, 2, 4);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(21, 1, 2, 3);
+
+      scene.textures.addCanvas('npc_pip', canvas);
+    }
+
+    // 7. Corvus the Wandering Nomad (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Soft Ground Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.beginPath();
+      ctx.ellipse(16, 28, 9, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Midnight Dusky Cloak & Cowl
+      ctx.fillStyle = '#1e1b4b'; // Deep indigo cloak
+      ctx.fillRect(10, 12, 12, 15);
+      ctx.fillStyle = '#312e81'; // Cloak folds
+      ctx.fillRect(12, 14, 8, 12);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(9, 24, 4, 4);
+      ctx.fillRect(19, 24, 4, 4);
+
+      // Traveler's Heavy Backpack
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(6, 12, 4, 11);
+      ctx.fillStyle = '#b45309'; // Rolled bedroll on top
+      ctx.fillRect(5, 9, 6, 3);
+      // Straps
+      ctx.fillStyle = '#a16207';
+      ctx.fillRect(10, 14, 2, 7);
+
+      // Nomad Cowl & Raven Mask
+      ctx.fillStyle = '#1e1b4b'; // Hood
+      ctx.fillRect(10, 4, 12, 9);
+      ctx.fillStyle = '#0f172a'; // Shaded face cavity
+      ctx.fillRect(12, 6, 8, 6);
+      // Raven Beak
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(14, 9, 4, 3);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(15, 12, 2, 2);
+
+      // Glowing Amber Eyes under cowl
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(13, 7, 2, 2);
+      ctx.fillRect(17, 7, 2, 2);
+
+      // Hanging Brass Travel Lantern
+      ctx.fillStyle = '#78350f'; // cord
+      ctx.fillRect(22, 16, 1, 4);
+      ctx.fillStyle = '#854d0e'; // lantern cap
+      ctx.fillRect(21, 20, 3, 1);
+      ctx.fillStyle = '#fde047'; // glowing glass
+      ctx.fillRect(21, 21, 3, 4);
+      ctx.fillStyle = '#854d0e'; // base
+      ctx.fillRect(21, 25, 3, 1);
+
+      scene.textures.addCanvas('npc_corvus', canvas);
+    }
+
+    // 8. Cozy Merchant Stall / Cart Prop (48x36)
+    {
+      const [canvas, ctx] = this.createCanvas(48, 36);
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(24, 32, 20, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Wooden Cart Base
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(8, 16, 32, 12);
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(10, 18, 28, 8);
+
+      // Wooden Spoke Wheels
+      ctx.fillStyle = '#451a03';
+      ctx.beginPath();
+      ctx.arc(12, 28, 6, 0, Math.PI * 2);
+      ctx.arc(36, 28, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#92400e';
+      ctx.beginPath();
+      ctx.arc(12, 28, 3, 0, Math.PI * 2);
+      ctx.arc(36, 28, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Display Bottles & Curios on Counter
+      ctx.fillStyle = '#ef4444'; // Red potion
+      ctx.fillRect(12, 12, 4, 5);
+      ctx.fillStyle = '#3b82f6'; // Blue mana flask
+      ctx.fillRect(18, 11, 4, 6);
+      ctx.fillStyle = '#10b981'; // Green elixir
+      ctx.fillRect(24, 13, 3, 4);
+      ctx.fillStyle = '#f59e0b'; // Gold lockbox
+      ctx.fillRect(29, 12, 7, 5);
+
+      // Canopy Posts
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(8, 2, 2, 14);
+      ctx.fillRect(38, 2, 2, 14);
+
+      // Striped Red & Cream Awning Canopy
+      const stripeWidth = 6;
+      for (let x = 6; x < 42; x += stripeWidth) {
+        ctx.fillStyle = (Math.floor(x / stripeWidth) % 2 === 0) ? '#dc2626' : '#f8fafc';
+        ctx.fillRect(x, 2, stripeWidth, 8);
+        // Scalloped bottom edge
+        ctx.beginPath();
+        ctx.arc(x + stripeWidth / 2, 10, stripeWidth / 2, 0, Math.PI);
+        ctx.fill();
+      }
+
+      scene.textures.addCanvas('prop_merchant_cart', canvas);
+    }
   }
 
   private static createEmoteTextures(scene: Phaser.Scene) {

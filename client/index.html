@@ -178,6 +178,72 @@
       </div>
     </div>
 
+    <!-- Pip's Oddities Shop & Wandering Traders Modal (Task 7.7) -->
+    <div id="shop-modal" class="shop-modal" style="display: none;">
+      <div class="shop-backdrop"></div>
+      <div class="shop-window">
+        <!-- Header -->
+        <div class="shop-header">
+          <div class="shop-merchant-profile">
+            <div id="shop-merchant-portrait" class="shop-portrait"></div>
+            <div class="shop-merchant-meta">
+              <h2 id="shop-merchant-title">Pip's Oddities & Curios</h2>
+              <p id="shop-merchant-speech" class="shop-speech">"Welcome! Take a look at these rare finds."</p>
+            </div>
+          </div>
+          <div class="shop-wallet">
+            <div class="wallet-badge" title="Your Coins">
+              <span class="wallet-icon">🪙</span>
+              <span id="shop-wallet-coins">0</span>
+            </div>
+            <div class="wallet-badge" title="Your Acorns">
+              <span class="wallet-icon">🌰</span>
+              <span id="shop-wallet-acorns">0</span>
+            </div>
+            <button id="shop-close-btn" class="shop-close-btn" title="Close [ESC]">✖</button>
+          </div>
+        </div>
+
+        <!-- Tabs & Filters -->
+        <div class="shop-nav-bar">
+          <div class="shop-tabs">
+            <button id="shop-tab-buy" class="shop-tab-btn active">🛒 Buy Wares</button>
+            <button id="shop-tab-sell" class="shop-tab-btn">💰 Sell Goods</button>
+          </div>
+          <div class="shop-category-filters" id="shop-category-filters">
+            <button class="shop-filter-chip active" data-category="all">All</button>
+            <button class="shop-filter-chip" data-category="consumable">Consumables</button>
+            <button class="shop-filter-chip" data-category="gear">Gear</button>
+            <button class="shop-filter-chip" data-category="vanity">Vanity</button>
+            <button class="shop-filter-chip" data-category="oddity">Oddities</button>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div class="shop-body">
+          <div id="shop-panel-buy" class="shop-panel active">
+            <div id="shop-wares-grid" class="shop-grid">
+              <!-- Dynamically populated shop item cards -->
+            </div>
+          </div>
+
+          <div id="shop-panel-sell" class="shop-panel" style="display: none;">
+            <div id="shop-sell-grid" class="shop-grid">
+              <!-- Dynamically populated player inventory sell cards -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="shop-footer">
+          <div id="shop-status-msg" class="shop-status-msg"></div>
+          <div class="shop-rotation-notice">
+            <span>🕒 Rotating stock refreshes at Dawn &amp; Dusk</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Bottom HUD (Spell Hotbar + Emotes + Chat Bar) -->
     <footer class="bottom-hud">
       <div id="spell-hotbar" class="spell-hotbar">

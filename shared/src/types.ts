@@ -4,6 +4,7 @@ export * from './classes';
 export * from './dungeon';
 export * from './fishing';
 export * from './weather';
+export * from './shop';
 import type { 
   Direction, 
   PlayerAnimState, 
@@ -23,12 +24,13 @@ import type { PlayerEquipment, PlayerVanity, AggregatedEquipmentStats } from './
 import type { CharacterClassId, ClassAbilityId } from './classes';
 import type { PlayerFishLog } from './fishing';
 import type { WeatherType } from './weather';
+import type { ShopItem } from './shop';
 
 // Network protocol packets
 export type ClientPacket =
   | { type: 'join'; name: string; color: string; paletteIndex: number }
   | { type: 'move'; x: number; y: number; direction: Direction; anim: PlayerAnimState; carryingItem: string | null; seq?: number }
-  | { type: 'interact'; targetId: string; action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever' | 'light_torch' | 'enter_dungeon' | 'warp_floor' | 'sit_campfire'; x?: number; y?: number; damage?: number }
+  | { type: 'interact'; targetId: string; action: 'cut' | 'lift' | 'toss' | 'catch' | 'talk' | 'press' | 'pet' | 'hit_enemy' | 'player_hurt' | 'pull_lever' | 'light_torch' | 'enter_dungeon' | 'warp_floor' | 'sit_campfire' | 'browse_shop'; x?: number; y?: number; damage?: number }
   | { type: 'cast_spell'; spellId: SpellId; x: number; y: number; direction: Direction }
   | { type: 'equip_item'; slot: EquipmentSlot; itemId: string | null }
   | { type: 'set_vanity'; slot: VanitySlot; vanityId: string | null }
@@ -40,6 +42,9 @@ export type ClientPacket =
   | { type: 'fishing_cast'; targetX: number; targetY: number }
   | { type: 'fishing_reel'; isHolding: boolean }
   | { type: 'fishing_cancel' }
+  | { type: 'shop_open'; merchantId: string }
+  | { type: 'shop_buy'; merchantId: string; itemId: string; quantity: number }
+  | { type: 'shop_sell'; merchantId: string; inventoryIndex: number; quantity: number }
   | { type: 'chat'; text: string }
   | { type: 'emote'; emote: EmoteType }
   | { type: 'dialogue_choice'; npcId: string; choiceIndex: number }
@@ -70,7 +75,7 @@ export type ServerPacket =
   | { type: 'parry_event'; playerId: string; attackerId?: string; x: number; y: number }
   | { type: 'life_siphon_event'; casterId: string; targetId: string; amount: number; casterHp: number }
   | { type: 'minion_spawned'; minionId: string; ownerId: string; x: number; y: number; subtype: string }
-  | { type: 'player_stats_updated'; id: string; health: number; maxHealth: number; mana: number; maxMana: number; coins: number; acorns: number }
+  | { type: 'player_stats_updated'; id: string; health: number; maxHealth: number; mana: number; maxMana: number; coins: number; acorns: number; inventory?: string[] }
   | { type: 'boss_event'; action: 'spawn' | 'stomp' | 'spore' | 'charge' | 'crash_stun' | 'defeated' | 'crypt_spike' | 'scythe_cleave' | 'darkness_shroud' | 'soul_barrage'; bossId?: string; x?: number; y?: number; targetX?: number; targetY?: number }
   | { type: 'dungeon_transition'; floorId: 'f1' | 'f2' | 'overworld'; x: number; y: number; title: string; subtitle: string }
   | { type: 'torch_lit_event'; torchId: string; x: number; y: number; roomSolved?: boolean }
@@ -81,6 +86,9 @@ export type ServerPacket =
   | { type: 'fish_log_sync'; playerId: string; log: PlayerFishLog }
   | { type: 'weather_sync'; weather: WeatherType; timeOfDaySec: number; transitionProgress: number; windAngle: number; windSpeed: number }
   | { type: 'lightning_strike'; x: number; y: number }
-  | { type: 'campfire_rest'; playerId: string; campfireId: string; healedHp: number; restoredMana: number };
+  | { type: 'campfire_rest'; playerId: string; campfireId: string; healedHp: number; restoredMana: number }
+  | { type: 'shop_sync'; merchantId: string; merchantName: string; merchantTitle: string; portrait: string; greeting: string; wares: ShopItem[]; playerCoins: number; playerAcorns: number; inventory: string[] }
+  | { type: 'shop_transaction_result'; success: boolean; message: string; newCoins: number; newAcorns: number; inventory: string[]; wares?: ShopItem[] };
+
 
 

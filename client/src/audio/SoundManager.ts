@@ -1790,6 +1790,124 @@ export class SoundManager {
       this.rainGain.gain.linearRampToValueAtTime(Math.min(0.25, 0.15 * intensity * this.sfxVol), now + 0.5);
     }
   }
+
+  /**
+   * Cheerful shop door chime on opening merchant shop.
+   */
+  public playShopOpen() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const freqs = [523.25, 659.25, 783.99]; // C5, E5, G5 cheerful arpeggio
+    freqs.forEach((freq, idx) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      const noteTime = now + idx * 0.045;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, noteTime);
+
+      gain.gain.setValueAtTime(0.12 * this.sfxVol, noteTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, noteTime + 0.18);
+
+      osc.connect(gain);
+      gain.connect(this.soundDestination);
+
+      osc.start(noteTime);
+      osc.stop(noteTime + 0.19);
+    });
+  }
+
+  /**
+   * Cash register / coin jingle upon purchase.
+   */
+  public playShopBuy() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Coin jingle 1
+    const osc1 = this.ctx.createOscillator();
+    const gain1 = this.ctx.createGain();
+    osc1.type = 'triangle';
+    osc1.frequency.setValueAtTime(987.77, now); // B5
+    osc1.frequency.exponentialRampToValueAtTime(1318.51, now + 0.08); // E6
+    gain1.gain.setValueAtTime(0.18 * this.sfxVol, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    osc1.connect(gain1);
+    gain1.connect(this.soundDestination);
+    osc1.start(now);
+    osc1.stop(now + 0.19);
+
+    // Coin jingle 2 (harmonic chime)
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(1567.98, now + 0.05); // G6
+    gain2.gain.setValueAtTime(0.15 * this.sfxVol, now + 0.05);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    osc2.connect(gain2);
+    gain2.connect(this.soundDestination);
+    osc2.start(now + 0.05);
+    osc2.stop(now + 0.23);
+  }
+
+  /**
+   * Wooden till drawer clink and coin payout upon sale.
+   */
+  public playShopSell() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Wood drawer clink
+    const oscWood = this.ctx.createOscillator();
+    const gainWood = this.ctx.createGain();
+    oscWood.type = 'triangle';
+    oscWood.frequency.setValueAtTime(260, now);
+    oscWood.frequency.exponentialRampToValueAtTime(120, now + 0.06);
+    gainWood.gain.setValueAtTime(0.15 * this.sfxVol, now);
+    gainWood.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    oscWood.connect(gainWood);
+    gainWood.connect(this.soundDestination);
+    oscWood.start(now);
+    oscWood.stop(now + 0.09);
+
+    // Coin payout jingle
+    const oscCoin = this.ctx.createOscillator();
+    const gainCoin = this.ctx.createGain();
+    oscCoin.type = 'sine';
+    oscCoin.frequency.setValueAtTime(784, now + 0.04);
+    oscCoin.frequency.exponentialRampToValueAtTime(1046.5, now + 0.12);
+    gainCoin.gain.setValueAtTime(0.16 * this.sfxVol, now + 0.04);
+    gainCoin.gain.exponentialRampToValueAtTime(0.001, now + 0.20);
+    oscCoin.connect(gainCoin);
+    gainCoin.connect(this.soundDestination);
+    oscCoin.start(now + 0.04);
+    oscCoin.stop(now + 0.21);
+  }
+
+  /**
+   * Soft dull buzzer when funds are insufficient.
+   */
+  public playShopError() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(160, now);
+    osc.frequency.exponentialRampToValueAtTime(110, now + 0.14);
+    gain.gain.setValueAtTime(0.12 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.17);
+  }
 }
 
 export const sounds = new SoundManager();

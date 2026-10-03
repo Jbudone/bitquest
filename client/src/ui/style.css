@@ -1059,3 +1059,353 @@ canvas {
   gap: 6px;
   margin-top: auto;
 }
+
+/* ======================================================================
+   Multi-Quest Journal & HUD Objective Tracker Styles
+   ====================================================================== */
+.quest-journal-prompt {
+  font-family: monospace;
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #facc15;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 6px;
+  font-weight: bold;
+}
+
+.quest-toast-banner {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 90;
+  pointer-events: none;
+  animation: slideDownFade 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.3s ease;
+}
+
+.quest-toast-banner.hidden {
+  display: none !important;
+}
+
+.quest-fanfare-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 10px 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8), 0 0 20px rgba(250, 204, 21, 0.4);
+}
+
+.quest-fanfare-inner.advance {
+  border: 2px solid #38bdf8;
+}
+
+.quest-fanfare-inner.complete {
+  border: 2px solid #facc15;
+}
+
+.fanfare-icon {
+  font-size: 24px;
+}
+
+.fanfare-title {
+  font-family: var(--font-retro);
+  font-size: 11px;
+  color: #facc15;
+  letter-spacing: 0.5px;
+}
+
+.fanfare-desc {
+  font-size: 12px;
+  color: #f8fafc;
+  font-weight: 500;
+}
+
+/* Confetti Pieces */
+.confetti-piece {
+  position: fixed;
+  top: -10px;
+  width: 10px;
+  height: 14px;
+  z-index: 120;
+  pointer-events: none;
+  opacity: 0.9;
+  animation: fallRotate linear forwards;
+}
+
+@keyframes fallRotate {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+}
+
+/* Quest Journal Modal */
+.quest-journal-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 105;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quest-journal-modal.hidden {
+  display: none !important;
+}
+
+.journal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 11, 20, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.journal-window {
+  position: relative;
+  z-index: 106;
+  background: #0f172a;
+  border: 2px solid #f59e0b;
+  border-radius: 12px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.85), 0 0 25px rgba(245, 158, 11, 0.3);
+  width: 680px;
+  max-width: 95vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.journal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: #1e293b;
+}
+
+.journal-title-block h2 {
+  font-family: var(--font-retro);
+  font-size: 13px;
+  color: #fef08a;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.journal-hint {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.journal-hint strong {
+  color: #facc15;
+}
+
+.journal-close-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+  transition: color 0.15s;
+}
+
+.journal-close-btn:hover {
+  color: #ef4444;
+}
+
+.journal-tabs {
+  display: flex;
+  background: #111827;
+  border-bottom: 1px solid #1f2937;
+  padding: 0 16px;
+  gap: 8px;
+}
+
+.journal-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #94a3b8;
+  font-family: var(--font-retro);
+  font-size: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.journal-tab:hover {
+  color: #f1f5f9;
+}
+
+.journal-tab.active {
+  color: #facc15;
+  border-bottom-color: #facc15;
+}
+
+.journal-content {
+  padding: 16px;
+  overflow-y: auto;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.journal-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.journal-card {
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.15s ease;
+}
+
+.journal-card.pinned {
+  border-color: #f59e0b;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-quest-icon {
+  font-size: 20px;
+}
+
+.card-title {
+  font-family: var(--font-retro);
+  font-size: 12px;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.card-giver {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.btn-pin {
+  font-size: 10px;
+  padding: 4px 10px;
+  background: #334155;
+  border-color: #475569;
+}
+
+.btn-pin.is-pinned {
+  background: #f59e0b;
+  color: #000;
+  font-weight: 700;
+  border-color: #f59e0b;
+}
+
+.completed-badge {
+  font-size: 10px;
+  font-weight: 800;
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.card-desc {
+  font-size: 12px;
+  color: #cbd5e1;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.card-stages-list {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 6px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.card-stages-list h4 {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #94a3b8;
+  margin: 0 0 2px 0;
+}
+
+.stage-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.stage-item.done {
+  color: #64748b;
+  text-decoration: line-through;
+}
+
+.stage-item.current {
+  color: #fef08a;
+  font-weight: 600;
+}
+
+.stage-checkbox {
+  font-family: monospace;
+  font-weight: bold;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.card-rewards {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.reward-pill {
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #cbd5e1;
+}
+
+.journal-empty-state {
+  text-align: center;
+  padding: 30px;
+  color: #94a3b8;
+  font-size: 13px;
+}

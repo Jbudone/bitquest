@@ -1,15 +1,22 @@
 import { network } from '../network/NetworkClient';
 import { sounds } from '../audio/SoundManager';
 import { MinimapManager } from './Minimap';
+import { QuestJournalManager } from './QuestJournal';
 import type { EmoteType } from '../../../shared/src/types';
 
 export class UIManager {
   public minimap: MinimapManager;
+  public quests: QuestJournalManager;
   private selectedPalette = 0;
   private currentTypewriterTimer: any = null;
 
   constructor() {
     this.minimap = new MinimapManager();
+    this.quests = new QuestJournalManager((beacon) => {
+      this.minimap.questBeacon = beacon;
+    });
+    this.quests.updateBeacon();
+
     this.setupJoinModal();
     this.setupChatAndEmotes();
     this.setupDialogueBox();
@@ -27,10 +34,20 @@ export class UIManager {
         sounds.ensureContext();
         this.minimap.toggleAtlas();
       }
+      if (e.key === 'j' || e.key === 'J') {
+        sounds.ensureContext();
+        this.quests.toggleJournal();
+      }
       if (e.key === 'Escape') {
+        if (this.quests.isJournalOpen()) {
+          this.quests.closeJournal();
+          e.stopPropagation();
+          return;
+        }
         if (this.minimap.isAtlasActive()) {
           this.minimap.closeAtlas();
           e.stopPropagation();
+          return;
         }
       }
     });
@@ -161,6 +178,7 @@ export class UIManager {
 
     sounds.ensureContext();
     speakerEl.innerText = data.speaker;
+    this.quests.handleEvent({ type: 'talk', targetId: data.npcId });
     choicesEl.innerHTML = '';
 
     // Render portrait from Phaser texture if available

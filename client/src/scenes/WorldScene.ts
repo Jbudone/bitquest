@@ -622,6 +622,7 @@ export class WorldScene extends Phaser.Scene {
       sounds.playSecretJingle();
       (window as any).BitQuestUI?.showToast('✨ The Ancient Sunken Gate has opened!');
     }
+    (window as any).BitQuestUI?.quests?.handleEvent({ type: 'interact', targetId: 'moss_gate' });
   }
 
   public closeGate() {
@@ -935,6 +936,7 @@ export class WorldScene extends Phaser.Scene {
           sounds.playStrawberry();
           this.showFloatingText(sprite.x, sprite.y, `+1 ❤️`, '#f43f5e');
           this.localPlayer.health = Math.min(this.localPlayer.maxHealth, this.localPlayer.health + 1);
+          (window as any).BitQuestUI?.quests?.handleEvent({ type: 'collect', targetId: 'strawberry', amount: value });
         } else if (itemType === 'jam') {
           sounds.playStrawberry();
           this.showFloatingText(sprite.x, sprite.y, `SWEET JAM! 🍯`, '#c084fc');

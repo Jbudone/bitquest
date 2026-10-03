@@ -455,32 +455,70 @@ export class Player extends Phaser.GameObjects.Container {
   }
 
   public showEmote(emote: string) {
-    sounds.playEmoteSound();
+    sounds.playEmoteSound(emote);
 
     if (this.emoteSprite) {
       this.emoteSprite.destroy();
+      this.emoteSprite = null;
     }
 
-    this.emoteSprite = this.scene.add.sprite(0, this.carryingPotId ? -54 : -42, `emote_${emote}`);
-    this.emoteSprite.setScale(0);
-    this.add(this.emoteSprite);
+    const baseY = this.carryingPotId ? -54 : -42;
+    const spr = this.scene.add.sprite(0, baseY, `emote_${emote}`);
+    spr.setScale(0.2, 0.2);
+    this.add(spr);
+    this.emoteSprite = spr;
 
+    // Spring squash & stretch thought bubble animation
     this.scene.tweens.add({
-      targets: this.emoteSprite,
-      scale: 1.2,
-      duration: 180,
-      yoyo: true,
-      repeat: 0,
-      ease: 'Back.easeOut',
+      targets: spr,
+      scaleX: 1.35,
+      scaleY: 0.75,
+      duration: 120,
+      ease: 'Quad.easeOut',
       onComplete: () => {
-        if (this.emoteSprite) this.emoteSprite.setScale(1.0);
+        this.scene.tweens.add({
+          targets: spr,
+          scaleX: 0.85,
+          scaleY: 1.25,
+          duration: 110,
+          ease: 'Sine.easeInOut',
+          onComplete: () => {
+            this.scene.tweens.add({
+              targets: spr,
+              scaleX: 1.0,
+              scaleY: 1.0,
+              duration: 100,
+              ease: 'Back.easeOut',
+              onComplete: () => {
+                this.scene.tweens.add({
+                  targets: spr,
+                  y: baseY - 4,
+                  duration: 600,
+                  yoyo: true,
+                  repeat: 3,
+                  ease: 'Sine.easeInOut'
+                });
+              }
+            });
+          }
+        });
       }
     });
 
     this.scene.time.delayedCall(3000, () => {
-      if (this.emoteSprite) {
-        this.emoteSprite.destroy();
-        this.emoteSprite = null;
+      if (this.emoteSprite === spr) {
+        this.scene.tweens.add({
+          targets: spr,
+          scaleX: 0,
+          scaleY: 0,
+          alpha: 0,
+          duration: 180,
+          ease: 'Back.easeIn',
+          onComplete: () => {
+            spr.destroy();
+            if (this.emoteSprite === spr) this.emoteSprite = null;
+          }
+        });
       }
     });
   }

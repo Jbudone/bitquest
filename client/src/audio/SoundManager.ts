@@ -518,26 +518,76 @@ export class SoundManager {
     osc.stop(now + 0.04);
   }
 
-  public playEmoteSound() {
+  public playEmoteSound(emote?: string) {
     this.ensureContext();
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(523, now); // C5
-    osc.frequency.setValueAtTime(784, now + 0.06); // G5
-
-    gain.gain.setValueAtTime(0.2, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-
-    osc.connect(gain);
-    gain.connect(this.soundDestination);
-
-    osc.start(now);
-    osc.stop(now + 0.2);
+    if (emote === 'heart') {
+      const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+      notes.forEach((freq, i) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.07);
+        gain.gain.setValueAtTime(0.14 * this.sfxVol, now + i * 0.07);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.07 + 0.35);
+        osc.connect(gain);
+        gain.connect(this.soundDestination);
+        osc.start(now + i * 0.07);
+        osc.stop(now + i * 0.07 + 0.35);
+      });
+    } else if (emote === 'laugh') {
+      const notes = [659.25, 783.99, 880.00];
+      notes.forEach((freq, i) => {
+        const osc = this.ctx!.createOscillator();
+        const gain = this.ctx!.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + i * 0.06);
+        gain.gain.setValueAtTime(0.12 * this.sfxVol, now + i * 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.12);
+        osc.connect(gain);
+        gain.connect(this.soundDestination);
+        osc.start(now + i * 0.06);
+        osc.stop(now + i * 0.06 + 0.12);
+      });
+    } else if (emote === 'question') {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.18);
+      gain.gain.setValueAtTime(0.14 * this.sfxVol, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+      osc.connect(gain);
+      gain.connect(this.soundDestination);
+      osc.start(now);
+      osc.stop(now + 0.22);
+    } else if (emote === 'exclamation') {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(1046.5, now); // C6 ping
+      gain.gain.setValueAtTime(0.18 * this.sfxVol, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      osc.connect(gain);
+      gain.connect(this.soundDestination);
+      osc.start(now);
+      osc.stop(now + 0.25);
+    } else {
+      // Default / Wave / Music buoyant double chirp
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, now); // D5
+      osc.frequency.setValueAtTime(880, now + 0.06); // A5
+      gain.gain.setValueAtTime(0.15 * this.sfxVol, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      osc.connect(gain);
+      gain.connect(this.soundDestination);
+      osc.start(now);
+      osc.stop(now + 0.25);
+    }
   }
 
   public playCoin() {

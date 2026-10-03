@@ -58,7 +58,8 @@ export class UIManager {
         sounds.ensureContext();
         this.minimap.toggleAtlas();
       }
-      if (e.key === 'j' || e.key === 'J') {
+      if (e.key === 'Tab') {
+        e.preventDefault();
         sounds.ensureContext();
         this.quests.toggleJournal();
       }
@@ -66,7 +67,7 @@ export class UIManager {
         sounds.ensureContext();
         this.equipmentSheet.toggle();
       }
-      if (e.key === ' ' || e.key === 'Enter') {
+      if (e.key === ' ' || e.key === 'Enter' || e.key === 'e' || e.key === 'E' || e.key === 'k' || e.key === 'K') {
         const dialogueModal = document.getElementById('dialogue-modal');
         if (dialogueModal && dialogueModal.classList.contains('active')) {
           if (this.fastForwardDialogue) {
@@ -292,6 +293,11 @@ export class UIManager {
       }
       if (this.fastForwardDialogue) {
         this.fastForwardDialogue();
+      } else {
+        const choicesEl = document.getElementById('dialogue-responses');
+        if (choicesEl && choicesEl.querySelectorAll('.dialogue-choice').length === 0) {
+          this.hideDialogue();
+        }
       }
     });
   }
@@ -451,6 +457,13 @@ export class UIManager {
       const prompt = document.createElement('div');
       prompt.className = 'dialogue-prompt-continue';
       prompt.innerText = '▼ Click to continue...';
+      prompt.style.cursor = 'pointer';
+      prompt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sounds.ensureContext();
+        sounds.playDialogueBlip('click');
+        this.hideDialogue();
+      });
       choicesEl.appendChild(prompt);
       return;
     }

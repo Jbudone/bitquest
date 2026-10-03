@@ -1311,6 +1311,7 @@ export class WorldManager {
     if (!entity) return;
 
     if (action === 'hit_enemy') {
+      if (entity.state.destroyed) return;
       const healthPool = BehaviorRegistry.getHealthPool(entity);
       if (healthPool) {
         let dmg = damage || 1;

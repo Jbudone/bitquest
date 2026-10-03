@@ -339,3 +339,4 @@ world.entities.delete(enemyLine2.id);
 if (spawnedMinionId) world.entities.delete(spawnedMinionId);
 
 console.log(`\n🎉 Class Archetypes Test Suite Complete! Passed: ${passedTests}/${totalTests} tests.`);
+process.exit(0);

@@ -455,6 +455,10 @@ export class SoundManager {
     osc.stop(now + 0.18);
   }
 
+  public playPotSmash() {
+    this.playPotShatter();
+  }
+
   public playSwitchClick() {
     this.ensureContext();
     if (!this.ctx) return;
@@ -903,6 +907,24 @@ export class SoundManager {
     crackGain.connect(this.soundDestination);
     crack.start(now);
     crack.stop(now + 0.12);
+  }
+
+  public playEnemyDefeat() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(380, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.22);
+    gain.gain.setValueAtTime(0.35 * this.sfxVol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    osc.connect(gain);
+    gain.connect(this.soundDestination);
+    osc.start(now);
+    osc.stop(now + 0.22);
   }
 
   public playStunBonk() {

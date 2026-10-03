@@ -68,6 +68,7 @@ export class WorldScene extends Phaser.Scene {
   private hitstopTimer: any = null;
   public bossStunnedUntil = 0;
   private bossDizzyStars: Phaser.GameObjects.Sprite[] = [];
+  private enemyHealthBars = new Map<string, { bg: Phaser.GameObjects.Graphics; fg: Phaser.GameObjects.Graphics }>();
 
   // Seamless Building Interiors & Roof-Lift
   private cottages: Array<{
@@ -156,7 +157,7 @@ export class WorldScene extends Phaser.Scene {
 
     // 1c. Occlusion X-Ray Silhouette for player (depth 3500, bright cyan #38bdf8)
     this.playerSilhouette = this.add.sprite(0, 0, 'player_0_down_idle');
-    this.playerSilhouette.setTintFill(0x38bdf8);
+    this.applyTintFill(this.playerSilhouette, 0x38bdf8);
     this.playerSilhouette.setAlpha(0);
     this.playerSilhouette.setDepth(3500);
 
@@ -232,7 +233,7 @@ export class WorldScene extends Phaser.Scene {
 
     // 4. Camera bounds
     this.cameras.main.setBounds(0, 0, 2048, 1792);
-    this.cameras.main.setZoom(1.75); // Cozy pixel zoom!
+    this.cameras.main.setZoom(1.35); // Cozy pixel zoom (expanded FOV)
   }
 
   private buildWorld() {
@@ -644,6 +645,7 @@ export class WorldScene extends Phaser.Scene {
     };
 
     network.onEntityUpdated = (ent) => {
+      this.worldEntities.set(ent.id, ent);
       this.updateEntityVisuals(ent);
     };
 
@@ -919,17 +921,25 @@ export class WorldScene extends Phaser.Scene {
     } else if (ent.type === 'enemy') {
       const tex = ent.subtype === 'sproutling' ? 'enemy_sproutling' : 'enemy_grumble';
       const sprite = this.add.sprite(ent.x, ent.y, tex);
-      sprite.setVisible(!ent.state.destroyed);
+      const isDead = !!ent.state.destroyed;
+      sprite.setVisible(!isDead);
       const shadow = this.add.sprite(ent.x + 2, ent.y + 8, 'shadow_directional_45').setAlpha(0.6).setDepth(ent.y - 1);
-      shadow.setVisible(!ent.state.destroyed);
+      shadow.setVisible(!isDead);
       this.entityShadows.set(ent.id, shadow);
+      if (!isDead && ent.state.hp !== undefined && ent.state.maxHp !== undefined) {
+        this.updateEnemyHealthBar(ent.id, ent.x, ent.y, ent.state.hp, ent.state.maxHp, false);
+      }
       obj = sprite;
     } else if (ent.type === 'boss') {
       const sprite = this.add.sprite(ent.x, ent.y, 'boss_baron');
-      sprite.setVisible(!ent.state.destroyed);
+      const isDead = !!ent.state.destroyed;
+      sprite.setVisible(!isDead);
       const shadow = this.add.sprite(ent.x + 4, ent.y + 16, 'shadow_boss').setAlpha(0.7).setDepth(ent.y - 1);
-      shadow.setVisible(!ent.state.destroyed);
+      shadow.setVisible(!isDead);
       this.entityShadows.set(ent.id, shadow);
+      if (!isDead && ent.state.hp !== undefined && ent.state.maxHp !== undefined) {
+        this.updateEnemyHealthBar(ent.id, ent.x, ent.y, ent.state.hp, ent.state.maxHp, true);
+      }
       obj = sprite;
     } else if (ent.type === 'minion') {
       const sprite = this.add.sprite(ent.x, ent.y, 'entity_minion_skeleton');
@@ -953,6 +963,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private updateEntityVisuals(ent: EntityData) {
+    this.worldEntities.set(ent.id, ent);
     let obj = this.entityObjects.get(ent.id) as any;
     if (!obj) {
       this.renderEntity(ent);
@@ -1052,16 +1063,31 @@ export class WorldScene extends Phaser.Scene {
       }
     } else if (ent.type === 'enemy') {
       const wasVisible = obj.visible;
-      obj.setVisible(!ent.state.destroyed);
-      const shadow = this.entityShadows.get(ent.id);
-      if (shadow) shadow.setVisible(!ent.state.destroyed);
-      if (wasVisible && ent.state.destroyed) {
+      const isDead = !!ent.state.destroyed;
+
+      if (wasVisible && isDead) {
         this.stampSlimeDecal(ent.x, ent.y);
+        sounds.playEnemyDefeat();
+        this.showFloatingText(ent.x, ent.y - 20, "💀 DEFEATED!", "#facc15", true);
+        this.emitEnemyDefeatBurst(ent.x, ent.y, ent.subtype === 'sproutling' ? 0xa3e635 : 0xec4899);
+        this.removeEnemyHealthBar(ent.id);
+        obj.setVisible(false);
+      } else if (!isDead) {
+        obj.setVisible(true);
+        if (ent.state.hp !== undefined && ent.state.maxHp !== undefined) {
+          this.updateEnemyHealthBar(ent.id, ent.x, ent.y, ent.state.hp, ent.state.maxHp, false);
+        }
+      } else {
+        obj.setVisible(false);
+        this.removeEnemyHealthBar(ent.id);
       }
+
+      const shadow = this.entityShadows.get(ent.id);
+      if (shadow) shadow.setVisible(!isDead);
 
       // Overhead Question Mark for Confused / Leashing State
       let confIcon = this.enemyConfusedIcons.get(ent.id);
-      if (ent.state.aiState === 'confused' && !ent.state.destroyed) {
+      if (ent.state.aiState === 'confused' && !isDead) {
         if (!confIcon) {
           confIcon = this.add.image(ent.x, ent.y - 18, 'particle_question');
           confIcon.setDepth(ent.y + 100);
@@ -1081,14 +1107,19 @@ export class WorldScene extends Phaser.Scene {
         if (confIcon) confIcon.setVisible(false);
       }
 
-      if (!ent.state.destroyed) {
+      if (!isDead) {
         // Smooth lerp to new position
         this.tweens.add({
           targets: obj,
           x: ent.x,
           y: ent.y,
           duration: 300,
-          ease: 'Sine.easeOut'
+          ease: 'Sine.easeOut',
+          onUpdate: () => {
+            if (ent.state.hp !== undefined && ent.state.maxHp !== undefined && !ent.state.destroyed) {
+              this.updateEnemyHealthBar(ent.id, obj.x, obj.y, ent.state.hp, ent.state.maxHp, false);
+            }
+          }
         });
         if (shadow) {
           this.tweens.add({
@@ -1109,16 +1140,35 @@ export class WorldScene extends Phaser.Scene {
         }
       }
     } else if (ent.type === 'boss') {
-      obj.setVisible(!ent.state.destroyed);
+      const wasVisible = obj.visible;
+      const isDead = !!ent.state.destroyed;
+      obj.setVisible(!isDead);
       const shadow = this.entityShadows.get(ent.id);
-      if (shadow) shadow.setVisible(!ent.state.destroyed);
-      if (!ent.state.destroyed) {
+      if (shadow) shadow.setVisible(!isDead);
+
+      if (wasVisible && isDead) {
+        sounds.playEnemyDefeat();
+        this.showFloatingText(ent.x, ent.y - 30, "👑 BARON DEFEATED!", "#facc15", true);
+        this.emitEnemyDefeatBurst(ent.x, ent.y, 0xf59e0b);
+        this.removeEnemyHealthBar(ent.id);
+      } else if (!isDead && ent.state.hp !== undefined && ent.state.maxHp !== undefined) {
+        this.updateEnemyHealthBar(ent.id, ent.x, ent.y, ent.state.hp, ent.state.maxHp, true);
+      } else if (isDead) {
+        this.removeEnemyHealthBar(ent.id);
+      }
+
+      if (!isDead) {
         this.tweens.add({
           targets: obj,
           x: ent.x,
           y: ent.y,
           duration: 350,
-          ease: 'Sine.easeOut'
+          ease: 'Sine.easeOut',
+          onUpdate: () => {
+            if (ent.state.hp !== undefined && ent.state.maxHp !== undefined && !ent.state.destroyed) {
+              this.updateEnemyHealthBar(ent.id, obj.x, obj.y, ent.state.hp, ent.state.maxHp, true);
+            }
+          }
         });
         if (shadow) {
           this.tweens.add({
@@ -1679,6 +1729,8 @@ export class WorldScene extends Phaser.Scene {
         if (!isRemote) {
           for (const [id, obj] of this.entityObjects.entries()) {
             if (id.startsWith('enemy_') || id.startsWith('boss_')) {
+              const entData = this.worldEntities.get(id);
+              if (entData && entData.state.destroyed) continue;
               const sprite = obj as Phaser.GameObjects.Sprite;
               if (sprite.visible) {
                 const hitRadius = id.startsWith('boss_') ? 34 : 18;
@@ -1703,8 +1755,8 @@ export class WorldScene extends Phaser.Scene {
                     onComplete: () => spark.destroy()
                   });
 
-                  sprite.setTintFill(0xffffff);
-                  this.time.delayedCall(100, () => sprite.clearTint());
+                  this.applyTintFill(sprite, 0xffffff);
+                  this.time.delayedCall(100, () => this.clearTintFill(sprite));
 
                   arrow.destroy();
                   return;
@@ -1728,7 +1780,7 @@ export class WorldScene extends Phaser.Scene {
     if (this.localPlayer.carryingPotId) {
       const potInfo = this.localPlayer.throwPot();
       if (potInfo) {
-        this.animatePotThrow(this.localPlayer.x, this.localPlayer.y, potInfo.x, potInfo.y, potInfo.potId);
+        network.sendPotThrow(potInfo.potId, this.localPlayer.x, this.localPlayer.y, potInfo.x, potInfo.y);
       }
       return;
     }
@@ -1779,6 +1831,8 @@ export class WorldScene extends Phaser.Scene {
       // 2. Cleave enemies & boss
       for (const [id, obj] of this.entityObjects.entries()) {
         if (id.startsWith('enemy_') || id.startsWith('boss_')) {
+          const entData = this.worldEntities.get(id);
+          if (entData && entData.state.destroyed) continue;
           const sprite = obj as Phaser.GameObjects.Sprite;
           if (sprite.visible) {
             const range = id.startsWith('boss_') ? 56 : cleaveRadius;
@@ -1816,8 +1870,8 @@ export class WorldScene extends Phaser.Scene {
                 });
 
                 // Flash damage tint animation
-                sprite.setTintFill(isCrit ? 0xfef08a : 0xffffff);
-                this.time.delayedCall(120, () => sprite.clearTint());
+                this.applyTintFill(sprite, isCrit ? 0xfef08a : 0xffffff);
+                this.time.delayedCall(120, () => this.clearTintFill(sprite));
 
                 // Directional knockback impulse with map boundary safety
                 const knockDist = isCrit ? (baseKnock * 1.6) : baseKnock;
@@ -1983,7 +2037,7 @@ export class WorldScene extends Phaser.Scene {
         pot.destroy();
         shadow.destroy();
         this.emitPotShards(data.targetX, data.targetY);
-        sounds.playPotSmash();
+        sounds.playPotShatter();
         chronicles.recordStat('potsSmashed', 1);
       }
     });
@@ -2102,6 +2156,13 @@ export class WorldScene extends Phaser.Scene {
     if (!this.localPlayer) return;
     this.localPlayer.showEmote(emote);
     network.sendEmote(emote);
+  }
+
+  public setPlayerClass(classId: CharacterClassId) {
+    if (this.localPlayer) {
+      this.localPlayer.classId = classId;
+    }
+    network.sendSetClass(classId);
   }
 
   public useClassAbility(slot: 1 | 2) {
@@ -2573,6 +2634,90 @@ export class WorldScene extends Phaser.Scene {
     });
   }
 
+  private applyTintFill(sprite: Phaser.GameObjects.Sprite | Phaser.GameObjects.Image, color: number) {
+    sprite.setTint(color);
+    if ((sprite as any).setTintMode) {
+      (sprite as any).setTintMode((Phaser as any).TintModes?.FILL ?? 1);
+    }
+  }
+
+  private clearTintFill(sprite: Phaser.GameObjects.Sprite | Phaser.GameObjects.Image) {
+    sprite.clearTint();
+    if ((sprite as any).setTintMode) {
+      (sprite as any).setTintMode((Phaser as any).TintModes?.MULTIPLY ?? 0);
+    }
+  }
+
+  private updateEnemyHealthBar(id: string, x: number, y: number, currentHp: number, maxHp: number, isBoss = false) {
+    let bar = this.enemyHealthBars.get(id);
+    if (currentHp <= 0) {
+      if (bar) {
+        bar.bg.destroy();
+        bar.fg.destroy();
+        this.enemyHealthBars.delete(id);
+      }
+      return;
+    }
+
+    const width = isBoss ? 50 : 26;
+    const height = isBoss ? 5 : 3;
+    const offsetY = isBoss ? -30 : -20;
+
+    if (!bar) {
+      const bg = this.add.graphics();
+      const fg = this.add.graphics();
+      bg.setDepth(y + 120);
+      fg.setDepth(y + 121);
+      bar = { bg, fg };
+      this.enemyHealthBars.set(id, bar);
+    }
+
+    const pct = Math.max(0, Math.min(1, currentHp / maxHp));
+    const barX = Math.round(x - width / 2);
+    const barY = Math.round(y + offsetY);
+
+    bar.bg.clear();
+    bar.bg.fillStyle(0x0f172a, 0.85);
+    bar.bg.fillRoundedRect(barX - 1, barY - 1, width + 2, height + 2, 2);
+    bar.bg.fillStyle(0x334155, 0.9);
+    bar.bg.fillRoundedRect(barX, barY, width, height, 1);
+    bar.bg.setDepth(y + 120);
+
+    const fillColor = pct > 0.5 ? 0x22c55e : pct > 0.25 ? 0xeab308 : 0xef4444;
+    bar.fg.clear();
+    bar.fg.fillStyle(fillColor, 1);
+    bar.fg.fillRoundedRect(barX, barY, Math.max(2, Math.round(width * pct)), height, 1);
+    bar.fg.setDepth(y + 121);
+  }
+
+  private removeEnemyHealthBar(id: string) {
+    const bar = this.enemyHealthBars.get(id);
+    if (bar) {
+      bar.bg.destroy();
+      bar.fg.destroy();
+      this.enemyHealthBars.delete(id);
+    }
+  }
+
+  private emitEnemyDefeatBurst(x: number, y: number, color = 0xa3e635) {
+    for (let i = 0; i < 10; i++) {
+      const angle = (i / 10) * Math.PI * 2;
+      const speed = 25 + Math.random() * 20;
+      const p = this.add.circle(x, y, Math.random() < 0.5 ? 3 : 2, color);
+      p.setDepth(3500);
+      this.tweens.add({
+        targets: p,
+        x: x + Math.cos(angle) * speed,
+        y: y + Math.sin(angle) * speed,
+        scale: 0.1,
+        alpha: 0,
+        duration: 350 + Math.random() * 100,
+        ease: 'Quad.easeOut',
+        onComplete: () => p.destroy()
+      });
+    }
+  }
+
   update(time: number, delta: number) {
     if (this.localPlayer) {
       this.localPlayer.updateMovement(this.cursors, this.keys, delta);
@@ -2834,7 +2979,7 @@ export class WorldScene extends Phaser.Scene {
           let sil = this.enemySilhouettes.get(id);
           if (!sil) {
             sil = this.add.sprite(sprite.x, sprite.y, sprite.texture.key);
-            sil.setTintFill(0xef4444);
+            this.applyTintFill(sil, 0xef4444);
             sil.setDepth(3499);
             sil.setAlpha(0);
             this.enemySilhouettes.set(id, sil);

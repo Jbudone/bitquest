@@ -27,9 +27,19 @@ export class Player extends Phaser.GameObjects.Container {
   public godMode = false;
   public health = 3;
   public maxHealth = 3;
-  public mana = 50;
-  public maxMana = 50;
   public manaPool = new ManaPool(50, 50, 5);
+  public get mana(): number {
+    return this.manaPool.current;
+  }
+  public set mana(val: number) {
+    this.manaPool.current = val;
+  }
+  public get maxMana(): number {
+    return this.manaPool.max;
+  }
+  public set maxMana(val: number) {
+    this.manaPool.setMaxMana(val);
+  }
   public isCasting = false;
   public spellCooldowns: Record<SpellId, number> = { fireball: 0, ice_lance: 0, gale_ward: 0 };
   public classId: CharacterClassId = 'warrior';
@@ -439,13 +449,13 @@ export class Player extends Phaser.GameObjects.Container {
 
     if (spellId === 'fireball') {
       sounds.playFireballCast();
-      (this.scene as any).particlePipeline?.emitFireBurst(this.x, this.y, 6);
+      (this.scene as any).particles?.emitFireBurst(this.x, this.y, 6);
     } else if (spellId === 'ice_lance') {
       sounds.playIceCast();
-      (this.scene as any).particlePipeline?.emitIceShatter(this.x, this.y, 6);
+      (this.scene as any).particles?.emitIceShatter(this.x, this.y, 6);
     } else if (spellId === 'gale_ward') {
       sounds.playGaleWard();
-      (this.scene as any).particlePipeline?.emitGaleVortex(this.x, this.y, 16);
+      (this.scene as any).particles?.emitGaleVortex(this.x, this.y, 16);
       if (spell.selfBuff) {
         this.speedBuffMultiplier = spell.selfBuff.speedMultiplier;
         this.speedBuffExpiresAt = now + spell.selfBuff.durationMs;

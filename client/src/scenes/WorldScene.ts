@@ -7,6 +7,7 @@ import { saveManager } from '../storage/SaveManager';
 import { chronicles } from '../storage/ChroniclesManager';
 import { ParticlePipeline } from '../vfx/ParticlePipeline';
 import type { EntityData, PlayerData, Direction, EmoteType, ItemDropData } from '../../../shared/src/types';
+import { SpatialGrid } from '../../../shared/src/spatialGrid';
 
 export class WorldScene extends Phaser.Scene {
   public localPlayer: Player | null = null;
@@ -2366,6 +2367,9 @@ export class WorldScene extends Phaser.Scene {
           }
         }
       }
+
+      // 11. Spatial Partitioning & Viewport Frustum Culling
+      this.updateViewportCulling();
     }
 
     for (const other of this.otherPlayers.values()) {
@@ -2374,23 +2378,35 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private updateWindAndFoliage(time: number, delta: number) {
-    // 1. Ambient Sinusoidal Wind Sway on Tree Canopies
+    const cam = this.cameras.main;
+    const camX = cam.worldView.x;
+    const camY = cam.worldView.y;
+    const camW = cam.worldView.width;
+    const camH = cam.worldView.height;
+
+    // 1. Ambient Sinusoidal Wind Sway on Tree Canopies (culled offscreen)
     const windSpeed = 0.0018;
     for (let i = 0; i < this.treeCanopies.length; i++) {
       const canopy = this.treeCanopies[i];
+      if (!SpatialGrid.isInFrustum(canopy.baseX, canopy.baseY, camX, camY, camW, camH, 64)) {
+        continue;
+      }
       const phase = canopy.baseX * 0.015 + canopy.baseY * 0.012;
       const swayOffset = Math.sin(time * windSpeed + phase) * 1.5;
       canopy.sprite.x = canopy.baseX + swayOffset;
       canopy.sprite.rotation = Math.sin(time * windSpeed * 0.8 + phase) * 0.02;
     }
 
-    // 2. Interactive Foliage Displacement Parting & Wind Sway
+    // 2. Interactive Foliage Displacement Parting & Wind Sway (culled offscreen)
     const px = this.localPlayer ? this.localPlayer.x : -9999;
     const py = this.localPlayer ? this.localPlayer.y : -9999;
 
     for (let i = 0; i < this.interactiveFoliage.length; i++) {
       const foliage = this.interactiveFoliage[i];
       if (!foliage.sprite.active) continue;
+      if (!SpatialGrid.isInFrustum(foliage.baseX, foliage.baseY, camX, camY, camW, camH, 48)) {
+        continue;
+      }
 
       const phase = foliage.baseX * 0.04 + foliage.baseY * 0.03;
       const ambientSway = Math.sin(time * 0.0028 + phase) * 0.08;
@@ -2625,6 +2641,38 @@ export class WorldScene extends Phaser.Scene {
     this.localPlayer.fallIntoPit(pit.safeX, pit.safeY, () => {
       this.hurtPlayer(1);
     });
+  }
+
+  private lastCullCheck = 0;
+  private updateViewportCulling() {
+    const now = this.time.now;
+    if (now - this.lastCullCheck < 100) return; // 10Hz check
+    this.lastCullCheck = now;
+
+    const cam = this.cameras.main;
+    const camX = cam.worldView.x;
+    const camY = cam.worldView.y;
+    const camW = cam.worldView.width;
+    const camH = cam.worldView.height;
+    const MARGIN = 80;
+
+    // Cull offscreen entity sprites and shadows
+    for (const [id, obj] of this.entityObjects.entries()) {
+      if (id.startsWith('boss_')) continue;
+
+      const sp = obj as Phaser.GameObjects.Sprite;
+      const inFrustum = SpatialGrid.isInFrustum(sp.x, sp.y, camX, camY, camW, camH, MARGIN);
+      const shadow = this.entityShadows.get(id);
+
+      if (!inFrustum) {
+        if (sp.visible) sp.setVisible(false);
+        if (shadow && shadow.visible) shadow.setVisible(false);
+      } else {
+        const isDestroyed = (sp as any).destroyedState === true;
+        if (!isDestroyed && !sp.visible) sp.setVisible(true);
+        if (!isDestroyed && shadow && !shadow.visible) shadow.setVisible(true);
+      }
+    }
   }
 
   private setupInteractionPrompt() {

@@ -2,10 +2,12 @@ import { PlayerData, EntityData, Direction, PlayerAnimState, EmoteType, ChatMess
 import { WorldDatabase } from './db';
 import { STARTER_DIALOGUES } from '../../content/dialogues';
 import { NavigationEngine, NavAgent } from '../../shared/src/navigation';
+import { SpatialGrid } from '../../shared/src/spatialGrid';
 
 export class WorldManager {
   public db: WorldDatabase;
   public navEngine = new NavigationEngine();
+  public spatialGrid = new SpatialGrid<EntityData>(2048, 1792, 128);
   public players = new Map<string, PlayerData>();
   public entities = new Map<string, EntityData>();
   public items = new Map<string, ItemDropData>();
@@ -369,6 +371,11 @@ export class WorldManager {
         value: 1
       });
     });
+
+    // Index all world entities into the 16x16 spatial partitioning grid
+    for (const ent of this.entities.values()) {
+      this.spatialGrid.insert(ent);
+    }
   }
 
   private startProjectileLoop() {
@@ -558,6 +565,15 @@ export class WorldManager {
       const now = Date.now();
 
       for (const enemy of activeEnemies) {
+        // Faraway low-frequency sleep/dormancy mode
+        const isNearPlayer = this.spatialGrid.isNearAnyPlayer(enemy.x, enemy.y, playerList, 480);
+        if (!isNearPlayer && (enemy.state.aiState === 'idle' || !enemy.state.aiState)) {
+          enemy.state.isDormant = true;
+          continue;
+        } else if (enemy.state.isDormant) {
+          enemy.state.isDormant = false;
+        }
+
         const isSproutling = enemy.subtype === 'sproutling';
         const aggroRadius = isSproutling ? 110 : 140;
         const leashRadius = isSproutling ? 180 : 230;
@@ -587,6 +603,7 @@ export class WorldManager {
           enemy.y = agent.y;
           enemy.state.aiState = agent.aiState;
           enemy.state.confusedUntil = agent.confusedUntil;
+          this.spatialGrid.update(enemy);
           this.onEntityStateChanged?.(enemy);
         }
       }

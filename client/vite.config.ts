@@ -22,7 +22,8 @@ export default defineConfig({
         quest_graph: 'quest-graph.html',
         cutscene_sequencer: 'cutscene-sequencer.html',
         npc_schedules: 'npc-schedules.html',
-        dungeon_generator: 'dungeon-generator.html'
+        dungeon_generator: 'dungeon-generator.html',
+        soundboard: 'soundboard.html'
       }
     }
   }

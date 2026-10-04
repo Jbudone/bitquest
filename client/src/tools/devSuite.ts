@@ -8,6 +8,7 @@ import { QuestGraphStudio } from './questGraphStudio';
 import { CutsceneStudio } from './cutsceneStudio';
 import { NPCScheduleStudio } from './npcScheduleStudio';
 import { DungeonStudio } from './dungeonStudio';
+import { SoundboardStudio } from './soundboardStudio';
 
 interface Command {
   name: string;
@@ -2178,6 +2179,13 @@ window.addEventListener('DOMContentLoaded', () => {
     (window as any).DungeonStudio = dungeonStudio;
   }
 
+  // Initialize 8-Bit Retro Chiptune & Foley Soundboard (Milestone 9.5)
+  let soundboardStudio: SoundboardStudio | null = null;
+  if (document.getElementById('soundboard-studio-container')) {
+    soundboardStudio = new SoundboardStudio('soundboard-studio-container');
+    (window as any).SoundboardStudio = soundboardStudio;
+  }
+
   // Tabs
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -2221,6 +2229,9 @@ window.addEventListener('DOMContentLoaded', () => {
         } else if (target === 'tab-dungeon') {
           copilotContext.innerText = 'Context: Dungeon Generator & WFC';
           dungeonStudio?.onTabActivated();
+        } else if (target === 'tab-soundboard') {
+          copilotContext.innerText = 'Context: Chiptune & Foley Soundboard';
+          soundboardStudio?.onTabActivated();
         }
       }
     });

@@ -766,6 +766,47 @@ export const DungeonWFCResultSchema = z.object({
 });
 export type DungeonWFCResult = z.infer<typeof DungeonWFCResultSchema>;
 
+// ==========================================
+// 16. Chiptune & Procedural Foley Soundboard Schemas (Milestone 9.5)
+// ==========================================
+export const SoundWaveformSchema = z.enum(['square', 'sawtooth', 'triangle', 'sine', 'noise']);
+export type SoundWaveform = z.infer<typeof SoundWaveformSchema>;
+
+export const SoundFilterTypeSchema = z.enum(['none', 'lowpass', 'highpass', 'bandpass']);
+export type SoundFilterType = z.infer<typeof SoundFilterTypeSchema>;
+
+export const SoundSweepTypeSchema = z.enum(['none', 'linear', 'exponential']);
+export type SoundSweepType = z.infer<typeof SoundSweepTypeSchema>;
+
+export const ChiptuneSoundDefSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  category: z.enum(['action', 'combat', 'ui', 'ambient', 'jingle']),
+  waveform: SoundWaveformSchema,
+  // Pitch
+  startFreq: z.number().min(20).max(10000).default(440),
+  endFreq: z.number().min(20).max(10000).default(440),
+  slideDuration: z.number().min(0).max(3).default(0.1),
+  sweepType: SoundSweepTypeSchema.default('linear'),
+  // ADSR
+  attack: z.number().min(0.001).max(2).default(0.01),
+  decay: z.number().min(0.001).max(2).default(0.1),
+  sustain: z.number().min(0).max(1).default(0.3),
+  release: z.number().min(0.001).max(3).default(0.15),
+  // Filter
+  filterType: SoundFilterTypeSchema.default('none'),
+  filterCutoff: z.number().min(50).max(20000).default(8000),
+  filterEndCutoff: z.number().min(50).max(20000).default(8000),
+  filterQ: z.number().min(0.1).max(25).default(1.0),
+  // Arpeggio
+  arpeggioNotes: z.array(z.number().int()).default([]), // semitones offset, e.g. [0, 4, 7]
+  arpeggioSpeedMs: z.number().min(10).max(500).default(50),
+  // Volume & Master
+  volume: z.number().min(0).max(1).default(0.8)
+});
+export type ChiptuneSoundDef = z.infer<typeof ChiptuneSoundDefSchema>;
+
+
 
 
 

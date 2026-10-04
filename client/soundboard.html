@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BitQuest - 8-Bit Retro Chiptune & Foley Soundboard (/tools/soundboard)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #080c14;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    #soundboard-app-root {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .btn {
+      background: #1f2937;
+      color: #fff;
+      border: 1px solid #374151;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn:hover { background: #374151; }
+    .btn-primary { background: #0284c7; border-color: #38bdf8; }
+    .btn-primary:hover { background: #0369a1; }
+    .btn.active { background: #0284c7; border-color: #38bdf8; }
+  </style>
+</head>
+<body>
+  <div id="soundboard-app-root">
+    <div id="soundboard-studio-container" style="width: 100%; height: 100%;"></div>
+  </div>
+
+  <script type="module">
+    import { SoundboardStudio } from '/src/tools/soundboardStudio.ts';
+    window.addEventListener('DOMContentLoaded', () => {
+      const studio = new SoundboardStudio('soundboard-studio-container');
+      window.SoundboardStudio = studio;
+      console.log('🔊 BitQuest 8-Bit Chiptune & Foley Soundboard initialized on /soundboard.html');
+    });
+  </script>
+</body>
+</html>

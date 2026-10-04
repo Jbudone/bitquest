@@ -1,0 +1,555 @@
+{
+  "generatedAt": 1791084538081,
+  "totalAnimations": 5,
+  "totalFrames": 17,
+  "animations": {
+    "player_walk_down": {
+      "id": "player_walk_down",
+      "targetId": "player",
+      "action": "walk",
+      "direction": "down",
+      "fps": 8,
+      "loop": true,
+      "frameWidth": 32,
+      "frameHeight": 32,
+      "totalFrames": 4,
+      "frames": [
+        {
+          "frameIndex": 0,
+          "durationMs": 150,
+          "boxes": [
+            {
+              "id": "player_walk_down_f0_hurtbox",
+              "type": "hurtbox",
+              "x": 11,
+              "y": 2,
+              "width": 10,
+              "height": 26
+            },
+            {
+              "id": "player_walk_down_f0_footprint",
+              "type": "footprint",
+              "x": 11,
+              "y": 23,
+              "width": 10,
+              "height": 5
+            }
+          ],
+          "audioCues": [],
+          "particleCues": []
+        },
+        {
+          "frameIndex": 1,
+          "durationMs": 150,
+          "boxes": [
+            {
+              "id": "player_walk_down_f1_hurtbox",
+              "type": "hurtbox",
+              "x": 9,
+              "y": 3,
+              "width": 14,
+              "height": 25
+            },
+            {
+              "id": "player_walk_down_f1_footprint",
+              "type": "footprint",
+              "x": 9,
+              "y": 23,
+              "width": 14,
+              "height": 5
+            }
+          ],
+          "audioCues": [
+            {
+              "soundId": "step",
+              "volume": 0.8
+            }
+          ],
+          "particleCues": []
+        },
+        {
+          "frameIndex": 2,
+          "durationMs": 150,
+          "boxes": [
+            {
+              "id": "player_walk_down_f2_hurtbox",
+              "type": "hurtbox",
+              "x": 11,
+              "y": 2,
+              "width": 10,
+              "height": 26
+            },
+            {
+              "id": "player_walk_down_f2_footprint",
+              "type": "footprint",
+              "x": 11,
+              "y": 23,
+              "width": 10,
+              "height": 5
+            }
+          ],
+          "audioCues": [],
+          "particleCues": []
+        },
+        {
+          "frameIndex": 3,
+          "durationMs": 150,
+          "boxes": [
+            {
+              "id": "player_walk_down_f3_hurtbox",
+              "type": "hurtbox",
+              "x": 11,
+              "y": 3,
+              "width": 10,
+              "height": 25
+            },
+            {
+              "id": "player_walk_down_f3_footprint",
+              "type": "footprint",
+              "x": 13,
+              "y": 23,
+              "width": 6,
+              "height": 5
+            }
+          ],
+          "audioCues": [
+            {
+              "soundId": "step",
+              "volume": 0.8
+            }
+          ],
+          "particleCues": []
+        }
+      ]
+    },
+    "player_slash_down": {
+      "id": "player_slash_down",
+      "targetId": "player",
+      "action": "slash",
+      "direction": "down",
+      "fps": 10,
+      "loop": false,
+      "frameWidth": 32,
+      "frameHeight": 32,
+      "totalFrames": 4,
+      "frames": [
+        {
+          "frameIndex": 0,
+          "durationMs": 80,
+          "boxes": [
+            {
+              "id": "player_slash_down_f0_hurtbox",
+              "type": "hurtbox",
+              "x": 11,
+              "y": 4,
+              "width": 13,
+              "height": 24
+            },
+            {
+              "id": "player_slash_down_f0_footprint",
+              "type": "footprint",
+              "x": 11,
+              "y": 23,
+              "width": 10,
+              "height": 5
+            }
+          ],
+          "audioCues": [],
+          "particleCues": []
+        },
+        {
+          "frameIndex": 1,
+          "durationMs": 80,
+          "boxes": [
+            {
+              "id": "player_slash_down_f1_hitbox",
+              "type": "hitbox",
+              "x": 4,
+              "y": 23,
+              "width": 24,
+              "height": 10,
+              "damage": 15,
+              "knockback": 10
+            },
+            {
+              "id": "player_slash_down_f1_hurtbox",
+              "type": "hurtbox",
+              "x": 6,
+              "y": 4,
+              "width": 20,
+              "height": 18
+            },
+            {
+              "id": "player_slash_down_f1_footprint",
+              "type": "footprint",
+              "x": 6,
+              "y": 23,
+              "width": 20,
+              "height": 5
+            }
+          ],
+          "audioCues": [
+            {
+              "soundId": "slash",
+              "volume": 1
+            }
+          ],
+          "particleCues": [
+            {
+              "particleType": "slash_spark",
+              "count": 5
+            }
+          ]
+        },
+        {
+          "frameIndex": 2,
+          "durationMs": 80,
+          "boxes": [
+            {
+              "id": "player_slash_down_f2_hitbox",
+              "type": "hitbox",
+              "x": 4,
+              "y": 23,
+              "width": 24,
+              "height": 10,
+              "damage": 15,
+              "knockback": 10
+            },
+            {
+              "id": "player_slash_down_f2_hurtbox",
+              "type": "hurtbox",
+              "x": 6,
+              "y": 4,
+              "width": 20,
+              "height": 18
+            },
+            {
+              "id": "player_slash_down_f2_footprint",
+              "type": "footprint",
+              "x": 6,
+              "y": 23,
+              "width": 20,
+              "height": 5
+            }
+          ],
+          "audioCues": [],
+          "particleCues": []
+        },
+        {
+          "frameIndex": 3,
+          "durationMs": 80,
+          "boxes": [
+            {
+              "id": "player_slash_down_f3_hurtbox",
+              "type": "hurtbox",
+              "x": 8,
+              "y": 4,
+              "width": 13,
+              "height": 24
+            },
+            {
+              "id": "player_slash_down_f3_footprint",
+              "type": "footprint",
+              "x": 8,
+              "y": 23,
+              "width": 13,
+              "height": 5
+            }
+          ],
+          "audioCues": [],
+          "particleCues": []
+        }
+      ]
+    },
+    "slime_jump_attack": {
+      "id": "slime_jump_attack",
+      "targetId": "enemy_slime",
+      "action": "jump_attack",
+      "direction": "down",
+      "fps": 8,
+      "loop": false,
+      "frameWidth": 32,
+      "frameHeight": 32,
+      "totalFrames": 4,
+      "frames": [
+        {
+          "frameIndex": 0,
+          "durationMs": 120,
+          "boxes": [
+            {
+              "id": "slime_jump_attack_f0_hurtbox",
+              "type": "hurtbox",
+              "x": 10,
+              "y": 13,
+              "width": 12,
+              "height": 13
+            },
+            {
+              "id": "slime_jump_attack_f0_footprint",
+              "type": "footprint",
+              "x": 10,
+              "y": 23,
+              "width": 12,
+              "height": 3
+            }
+          ],
+          "audioCues": [],
+          "particleCues": []
+        },
+        {
+          "frameIndex": 1,
+          "durationMs": 120,
+          "boxes": [
+            {
+              "id": "slime_jump_attack_f1_hurtbox",
+              "type": "hurtbox",
+              "x": 8,
+              "y": 15,
+              "width": 16,
+              "height": 11
+            },
+            {
+              "id": "slime_jump_attack_f1_footprint",
+              "type": "footprint",
+              "x": 8,
+              "y": 23,
+              "width": 16,
+              "height": 3
+            }
+          ],
+          "audioCues": [],
+          "particleCues": []
+        },
+        {
+          "frameIndex": 2,
+          "durationMs": 120,
+          "boxes": [
+            {
+              "id": "slime_jump_attack_f2_hitbox",
+              "type": "hitbox",
+              "x": 8,
+              "y": 21,
+              "width": 16,
+              "height": 8,
+              "damage": 6,
+              "knockback": 6
+            },
+            {
+              "id": "slime_jump_attack_f2_hurtbox",
+              "type": "hurtbox",
+              "x": 10,
+              "y": 13,
+              "width": 12,
+              "height": 10
+            },
+            {
+              "id": "slime_jump_attack_f2_footprint",
+              "type": "footprint",
+              "x": 10,
+              "y": 23,
+              "width": 12,
+              "height": 3
+            }
+          ],
+          "audioCues": [
+            {
+              "soundId": "hit",
+              "volume": 0.9
+            }
+          ],
+          "particleCues": []
+        },
+        {
+          "frameIndex": 3,
+          "durationMs": 120,
+          "boxes": [
+            {
+              "id": "slime_jump_attack_f3_hurtbox",
+              "type": "hurtbox",
+              "x": 10,
+              "y": 13,
+              "width": 12,
+              "height": 13
+            },
+            {
+              "id": "slime_jump_attack_f3_footprint",
+              "type": "footprint",
+              "x": 10,
+              "y": 23,
+              "width": 12,
+              "height": 3
+            }
+          ],
+          "audioCues": [],
+          "particleCues": []
+        }
+      ]
+    },
+    "boss_spore_slam": {
+      "id": "boss_spore_slam",
+      "targetId": "boss_golem",
+      "action": "spore_slam",
+      "direction": "down",
+      "fps": 6,
+      "loop": false,
+      "frameWidth": 48,
+      "frameHeight": 48,
+      "totalFrames": 4,
+      "frames": [
+        {
+          "frameIndex": 0,
+          "durationMs": 200,
+          "boxes": [
+            {
+              "id": "boss_spore_slam_f0_hurtbox",
+              "type": "hurtbox",
+              "x": 8,
+              "y": 4,
+              "width": 32,
+              "height": 40
+            },
+            {
+              "id": "boss_spore_slam_f0_footprint",
+              "type": "footprint",
+              "x": 16,
+              "y": 37,
+              "width": 16,
+              "height": 7
+            }
+          ],
+          "audioCues": [],
+          "particleCues": []
+        },
+        {
+          "frameIndex": 1,
+          "durationMs": 200,
+          "boxes": [
+            {
+              "id": "boss_spore_slam_f1_hurtbox",
+              "type": "hurtbox",
+              "x": 8,
+              "y": 4,
+              "width": 32,
+              "height": 40
+            },
+            {
+              "id": "boss_spore_slam_f1_footprint",
+              "type": "footprint",
+              "x": 16,
+              "y": 37,
+              "width": 16,
+              "height": 7
+            }
+          ],
+          "audioCues": [],
+          "particleCues": []
+        },
+        {
+          "frameIndex": 2,
+          "durationMs": 200,
+          "boxes": [
+            {
+              "id": "boss_spore_slam_f2_hitbox",
+              "type": "hitbox",
+              "x": 0,
+              "y": 41,
+              "width": 48,
+              "height": 12,
+              "damage": 30,
+              "knockback": 18
+            },
+            {
+              "id": "boss_spore_slam_f2_hurtbox",
+              "type": "hurtbox",
+              "x": 2,
+              "y": 8,
+              "width": 44,
+              "height": 29
+            },
+            {
+              "id": "boss_spore_slam_f2_footprint",
+              "type": "footprint",
+              "x": 2,
+              "y": 39,
+              "width": 44,
+              "height": 7
+            }
+          ],
+          "audioCues": [
+            {
+              "soundId": "boss_stomp",
+              "volume": 1
+            }
+          ],
+          "particleCues": [
+            {
+              "particleType": "pot_dust",
+              "count": 12
+            }
+          ]
+        },
+        {
+          "frameIndex": 3,
+          "durationMs": 200,
+          "boxes": [
+            {
+              "id": "boss_spore_slam_f3_hurtbox",
+              "type": "hurtbox",
+              "x": 8,
+              "y": 4,
+              "width": 32,
+              "height": 40
+            },
+            {
+              "id": "boss_spore_slam_f3_footprint",
+              "type": "footprint",
+              "x": 16,
+              "y": 37,
+              "width": 16,
+              "height": 7
+            }
+          ],
+          "audioCues": [],
+          "particleCues": []
+        }
+      ]
+    },
+    "prop_pot_idle": {
+      "id": "prop_pot_idle",
+      "targetId": "prop_pot",
+      "action": "idle",
+      "direction": "down",
+      "fps": 1,
+      "loop": true,
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "totalFrames": 1,
+      "frames": [
+        {
+          "frameIndex": 0,
+          "durationMs": 1000,
+          "boxes": [
+            {
+              "id": "prop_pot_idle_f0_hurtbox",
+              "type": "hurtbox",
+              "x": 3,
+              "y": 3,
+              "width": 10,
+              "height": 12
+            },
+            {
+              "id": "prop_pot_idle_f0_footprint",
+              "type": "footprint",
+              "x": 4,
+              "y": 12,
+              "width": 8,
+              "height": 3
+            }
+          ],
+          "audioCues": [],
+          "particleCues": []
+        }
+      ]
+    }
+  }
+}

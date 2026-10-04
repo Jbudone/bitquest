@@ -18,6 +18,7 @@ export class TextureGenerator {
     this.createFarmingTextures(scene);
     this.createCookingTextures(scene);
     this.createMinigameTextures(scene);
+    this.createFloraTextures(scene);
   }
 
   private static createCanvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -5495,6 +5496,159 @@ export class TextureGenerator {
       ctx.fillRect(15, 22, 4, 4); // Blade
 
       scene.textures.addCanvas('vehicle_rowboat', canvas);
+    }
+  }
+
+  private static createFloraTextures(scene: Phaser.Scene) {
+    // 1. Meadow Sunbloom (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Stem and leaves
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(11, 14, 2, 9);
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(8, 17, 3, 2);
+      ctx.fillRect(13, 15, 3, 2);
+
+      // Golden Petals (8 radial petals)
+      ctx.fillStyle = '#facc15';
+      const cx = 12;
+      const cy = 10;
+      for (let i = 0; i < 8; i++) {
+        const ang = (i / 8) * Math.PI * 2;
+        const px = cx + Math.cos(ang) * 6;
+        const py = cy + Math.sin(ang) * 6;
+        ctx.beginPath();
+        ctx.arc(px, py, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Center Seed Disc
+      ctx.fillStyle = '#d97706';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Specular highlight
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(cx - 1, cy - 2, 2, 2);
+
+      scene.textures.addCanvas('flora_sunbloom', canvas);
+    }
+
+    // 2. Cerulean Rain Lily (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Floating lily pad leaf
+      ctx.fillStyle = '#166534';
+      ctx.beginPath();
+      ctx.ellipse(12, 18, 9, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Lily Outer Petals (Deep Cerulean)
+      ctx.fillStyle = '#0284c7';
+      const cx = 12;
+      const cy = 11;
+      for (let i = 0; i < 6; i++) {
+        const ang = (i / 6) * Math.PI * 2;
+        const px = cx + Math.cos(ang) * 5;
+        const py = cy + Math.sin(ang) * 5;
+        ctx.beginPath();
+        ctx.arc(px, py, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Inner Petals (Sky Cyan)
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Center Stamen & Dew Drop
+      ctx.fillStyle = '#f0fdf4';
+      ctx.fillRect(cx - 1, cy - 1, 2, 2);
+      ctx.fillStyle = 'rgba(224, 242, 254, 0.9)';
+      ctx.fillRect(cx + 3, cy - 2, 2, 2);
+
+      scene.textures.addCanvas('flora_rain_lily', canvas);
+    }
+
+    // 3. Silver Moon Blossom (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Ethereal outer glow halo
+      const grad = ctx.createRadialGradient(12, 11, 2, 12, 11, 10);
+      grad.addColorStop(0, 'rgba(192, 132, 252, 0.45)');
+      grad.addColorStop(1, 'rgba(192, 132, 252, 0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(12, 11, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Twilight stem
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(11, 15, 2, 8);
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(8, 17, 3, 2);
+
+      // Silver-Lilac Blossom Petals
+      ctx.fillStyle = '#c084fc';
+      ctx.beginPath();
+      ctx.ellipse(12, 11, 6, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Inner Luminous Core
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.arc(12, 10, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Celestial Stamen Sparkle
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(11, 9, 2, 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(12, 8, 1, 1);
+
+      scene.textures.addCanvas('flora_moon_blossom', canvas);
+    }
+
+    // 4. Phosphor Spore Glowcap (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Phosphorescent aura
+      const aura = ctx.createRadialGradient(12, 10, 3, 12, 10, 11);
+      aura.addColorStop(0, 'rgba(52, 211, 153, 0.4)');
+      aura.addColorStop(1, 'rgba(52, 211, 153, 0)');
+      ctx.fillStyle = aura;
+      ctx.beginPath();
+      ctx.arc(12, 10, 11, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Mushroom Stem
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(10, 12, 4, 10);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(10, 19, 4, 3);
+
+      // Violet Mushroom Dome Cap
+      ctx.fillStyle = '#581c87';
+      ctx.beginPath();
+      ctx.ellipse(12, 10, 8, 6, 0, Math.PI, Math.PI * 2);
+      ctx.fill();
+
+      // Glowing Mint Phosphor Dots
+      ctx.fillStyle = '#34d399';
+      ctx.fillRect(8, 7, 2, 2);
+      ctx.fillRect(14, 7, 2, 2);
+      ctx.fillRect(11, 5, 2, 2);
+      ctx.fillRect(6, 9, 2, 2);
+      ctx.fillRect(16, 9, 2, 2);
+
+      // Core Sparkle
+      ctx.fillStyle = '#a7f3d0';
+      ctx.fillRect(11, 6, 1, 1);
+
+      scene.textures.addCanvas('flora_shroom_glowcap', canvas);
     }
   }
 }

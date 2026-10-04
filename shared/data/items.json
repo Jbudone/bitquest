@@ -884,6 +884,45 @@
     "stackable": false,
     "maxStack": 1,
     "stats": {}
+  },
+  {
+    "id": "flora_sunbloom_petals",
+    "name": "Golden Sunbloom Petals",
+    "category": "material",
+    "tier": 1,
+    "description": "Fragrant petals that soaked up pure noon sunlight. Used in warm herbal teas and baking.",
+    "iconColor": "#fbbf24",
+    "soundKey": "pickup",
+    "value": 8,
+    "stackable": true,
+    "maxStack": 99,
+    "stats": {}
+  },
+  {
+    "id": "flora_rain_lily_blossom",
+    "name": "Cerulean Rain Lily",
+    "category": "consumable",
+    "tier": 2,
+    "description": "Dew-dropped water lily gathered during gentle rains. Restores 3 HP and 15 MP.",
+    "iconColor": "#38bdf8",
+    "soundKey": "pickup",
+    "value": 20,
+    "stackable": true,
+    "maxStack": 20,
+    "stats": { "healAmount": 3, "manaAmount": 15 }
+  },
+  {
+    "id": "flora_moon_essence",
+    "name": "Luminescent Moon Essence",
+    "category": "material",
+    "tier": 3,
+    "description": "Phosphorescent nectar gathered from midnight moonflowers. Gleams in deep darkness.",
+    "iconColor": "#c084fc",
+    "soundKey": "fanfare",
+    "value": 65,
+    "stackable": true,
+    "maxStack": 30,
+    "stats": {}
   }
 ]
 

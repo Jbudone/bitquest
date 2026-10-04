@@ -26,6 +26,14 @@ import {
   type BoatSlalomSession,
   type ArcheryTarget
 } from '../../../shared/src/minigames';
+import {
+  FoliageDynamicsEngine,
+  WORLD_FLORA,
+  type FloraDefinition,
+  type FloraBloomState,
+  type FloraEvaluationResult,
+  type SwayVector
+} from '../../../shared/src/foliageDynamics';
 
 export class WorldScene extends Phaser.Scene {
   public localPlayer: Player | null = null;
@@ -65,6 +73,17 @@ export class WorldScene extends Phaser.Scene {
   private slalomBuoySprites: Phaser.GameObjects.Sprite[] = [];
   private boatVehicleSprite: Phaser.GameObjects.Sprite | null = null;
   private dockedBoatProp?: Phaser.GameObjects.Sprite;
+
+  // Weather-Driven Ambient Flora & Foliage Dynamics (Expansion Milestone 6)
+  public floraInstances: Map<string, {
+    def: FloraDefinition;
+    sprite: Phaser.GameObjects.Sprite;
+    glowGraphic?: Phaser.GameObjects.Arc;
+    state: FloraBloomState;
+    lastHarvestSec: number;
+  }> = new Map();
+  private foliageSwayOut: SwayVector = { x: 0, y: 0, angleRad: 0 };
+  private floraEvalOut: FloraEvaluationResult = { state: 'dormant', glowAlpha: 0, glowRadius: 0, bonusForageYield: 0 };
 
   // Cozy Bobber Fishing (Task 7.5 / Issue #23)
   public isLocalFishing = false;
@@ -695,6 +714,9 @@ export class WorldScene extends Phaser.Scene {
 
     // 14. Archery Range & Crystal Lake Slalom Minigames (Milestone 5)
     this.setupMinigameProps();
+
+    // 15. Weather-Driven Ambient Flora & Foliage Dynamics (Expansion Milestone 6)
+    this.setupWorldFlora();
   }
 
   private setupCookingStations() {
@@ -904,6 +926,110 @@ export class WorldScene extends Phaser.Scene {
         }
       } else if (hud) {
         hud.updateSlalom(this.slalomSession);
+      }
+    }
+  }
+
+  private setupWorldFlora() {
+    WORLD_FLORA.forEach(def => {
+      let tex = 'flora_sunbloom';
+      let glowColor = 0xfef08a;
+      if (def.species === 'wildflower_rain_lily') {
+        tex = 'flora_rain_lily';
+        glowColor = 0x38bdf8;
+      } else if (def.species === 'wildflower_moon_blossom') {
+        tex = 'flora_moon_blossom';
+        glowColor = 0xc084fc;
+      } else if (def.species === 'shroom_glowcap') {
+        tex = 'flora_shroom_glowcap';
+        glowColor = 0x34d399;
+      }
+
+      // Soft ambient glow graphic beneath nocturnal/radiant flora
+      const glowGraphic = this.add.circle(def.x, def.y - 4, 16, glowColor);
+      glowGraphic.setDepth(15 + def.y);
+      glowGraphic.setAlpha(0);
+
+      // Flora sprite
+      const sprite = this.add.sprite(def.x, def.y, tex);
+      sprite.setDepth(20 + def.y);
+      sprite.setOrigin(0.5, 0.85); // Anchor near base for realistic stem pivoting/sway
+
+      this.floraInstances.set(def.id, {
+        def,
+        sprite,
+        glowGraphic,
+        state: 'dormant',
+        lastHarvestSec: -9999
+      });
+    });
+  }
+
+  private updateFoliageDynamics(time: number, delta: number) {
+    const elapsedSec = time / 1000;
+    const phase = WeatherEngine.getDayPhase(this.timeOfDaySec);
+
+    // Compute base wind sway vector in-place without allocations
+    FoliageDynamicsEngine.computeWindSway(
+      elapsedSec,
+      this.windAngle,
+      this.windSpeed,
+      0.15,
+      0,
+      this.foliageSwayOut
+    );
+
+    for (const [, instance] of this.floraInstances) {
+      const { def, sprite, glowGraphic } = instance;
+
+      // Evaluate bloom state without allocation
+      FoliageDynamicsEngine.evaluateFloraBloom(def, this.currentWeather, phase, this.floraEvalOut);
+      instance.state = this.floraEvalOut.state;
+
+      // Individual stem sway with spatial phase offset
+      const phaseOffset = def.x * 0.05 + def.y * 0.07;
+      const swayWave = Math.sin(elapsedSec * 2.2 * Math.sqrt(Math.max(0.2, this.windSpeed)) + phaseOffset);
+      const angle = swayWave * def.baseFlexibility * this.windSpeed * 0.6;
+
+      sprite.setRotation(angle);
+
+      // Visual blossom feedback
+      if (instance.state === 'radiant') {
+        sprite.setScale(1.15);
+        if (glowGraphic) {
+          glowGraphic.setAlpha(this.floraEvalOut.glowAlpha);
+          glowGraphic.setRadius(this.floraEvalOut.glowRadius);
+        }
+      } else if (instance.state === 'blooming') {
+        sprite.setScale(1.0);
+        if (glowGraphic) {
+          glowGraphic.setAlpha(this.floraEvalOut.glowAlpha);
+          glowGraphic.setRadius(this.floraEvalOut.glowRadius);
+        }
+      } else {
+        sprite.setScale(0.85);
+        if (glowGraphic) {
+          glowGraphic.setAlpha(0);
+        }
+      }
+
+      // Sparkle emission during rain for rain lilies or night for moon blossoms
+      if (instance.state === 'radiant' && Math.random() < 0.008) {
+        const p = this.add.circle(
+          def.x + (Math.random() * 12 - 6),
+          def.y - 8 + (Math.random() * 8 - 4),
+          Math.random() < 0.5 ? 2 : 1,
+          def.species === 'wildflower_moon_blossom' ? 0xc084fc : 0x38bdf8
+        );
+        p.setDepth(3500);
+        this.tweens.add({
+          targets: p,
+          y: p.y - 10,
+          alpha: 0,
+          scale: 0.1,
+          duration: 400 + Math.random() * 200,
+          onComplete: () => p.destroy()
+        });
       }
     }
   }
@@ -3111,6 +3237,37 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
+    // 2e. Weather-Driven Ambient Flora Botanical Foraging (Milestone 6)
+    const nowSec = Date.now() / 1000;
+    for (const [, flora] of this.floraInstances) {
+      const distFlora = Math.hypot(px - flora.def.x, py - flora.def.y);
+      if (distFlora <= 42) {
+        if (FoliageDynamicsEngine.canHarvest(flora.def, flora.lastHarvestSec, nowSec, flora.state)) {
+          flora.lastHarvestSec = nowSec;
+          const yieldAmt = FoliageDynamicsEngine.calculateHarvestYield(flora.def, flora.state);
+          for (let i = 0; i < yieldAmt; i++) {
+            this.playerInventory.push(flora.def.harvestItemId);
+          }
+          sounds.playPickup?.();
+          this.showFloatingText(flora.def.x, flora.def.y - 18, `+${yieldAmt}x ${flora.def.name}! 🌸`, '#a7f3d0');
+          this.tweens.add({
+            targets: flora.sprite,
+            scaleY: 1.4,
+            scaleX: 0.8,
+            yoyo: true,
+            duration: 160
+          });
+          return;
+        } else if (flora.state === 'dormant') {
+          this.showFloatingText(flora.def.x, flora.def.y - 16, `💤 Dormant (waiting for weather/night)`, '#94a3b8');
+          return;
+        } else {
+          this.showFloatingText(flora.def.x, flora.def.y - 16, `⏳ Regrowing petals...`, '#94a3b8');
+          return;
+        }
+      }
+    }
+
     // 3. Unified Prioritized Interaction Pipeline
     const interaction = BehaviorRegistry.getPrioritizedInteraction(px, py, this.worldEntities.values(), 56, this.localPlayer as any);
     if (!interaction) return;
@@ -3950,6 +4107,7 @@ export class WorldScene extends Phaser.Scene {
       this.localPlayer.updateMovement(this.cursors, this.keys, delta);
       this.updateFishing(time, delta);
       this.updateMinigames(delta);
+      this.updateFoliageDynamics(time, delta);
 
       // Update moving stone platform position and riding kinematics
       const platformSprite = this.entityObjects.get(DUNGEON_CONSTANTS.F1_PLATFORM.id) as Phaser.GameObjects.Sprite | undefined;

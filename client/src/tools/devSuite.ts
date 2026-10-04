@@ -1,6 +1,7 @@
 import { DataRegistry } from '../../../shared/src/dataRegistry';
 import { TARGET_REGISTRY, drawPlaceholderPreview, generateSampleSheetDataUrl, type TargetMeta } from './placeholderDrawers';
 import { AnimatorStudio } from './animatorStudio';
+import { VFXStudio } from './vfxStudio';
 
 interface Command {
   name: string;
@@ -2135,6 +2136,9 @@ window.addEventListener('DOMContentLoaded', () => {
         else if (target === 'tab-animator') {
           copilotContext.innerText = 'Context: Keyframe & Hitbox Editor';
           animatorStudio?.render();
+        } else if (target === 'tab-vfx') {
+          copilotContext.innerText = 'Context: Live VFX Studio';
+          vfxStudio?.render();
         }
       }
     });
@@ -2145,6 +2149,13 @@ window.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('animator-studio-container')) {
     animatorStudio = new AnimatorStudio('animator-studio-container');
     (window as any).AnimatorStudio = animatorStudio;
+  }
+
+  // Initialize VFX Studio (Issue #30)
+  let vfxStudio: VFXStudio | null = null;
+  if (document.getElementById('vfx-studio-container')) {
+    vfxStudio = new VFXStudio('vfx-studio-container');
+    (window as any).VFXStudio = vfxStudio;
   }
 
   // URL Hash Auto-Tab Switch (e.g. #tab-animator)

@@ -504,3 +504,30 @@ export const AnimationMetadataSchema = z.object({
 });
 export type AnimationMetadata = z.infer<typeof AnimationMetadataSchema>;
 
+// ==========================================
+// 11. Particle & Spell VFX Config Schemas (Issue #30)
+// ==========================================
+export const ParticleConfigSchema = z.object({
+  id: z.string(), // e.g. 'fireball_flame', 'pot_dust'
+  name: z.string(),
+  blendMode: z.enum(['normal', 'additive', 'multiply']).default('additive'),
+  colorStart: z.string(), // Hex color e.g. #f59e0b
+  colorEnd: z.string(),   // Hex color e.g. #ef4444
+  sizeStart: z.number().positive().default(4),
+  sizeEnd: z.number().nonnegative().default(1),
+  alphaStart: z.number().min(0).max(1).default(1),
+  alphaEnd: z.number().min(0).max(1).default(0),
+  speedMin: z.number().nonnegative().default(40),
+  speedMax: z.number().nonnegative().default(120),
+  angleMin: z.number().default(0), // degrees e.g. 0 to 360
+  angleMax: z.number().default(360),
+  gravityX: z.number().default(0),
+  gravityY: z.number().default(80),
+  lifeMin: z.number().positive().default(300), // ms
+  lifeMax: z.number().positive().default(600),
+  rate: z.number().nonnegative().default(30), // particles per sec (0 for burst only)
+  burstCount: z.number().int().positive().default(15)
+});
+export type ParticleConfig = z.infer<typeof ParticleConfigSchema>;
+
+

@@ -15,6 +15,7 @@ export default defineConfig({
         main: 'index.html',
         tools: 'tools.html',
         animator: 'animator.html',
+        vfx: 'vfx.html',
         render_map: 'render_map.html'
       }
     }

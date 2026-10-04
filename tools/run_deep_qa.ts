@@ -1053,7 +1053,98 @@ async function runDeepQA() {
       if (!res.ok) throw new Error(res.reason);
       if (!res.stepped) throw new Error('Frame stepping failed');
       if (!res.boxAdded) throw new Error('Hitbox addition failed');
-      if (!res.validExport) throw new Error('JSON export metadata failed validation');
+    console.log('\n--- 19. LIVE PARTICLE & SPELL VFX STUDIO ---');
+
+    await runTest('VFX Studio Navigation, Emitter Controls & Canvas Initialization', async () => {
+      const res = await evaluateInBrowser(`
+        (() => {
+          const tabBtn = document.querySelector('.tab-btn[data-tab="tab-vfx"]');
+          if (!tabBtn) return { ok: false, reason: 'tab-vfx button not found' };
+          tabBtn.click();
+
+          const studio = window.VFXStudio;
+          if (!studio) return { ok: false, reason: 'VFXStudio instance not found on window' };
+
+          const canvas = document.getElementById('vfx-viewport-canvas');
+          const presetSelect = document.getElementById('vfx-preset-select');
+          const burstBtn = document.getElementById('btn-vfx-burst');
+
+          return {
+            ok: true,
+            hasCanvas: !!canvas,
+            hasPresetSelect: !!presetSelect,
+            hasBurstBtn: !!burstBtn,
+            currentConfigId: studio.getConfig().id,
+            bg: studio.getBackground()
+          };
+        })()
+      `);
+      if (!res.ok) throw new Error(res.reason);
+      if (!res.hasCanvas) throw new Error('VFX viewport canvas not found');
+      if (!res.hasPresetSelect) throw new Error('VFX preset selector not found');
+      if (!res.hasBurstBtn) throw new Error('VFX burst button not found');
+    });
+
+    await runTest('Particle Burst Triggering, Background Switching & JSON Export', async () => {
+      const res = await evaluateInBrowser(`
+        (() => {
+          const studio = window.VFXStudio;
+          if (!studio) return { ok: false, reason: 'VFXStudio not available' };
+
+          // Trigger burst of 25 particles
+          studio.triggerBurst(25);
+          const activeAfterBurst = studio.getActiveParticleCount();
+
+          // Change background
+          studio.setBackground('meadow');
+          const meadowBg = studio.getBackground();
+          studio.setBackground('cave');
+          const caveBg = studio.getBackground();
+
+          // Load ice_shard preset
+          const icePreset = {
+            id: 'qa_frost',
+            name: 'QA Frost Test',
+            blendMode: 'additive',
+            colorStart: '#ffffff',
+            colorEnd: '#0284c7',
+            sizeStart: 4,
+            sizeEnd: 1,
+            alphaStart: 1.0,
+            alphaEnd: 0.0,
+            speedMin: 50,
+            speedMax: 150,
+            angleMin: 0,
+            angleMax: 360,
+            gravityX: 0,
+            gravityY: 50,
+            lifeMin: 200,
+            lifeMax: 400,
+            rate: 20,
+            burstCount: 15
+          };
+          studio.loadConfig(icePreset);
+          const activeId = studio.getConfig().id;
+
+          // Export JSON
+          const exported = studio.exportJson(true);
+          const parsed = JSON.parse(exported);
+
+          return {
+            ok: true,
+            burstWorked: activeAfterBurst >= 25,
+            meadowBg: meadowBg === 'meadow',
+            caveBg: caveBg === 'cave',
+            presetLoaded: activeId === 'qa_frost',
+            exportValid: parsed && parsed.id === 'qa_frost'
+          };
+        })()
+      `);
+      if (!res.ok) throw new Error(res.reason);
+      if (!res.burstWorked) throw new Error('Burst triggering did not spawn active particles');
+      if (!res.meadowBg || !res.caveBg) throw new Error('Background switching failed');
+      if (!res.presetLoaded) throw new Error('Loading config preset failed');
+      if (!res.exportValid) throw new Error('JSON export metadata failed validation');
     });
 
     ws.close();

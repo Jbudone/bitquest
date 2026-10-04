@@ -185,5 +185,48 @@ export const STARTER_DIALOGUES: Record<string, Record<string, DialogueNode>> = {
       portrait: 'otter',
       text: '{mood:happy}Tight lines and peaceful ripples, adventurer! May the river currents be kind.'
     }
+  },
+
+  pip: {
+    greeting: {
+      speaker: 'Pip the Raccoon Merchant',
+      portrait: 'raccoon',
+      text: '{mood:smug}*jingles pouch* Psst! Over here, traveler! Got shiny trinkets, oddities from afar, and bargains that fell off the back of a wagon. Looking to buy or barter?',
+      responses: [
+        { text: 'What kind of oddities do you have, Pip?', nextDialogueKey: 'wares' },
+        { text: 'Heard any juicy rumors around Oakhaven?', nextDialogueKey: 'rumors' },
+        { text: 'Just passing through, thanks.', nextDialogueKey: 'thanks' }
+      ]
+    },
+    wares: {
+      speaker: 'Pip the Raccoon Merchant',
+      portrait: 'raccoon',
+      text: '{mood:happy}Everything an intrepid explorer desires! Glowing moonstones, bamboo fishing rods, restorative tarts, and even ancient brass keys for the sunken catacombs.',
+      responses: [
+        { text: 'I might need some of those keys.', nextDialogueKey: 'keys' },
+        { text: 'Thanks, I will browse your cart.', nextDialogueKey: 'thanks' }
+      ]
+    },
+    keys: {
+      speaker: 'Pip the Raccoon Merchant',
+      portrait: 'raccoon',
+      text: '{mood:smug}A wise choice! The Sunken Gate holds ancient riches. Just be mindful of the wandering nomad Corvus when night falls!',
+      responses: [
+        { text: 'I will be ready.', nextDialogueKey: 'thanks' }
+      ]
+    },
+    rumors: {
+      speaker: 'Pip the Raccoon Merchant',
+      portrait: 'raccoon',
+      text: '{mood:surprised}Word in the treetops is that Baron von Truffle has grown paranoid up in the ruins! He has set fungal spore traps everywhere. Watch your step!',
+      responses: [
+        { text: 'Good to know. Thanks for the heads up!', nextDialogueKey: 'thanks' }
+      ]
+    },
+    thanks: {
+      speaker: 'Pip the Raccoon Merchant',
+      portrait: 'raccoon',
+      text: '{mood:happy}Pleasure doing business with you! Keep your pockets lined with shiny acorns!'
+    }
   }
 };

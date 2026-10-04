@@ -118,11 +118,14 @@ export class QuestGraphStudio {
    * Loads a canonical NPC dialogue tree into graph nodes and connections.
    */
   public loadNpcDialogues(npcKey: string) {
+    const tree = STARTER_DIALOGUES[npcKey];
+    if (!tree) {
+      console.warn(`[QuestGraphStudio] No dialogue tree found for key: ${npcKey}`);
+      return;
+    }
+
     this.nodes.clear();
     this.connections = [];
-
-    const tree = STARTER_DIALOGUES[npcKey];
-    if (!tree) return;
 
     let posX = 100;
     let posY = 100;
@@ -201,8 +204,11 @@ export class QuestGraphStudio {
             <select id="qg-select-npc" style="background: #0f172a; border: 1px solid #334155; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 11px;">
               <option value="barnaby">Barnaby the Pelican Courier</option>
               <option value="grandma">Grandma Bramble</option>
+              <option value="sir_reginald">Sir Reginald the Rooster</option>
               <option value="pip">Pip the Raccoon Merchant</option>
               <option value="finn">Finn the River Otter</option>
+              <option value="baron_truffle">Baron von Truffle (Boss)</option>
+              <option value="dog_buster">Buster the Village Pup</option>
             </select>
 
             <button id="qg-btn-add-node" class="btn" style="font-size: 11px; padding: 3px 8px;">➕ Add Dialogue</button>
@@ -286,11 +292,14 @@ export class QuestGraphStudio {
    * Centers and zooms the camera viewport so all nodes are clearly visible.
    */
   public fitToNodes() {
-    if (this.nodes.size === 0) return;
+    if (this.nodes.size === 0) {
+      this.render();
+      return;
+    }
     this.resizeCanvas();
     const vp = this.root?.querySelector('#qg-canvas-viewport') as HTMLElement;
-    const width = vp?.clientWidth || (this.canvas ? this.canvas.width : 800) || 800;
-    const height = vp?.clientHeight || (this.canvas ? this.canvas.height : 600) || 600;
+    const width = (vp && vp.clientWidth > 50) ? vp.clientWidth : (this.canvas && this.canvas.width > 50 ? this.canvas.width : 800);
+    const height = (vp && vp.clientHeight > 50) ? vp.clientHeight : (this.canvas && this.canvas.height > 50 ? this.canvas.height : 600);
 
     let minX = Infinity;
     let minY = Infinity;
@@ -308,11 +317,11 @@ export class QuestGraphStudio {
 
     const graphWidth = maxX - minX;
     const graphHeight = maxY - minY;
-    const padding = 60;
+    const padding = 70;
 
     const scaleX = (width - padding * 2) / Math.max(graphWidth, 100);
     const scaleY = (height - padding * 2) / Math.max(graphHeight, 100);
-    this.zoom = Math.max(0.4, Math.min(1.2, Math.min(scaleX, scaleY)));
+    this.zoom = Math.max(0.35, Math.min(1.0, Math.min(scaleX, scaleY)));
 
     const centerGraphX = minX + graphWidth / 2;
     const centerGraphY = minY + graphHeight / 2;
@@ -326,11 +335,13 @@ export class QuestGraphStudio {
    * Called when the Quests & Dialogue tab is switched to.
    */
   public onTabActivated() {
-    this.resizeCanvas();
-    this.fitToNodes();
-    this.render();
-    this.updateSimulator();
-    this.runLinter();
+    requestAnimationFrame(() => {
+      this.resizeCanvas();
+      this.fitToNodes();
+      this.render();
+      this.updateSimulator();
+      this.runLinter();
+    });
   }
 
   /**
@@ -404,6 +415,15 @@ export class QuestGraphStudio {
     }
 
     ctx.restore();
+
+    // 5. Empty state indicator overlay (drawn in viewport screen space)
+    if (this.nodes.size === 0) {
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('No dialogue nodes loaded. Select an NPC preset above to view dialogue DAG.', this.canvas.width / 2, this.canvas.height / 2);
+    }
   }
 
   private renderGrid(ctx: CanvasRenderingContext2D) {
@@ -413,7 +433,7 @@ export class QuestGraphStudio {
     const endX = startX + this.canvas.width / this.zoom;
     const endY = startY + this.canvas.height / this.zoom;
 
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
     ctx.lineWidth = 1;
     ctx.beginPath();
 
@@ -698,11 +718,18 @@ export class QuestGraphStudio {
 
     // ResizeObserver for hidden tabs & dynamic layouts
     if (typeof ResizeObserver !== 'undefined' && vp) {
+      let hadInitialLayout = false;
       const ro = new ResizeObserver(() => {
         if (vp.clientWidth > 0 && vp.clientHeight > 0) {
-          if (this.canvas.width !== vp.clientWidth || this.canvas.height !== vp.clientHeight) {
+          const sizeChanged = this.canvas.width !== vp.clientWidth || this.canvas.height !== vp.clientHeight;
+          if (sizeChanged) {
             this.resizeCanvas();
-            this.render();
+            if (!hadInitialLayout) {
+              hadInitialLayout = true;
+              this.fitToNodes();
+            } else {
+              this.render();
+            }
           }
         }
       });

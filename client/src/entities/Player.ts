@@ -25,6 +25,10 @@ export class Player extends Phaser.GameObjects.Container {
   public speedMultiplier = 1;
   public speedBuffMultiplier = 1;
   public speedBuffExpiresAt = 0;
+  public foodSpeedMultiplier = 1;
+  public foodBonusMaxHp = 0;
+  public foodAttackMultiplier = 1;
+  public foodDefenseReduction = 0;
   public mountedEntityId: string | null = null;
   public mountSprite: Phaser.GameObjects.Sprite;
   private mountHopTimer = 0;
@@ -335,7 +339,7 @@ export class Player extends Phaser.GameObjects.Container {
       }
     }
 
-    const currentSpeed = this.speed * this.speedMultiplier * this.speedBuffMultiplier;
+    const currentSpeed = this.speed * this.speedMultiplier * this.speedBuffMultiplier * (this.foodSpeedMultiplier || 1);
     body.setVelocity(vx * currentSpeed, vy * currentSpeed);
 
     // Update Facing Direction & Animation

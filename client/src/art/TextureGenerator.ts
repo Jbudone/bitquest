@@ -16,6 +16,7 @@ export class TextureGenerator {
     this.createEquipmentAndVanityTextures(scene);
     this.createCatacombsTextures(scene);
     this.createFarmingTextures(scene);
+    this.createCookingTextures(scene);
   }
 
   private static createCanvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -4769,4 +4770,318 @@ export class TextureGenerator {
       scene.textures.addCanvas('crop_golden_acorn_3', canvas);
     }
   }
+
+  private static createCookingTextures(scene: Phaser.Scene) {
+    // 1. Campfire Prop (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Cobblestone hearth ring
+      ctx.fillStyle = '#64748b';
+      ctx.beginPath();
+      ctx.ellipse(16, 18, 14, 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Dark inner ash pit
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.ellipse(16, 18, 10, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Stone highlights
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(6, 14, 3, 3);
+      ctx.fillRect(23, 14, 3, 3);
+      ctx.fillRect(14, 24, 4, 3);
+      // Crossed wooden logs
+      ctx.fillStyle = '#78350f';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#78350f';
+      ctx.beginPath();
+      ctx.moveTo(9, 21);
+      ctx.lineTo(23, 15);
+      ctx.moveTo(9, 15);
+      ctx.lineTo(23, 21);
+      ctx.stroke();
+      // Fiery glowing embers
+      ctx.fillStyle = '#ea580c';
+      ctx.beginPath();
+      ctx.ellipse(16, 17, 6, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Leaping inner flame core
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.moveTo(16, 5);
+      ctx.lineTo(19, 16);
+      ctx.lineTo(13, 16);
+      ctx.closePath();
+      ctx.fill();
+      // Spark specks
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(14, 8, 2, 2);
+      ctx.fillRect(17, 11, 2, 2);
+
+      scene.textures.addCanvas('prop_campfire', canvas);
+    }
+
+    // 2. Bakery Oven Prop (32x48)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 48);
+      // Red brick chimney stack
+      ctx.fillStyle = '#991b1b';
+      ctx.fillRect(10, 2, 12, 14);
+      ctx.fillStyle = '#7f1d1d';
+      ctx.fillRect(9, 0, 14, 3);
+      // Brick texture lines on chimney
+      ctx.fillStyle = '#b91c1c';
+      ctx.fillRect(11, 5, 4, 2);
+      ctx.fillRect(17, 9, 4, 2);
+
+      // Main oven body (terracotta dome)
+      ctx.fillStyle = '#991b1b';
+      ctx.beginPath();
+      ctx.arc(16, 26, 15, Math.PI, 0);
+      ctx.lineTo(31, 46);
+      ctx.lineTo(1, 46);
+      ctx.closePath();
+      ctx.fill();
+
+      // Stone base foundation
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(0, 42, 32, 6);
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(2, 43, 6, 4);
+      ctx.fillRect(13, 43, 7, 4);
+      ctx.fillRect(24, 43, 6, 4);
+
+      // Arched oven opening
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.arc(16, 32, 9, Math.PI, 0);
+      ctx.lineTo(25, 42);
+      ctx.lineTo(7, 42);
+      ctx.closePath();
+      ctx.fill();
+
+      // Glowing hearth fire inside oven
+      ctx.fillStyle = '#f97316';
+      ctx.beginPath();
+      ctx.ellipse(16, 36, 7, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.ellipse(16, 37, 4, 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Golden bread loaves on cooling rack ledge
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(10, 39, 5, 2);
+      ctx.fillRect(17, 39, 5, 2);
+
+      scene.textures.addCanvas('prop_bakery_oven', canvas);
+    }
+
+    // 3. Dish: Crispy Skewered Minnow (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Wooden skewer stick
+      ctx.strokeStyle = '#b45309';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(5, 27);
+      ctx.lineTo(27, 5);
+      ctx.stroke();
+      // Roasted fish body
+      ctx.fillStyle = '#d97706';
+      ctx.beginPath();
+      ctx.ellipse(16, 16, 10, 5, -Math.PI / 4, 0, Math.PI * 2);
+      ctx.fill();
+      // Char marks
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(13, 14, 2, 3);
+      ctx.fillRect(17, 18, 2, 3);
+      ctx.fillRect(19, 12, 2, 2);
+      // Herb flecks
+      ctx.fillStyle = '#84cc16';
+      ctx.fillRect(14, 17, 2, 2);
+      ctx.fillRect(17, 13, 2, 2);
+
+      scene.textures.addCanvas('dish_roasted_minnow', canvas);
+    }
+
+    // 4. Dish: Meadow Turnip Stew (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Cast iron Dutch pot
+      ctx.fillStyle = '#334155';
+      ctx.beginPath();
+      ctx.arc(16, 18, 12, 0, Math.PI);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(3, 14, 26, 4);
+      // Pot rim
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(4, 13, 24, 2);
+      // Stew broth
+      ctx.fillStyle = '#b45309';
+      ctx.beginPath();
+      ctx.ellipse(16, 17, 10, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Turnip cubes floating
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(10, 16, 3, 3);
+      ctx.fillRect(16, 15, 4, 3);
+      ctx.fillRect(20, 17, 3, 3);
+      // Green parsley garnish
+      ctx.fillStyle = '#65a30d';
+      ctx.fillRect(13, 15, 2, 2);
+      ctx.fillRect(18, 18, 2, 2);
+
+      scene.textures.addCanvas('dish_turnip_stew', canvas);
+    }
+
+    // 5. Dish: Cob & Trout Chowder (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Ceramic chowder bowl
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.arc(16, 18, 12, 0, Math.PI);
+      ctx.closePath();
+      ctx.fill();
+      // Blue stoneware rim
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(4, 14, 24, 3);
+      // Cream chowder surface
+      ctx.fillStyle = '#fef9c3';
+      ctx.beginPath();
+      ctx.ellipse(16, 17, 10, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Sweet corn kernels
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(11, 16, 3, 2);
+      ctx.fillRect(15, 17, 3, 2);
+      ctx.fillRect(19, 16, 3, 2);
+      // Trout flaked pieces
+      ctx.fillStyle = '#fb7185';
+      ctx.fillRect(13, 15, 4, 2);
+      ctx.fillRect(17, 18, 3, 2);
+
+      scene.textures.addCanvas('dish_hearty_chowder', canvas);
+    }
+
+    // 6. Dish: Golden Berry Galette (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Fluted golden pastry crust
+      ctx.fillStyle = '#d97706';
+      ctx.beginPath();
+      ctx.ellipse(16, 16, 13, 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.ellipse(16, 16, 11, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Glossy wild strawberry center
+      ctx.fillStyle = '#e11d48';
+      ctx.beginPath();
+      ctx.ellipse(16, 16, 8, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Glaze highlights & powdered sugar
+      ctx.fillStyle = '#fda4af';
+      ctx.fillRect(13, 13, 3, 2);
+      ctx.fillRect(18, 16, 3, 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(10, 15, 2, 2);
+      ctx.fillRect(20, 13, 2, 2);
+
+      scene.textures.addCanvas('dish_berry_tart', canvas);
+    }
+
+    // 7. Dish: Astral Sporecap Potage (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Carved wooden trencher bowl
+      ctx.fillStyle = '#581c87';
+      ctx.beginPath();
+      ctx.arc(16, 18, 12, 0, Math.PI);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(4, 14, 24, 3);
+      // Luminescent purple soup broth
+      ctx.fillStyle = '#a855f7';
+      ctx.beginPath();
+      ctx.ellipse(16, 17, 10, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Glowing cyan spores & swirl
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(11, 16, 3, 2);
+      ctx.fillRect(17, 16, 3, 2);
+      ctx.fillRect(14, 18, 2, 2);
+      // Astral starlight glints
+      ctx.fillStyle = '#f0abfc';
+      ctx.fillRect(13, 14, 2, 2);
+      ctx.fillRect(19, 17, 2, 2);
+
+      scene.textures.addCanvas('dish_glowshroom_soup', canvas);
+    }
+
+    // 8. Dish: Grandma Bramble's Harvest Pie (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Fluted tin pie dish
+      ctx.fillStyle = '#94a3b8';
+      ctx.beginPath();
+      ctx.arc(16, 18, 13, 0, Math.PI);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(3, 14, 26, 3);
+      // Golden pie crust
+      ctx.fillStyle = '#d97706';
+      ctx.beginPath();
+      ctx.ellipse(16, 16, 12, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Pie lattice crust strips
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(8, 14, 16, 2);
+      ctx.fillRect(9, 18, 14, 2);
+      ctx.fillRect(13, 11, 2, 10);
+      ctx.fillRect(17, 11, 2, 10);
+      // Bubbling berry filling in openings
+      ctx.fillStyle = '#be123c';
+      ctx.fillRect(11, 13, 2, 2);
+      ctx.fillRect(15, 16, 2, 2);
+      ctx.fillRect(19, 13, 2, 2);
+
+      scene.textures.addCanvas('dish_bramble_pie', canvas);
+    }
+
+    // 9. Dish: Sunfire Emperor's Banquet (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Silver presentation platter
+      ctx.fillStyle = '#e2e8f0';
+      ctx.beginPath();
+      ctx.ellipse(16, 18, 14, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#cbd5e1';
+      ctx.beginPath();
+      ctx.ellipse(16, 18, 12, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Golden roast centerpiece
+      ctx.fillStyle = '#b45309';
+      ctx.beginPath();
+      ctx.ellipse(16, 15, 8, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Amber corn ears & glowing garnish
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(9, 15, 4, 3);
+      ctx.fillRect(19, 15, 4, 3);
+      // Radiant sparkles
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(14, 11, 3, 3);
+      ctx.fillRect(8, 12, 2, 2);
+      ctx.fillRect(22, 12, 2, 2);
+
+      scene.textures.addCanvas('dish_golden_feast', canvas);
+    }
+  }
 }
+

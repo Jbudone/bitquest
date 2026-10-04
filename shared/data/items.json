@@ -767,5 +767,97 @@
     "stackable": true,
     "maxStack": 99,
     "stats": { "healAmount": 6 }
+  },
+  {
+    "id": "dish_roasted_minnow",
+    "name": "Crispy Skewered Minnow",
+    "category": "consumable",
+    "tier": 1,
+    "description": "Toasted over embers with wild herbs. Restores 3 HP and boosts speed (+15% for 60s).",
+    "iconColor": "#f97316",
+    "soundKey": "pickup",
+    "value": 16,
+    "stackable": true,
+    "maxStack": 20,
+    "stats": { "healAmount": 3, "buff": "speed", "buffDuration": 60 }
+  },
+  {
+    "id": "dish_turnip_stew",
+    "name": "Meadow Turnip Stew",
+    "category": "consumable",
+    "tier": 1,
+    "description": "Hearty vegetable broth simmered in cast iron. Restores 5 HP and grants 20% defense for 90s.",
+    "iconColor": "#84cc16",
+    "soundKey": "pickup",
+    "value": 28,
+    "stackable": true,
+    "maxStack": 20,
+    "stats": { "healAmount": 5, "buff": "defense", "buffDuration": 90 }
+  },
+  {
+    "id": "dish_hearty_chowder",
+    "name": "Cob & Trout Chowder",
+    "category": "consumable",
+    "tier": 2,
+    "description": "Rich cream chowder with sweet corn and brook trout. Restores 7 HP and grants +25% fishing sweet spot for 2m.",
+    "iconColor": "#38bdf8",
+    "soundKey": "pickup",
+    "value": 45,
+    "stackable": true,
+    "maxStack": 20,
+    "stats": { "healAmount": 7, "buff": "fishing_luck", "buffDuration": 120 }
+  },
+  {
+    "id": "dish_berry_tart",
+    "name": "Golden Berry Galette",
+    "category": "consumable",
+    "tier": 2,
+    "description": "Buttery pastry loaded with caramelized meadow berries. Restores 6 HP and grants +25% move speed for 2m.",
+    "iconColor": "#f43f5e",
+    "soundKey": "pickup",
+    "value": 50,
+    "stackable": true,
+    "maxStack": 20,
+    "stats": { "healAmount": 6, "buff": "speed", "buffDuration": 120 }
+  },
+  {
+    "id": "dish_glowshroom_soup",
+    "name": "Astral Sporecap Potage",
+    "category": "consumable",
+    "tier": 2,
+    "description": "Luminescent soup brimming with fungal magic. Restores 6 HP and doubles mana regen for 2.5m.",
+    "iconColor": "#a855f7",
+    "soundKey": "pickup",
+    "value": 65,
+    "stackable": true,
+    "maxStack": 20,
+    "stats": { "healAmount": 6, "buff": "mana_regen", "buffDuration": 150 }
+  },
+  {
+    "id": "dish_bramble_pie",
+    "name": "Grandma Bramble's Harvest Pie",
+    "category": "consumable",
+    "tier": 3,
+    "description": "Grandma's legendary pie baked to perfection. Restores 12 HP and grants +4 bonus Max Health for 3m.",
+    "iconColor": "#fbbf24",
+    "soundKey": "pickup",
+    "value": 120,
+    "stackable": true,
+    "maxStack": 10,
+    "stats": { "healAmount": 12, "buff": "max_hp", "buffDuration": 180 }
+  },
+  {
+    "id": "dish_golden_feast",
+    "name": "Sunfire Emperor's Banquet",
+    "category": "consumable",
+    "tier": 4,
+    "description": "Legendary banquet made from mystical golden crops. Restores 20 HP and grants +35% attack power for 4m.",
+    "iconColor": "#f59e0b",
+    "soundKey": "pickup",
+    "value": 350,
+    "stackable": true,
+    "maxStack": 5,
+    "stats": { "healAmount": 20, "buff": "attack_power", "buffDuration": 240 }
   }
 ]
+

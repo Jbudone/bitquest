@@ -17,6 +17,7 @@ import { WeatherEngine, CAMPFIRES, type WeatherType, type WeatherState, type Day
 import { OCARINA_NOTES, type OcarinaNote } from '../../../shared/src/ocarina';
 import { telemetryProfiler } from '../../../shared/src/telemetry';
 import { farmingManager } from '../../../shared/src/farming';
+import type { BuffTotals } from '../../../shared/src/cooking';
 
 export class WorldScene extends Phaser.Scene {
   public localPlayer: Player | null = null;
@@ -33,6 +34,19 @@ export class WorldScene extends Phaser.Scene {
   // Cozy Farming & Crop Cultivation (Expansion Milestone 1)
   private farmSoilSprites = new Map<string, Phaser.GameObjects.Image>();
   private farmCropSprites = new Map<string, Phaser.GameObjects.Sprite>();
+
+  // Cozy Cooking & Hearth Engine (Expansion Milestone 2)
+  public buffTotals: BuffTotals = {
+    speedMultiplier: 1.0,
+    defenseReduction: 0.0,
+    bonusMaxHp: 0,
+    manaRegenMultiplier: 1.0,
+    fishingSweetSpotBonus: 0.0,
+    attackPowerMultiplier: 1.0
+  };
+  public playerInventory: string[] = ['tool_hoe', 'tool_watering_can', 'seed_turnip', 'seed_strawberry', 'seed_corn', 'acorn', 'acorn'];
+  private campfireCookingProp?: Phaser.GameObjects.Sprite;
+  private bakeryOvenProp?: Phaser.GameObjects.Sprite;
 
   // Cozy Bobber Fishing (Task 7.5 / Issue #23)
   public isLocalFishing = false;
@@ -657,6 +671,19 @@ export class WorldScene extends Phaser.Scene {
 
     // 12. Cozy Community Farm & Garden Plots (Expansion Milestone 1)
     this.setupGardenPlots();
+
+    // 13. Cozy Hearth & Bakery Oven Cooking Stations (Expansion Milestone 2)
+    this.setupCookingStations();
+  }
+
+  private setupCookingStations() {
+    // 1. Whispering Meadow River Campfire
+    this.campfireCookingProp = this.add.sprite(640, 720, 'prop_campfire');
+    this.campfireCookingProp.setDepth(20 + 720);
+
+    // 2. Grandma Bramble's Bakery Oven (near garden & bakery)
+    this.bakeryOvenProp = this.add.sprite(1410, 840, 'prop_bakery_oven');
+    this.bakeryOvenProp.setDepth(20 + 840);
   }
 
   private setupGardenPlots() {
@@ -733,6 +760,14 @@ export class WorldScene extends Phaser.Scene {
         }
       }
     }
+  }
+
+  private updateCookingBuffs() {
+    if (!this.localPlayer || !this.buffTotals) return;
+    this.localPlayer.foodSpeedMultiplier = this.buffTotals.speedMultiplier;
+    this.localPlayer.foodBonusMaxHp = this.buffTotals.bonusMaxHp;
+    this.localPlayer.foodAttackMultiplier = this.buffTotals.attackPowerMultiplier;
+    this.localPlayer.foodDefenseReduction = this.buffTotals.defenseReduction;
   }
 
   private buildCatacombsDungeon() {
@@ -2730,6 +2765,21 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
+    // 2c. Cozy Culinary Hearth & Bakery Oven Cooking (Expansion Milestone 2)
+    const distCampfire = Math.hypot(px - 640, py - 720);
+    if (distCampfire <= 52) {
+      (window as any).BitQuestUI?.cookingModal?.open('campfire');
+      sounds.playCampfireCrackle();
+      return;
+    }
+
+    const distBakeryOven = Math.hypot(px - 1410, py - 840);
+    if (distBakeryOven <= 56) {
+      (window as any).BitQuestUI?.cookingModal?.open('bakery_oven');
+      sounds.playPickup();
+      return;
+    }
+
     // 3. Unified Prioritized Interaction Pipeline
     const interaction = BehaviorRegistry.getPrioritizedInteraction(px, py, this.worldEntities.values(), 56, this.localPlayer as any);
     if (!interaction) return;
@@ -4171,6 +4221,9 @@ export class WorldScene extends Phaser.Scene {
 
       // 12. Cozy Farming & Crop Cultivation (Expansion Milestone 1)
       this.updateFarming(delta);
+
+      // 13. Cozy Hearth & Bakery Cooking Buffs (Expansion Milestone 2)
+      this.updateCookingBuffs();
     }
 
     for (const other of this.otherPlayers.values()) {

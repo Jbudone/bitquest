@@ -45,9 +45,11 @@
     "test:chaos": "bun run tools/test_chaos_simulator.ts",
     "test:tiles": "bun run tools/test_tile_detector.ts",
     "check:tiles": "bun run tools/check_tiles.ts",
+    "test:palette": "bun run tools/test_palette_auditor.ts",
+    "check:palette": "bun run tools/check_palette.ts",
     "test:qa": "bun run tools/run_deep_qa.ts",
     "ingest:assets": "bun run tools/ingest_assets.ts",
-    "test:all": "bun run check:map && bun run check:quests && bun run check:dialogue && bun run test:balance && bun run test:perf && bun run test:playthrough && bun run test:coop && bun run test:vfx && bun run test:foliage && bun run test:ambient_ai && bun run test:blocks && bun run test:decals && bun run test:elevation && bun run test:pathfinding && bun run test:spatial_culling && bun run test:behaviors && bun run test:netcode && bun run test:magic && bun run test:equipment && bun run test:classes && bun run test:catacombs && bun run test:fishing && bun run test:weather && bun run test:shop && bun run test:pets && bun run test:ocarina && bun run test:touch && bun run test:animator && bun run test:vfx_studio && bun run test:save_state && bun run test:hitboxes && bun run test:visual_diff && bun run test:visual && bun run test:chaos && bun run test:tiles && bun run check:tiles && bun run ingest:assets"
+    "test:all": "bun run check:map && bun run check:quests && bun run check:dialogue && bun run test:balance && bun run test:perf && bun run test:playthrough && bun run test:coop && bun run test:vfx && bun run test:foliage && bun run test:ambient_ai && bun run test:blocks && bun run test:decals && bun run test:elevation && bun run test:pathfinding && bun run test:spatial_culling && bun run test:behaviors && bun run test:netcode && bun run test:magic && bun run test:equipment && bun run test:classes && bun run test:catacombs && bun run test:fishing && bun run test:weather && bun run test:shop && bun run test:pets && bun run test:ocarina && bun run test:touch && bun run test:animator && bun run test:vfx_studio && bun run test:save_state && bun run test:hitboxes && bun run test:visual_diff && bun run test:visual && bun run test:chaos && bun run test:tiles && bun run check:tiles && bun run test:palette && bun run check:palette && bun run ingest:assets"
   },
   "devDependencies": {
     "@types/bun": "latest"

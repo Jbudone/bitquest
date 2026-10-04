@@ -6,6 +6,7 @@ import { SaveStateInspector } from './saveStateInspector';
 import { LevelEditorStudio } from './levelEditorStudio';
 import { QuestGraphStudio } from './questGraphStudio';
 import { CutsceneStudio } from './cutsceneStudio';
+import { NPCScheduleStudio } from './npcScheduleStudio';
 
 interface Command {
   name: string;
@@ -2162,6 +2163,13 @@ window.addEventListener('DOMContentLoaded', () => {
     (window as any).CutsceneStudio = cutsceneStudio;
   }
 
+  // Initialize NPC Daily Schedule & Behavior Path Router (Milestone 9.3)
+  let npcScheduleStudio: NPCScheduleStudio | null = null;
+  if (document.getElementById('npc-schedule-container')) {
+    npcScheduleStudio = new NPCScheduleStudio('npc-schedule-container');
+    (window as any).NPCScheduleStudio = npcScheduleStudio;
+  }
+
   // Tabs
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -2199,6 +2207,9 @@ window.addEventListener('DOMContentLoaded', () => {
         } else if (target === 'tab-cutscene') {
           copilotContext.innerText = 'Context: Cinematic Sequencer';
           cutsceneStudio?.onTabActivated();
+        } else if (target === 'tab-schedules') {
+          copilotContext.innerText = 'Context: NPC Schedules';
+          npcScheduleStudio?.onTabActivated();
         }
       }
     });

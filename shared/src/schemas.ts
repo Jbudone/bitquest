@@ -646,5 +646,54 @@ export const CutsceneSequenceSchema = z.object({
 });
 export type CutsceneSequence = z.infer<typeof CutsceneSequenceSchema>;
 
+// ==========================================
+// 14. Village NPC Circadian Schedules & Path Router Schemas (Milestone 9.3)
+// ==========================================
+export const NPCActivitySchema = z.enum([
+  'tending_garden',
+  'baking',
+  'fishing',
+  'blacksmithing',
+  'patrolling',
+  'gathering',
+  'resting',
+  'browsing'
+]);
+export type NPCActivity = z.infer<typeof NPCActivitySchema>;
+
+export const NPCDirectionSchema = z.enum(['left', 'right', 'up', 'down']);
+export type NPCDirection = z.infer<typeof NPCDirectionSchema>;
+
+export const NPCAmbientEmoteSchema = z.enum([
+  'heart',
+  'happy',
+  'sweat',
+  'music',
+  'sleep',
+  'exclamation'
+]).nullable();
+export type NPCAmbientEmote = z.infer<typeof NPCAmbientEmoteSchema>;
+
+export const NPCScheduleKeyframeSchema = z.object({
+  startHour: z.number().min(0).max(24),
+  endHour: z.number().min(0).max(24),
+  x: z.number(),
+  y: z.number(),
+  activity: NPCActivitySchema,
+  direction: NPCDirectionSchema.default('down'),
+  greeting: z.string().default('Hello!'),
+  ambientEmote: NPCAmbientEmoteSchema.default(null)
+});
+export type NPCScheduleKeyframe = z.infer<typeof NPCScheduleKeyframeSchema>;
+
+export const NPCScheduleDefSchema = z.object({
+  npcId: z.string(),
+  name: z.string(),
+  role: z.string(),
+  keyframes: z.array(NPCScheduleKeyframeSchema)
+});
+export type NPCScheduleDef = z.infer<typeof NPCScheduleDefSchema>;
+
+
 
 

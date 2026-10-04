@@ -15,6 +15,7 @@ export class TextureGenerator {
     this.createSpellTextures(scene);
     this.createEquipmentAndVanityTextures(scene);
     this.createCatacombsTextures(scene);
+    this.createFarmingTextures(scene);
   }
 
   private static createCanvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -4537,6 +4538,235 @@ export class TextureGenerator {
       ctx.lineTo(12, 13);
       ctx.stroke();
       scene.textures.addCanvas('ui_weather_fog', canvas);
+    }
+  }
+
+  private static createFarmingTextures(scene: Phaser.Scene) {
+    // 1. Dry Tilled Soil (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      ctx.fillStyle = '#654321'; // Deep earth
+      ctx.fillRect(0, 0, 32, 32);
+
+      // Tilled furrow ridges
+      ctx.fillStyle = '#7a5229';
+      for (let y = 3; y < 32; y += 7) {
+        ctx.fillRect(1, y, 30, 3);
+      }
+      ctx.fillStyle = '#4d3319'; // Furrow shadows
+      for (let y = 6; y < 32; y += 7) {
+        ctx.fillRect(1, y, 30, 2);
+      }
+      // Fine soil crumb specks
+      ctx.fillStyle = '#8f6233';
+      ctx.fillRect(5, 4, 2, 2);
+      ctx.fillRect(18, 11, 2, 2);
+      ctx.fillRect(26, 18, 2, 2);
+      ctx.fillRect(12, 25, 2, 2);
+
+      scene.textures.addCanvas('tile_soil_tilled_dry', canvas);
+    }
+
+    // 2. Wet Tilled Soil (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      ctx.fillStyle = '#3d2614'; // Dark saturated mud
+      ctx.fillRect(0, 0, 32, 32);
+
+      // Saturated furrow ridges
+      ctx.fillStyle = '#4d3019';
+      for (let y = 3; y < 32; y += 7) {
+        ctx.fillRect(1, y, 30, 3);
+      }
+      ctx.fillStyle = '#26180c';
+      for (let y = 6; y < 32; y += 7) {
+        ctx.fillRect(1, y, 30, 2);
+      }
+      // Water glint specular sheen
+      ctx.fillStyle = 'rgba(186, 230, 253, 0.45)';
+      ctx.fillRect(7, 4, 3, 1);
+      ctx.fillRect(20, 11, 4, 1);
+      ctx.fillRect(14, 25, 3, 1);
+
+      scene.textures.addCanvas('tile_soil_tilled_wet', canvas);
+    }
+
+    // 3. Crop Stage 0: Planted Seed Mound (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Small earthen mound
+      ctx.fillStyle = '#4a2f13';
+      ctx.beginPath();
+      ctx.ellipse(16, 22, 6, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Tiny green seed tip
+      ctx.fillStyle = '#84cc16';
+      ctx.fillRect(15, 18, 2, 3);
+      scene.textures.addCanvas('crop_stage_0', canvas);
+    }
+
+    // 4. Crop Stage 1: Young Sprout (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Stem
+      ctx.fillStyle = '#65a30d';
+      ctx.fillRect(15, 16, 2, 8);
+      // Left leaf
+      ctx.fillStyle = '#84cc16';
+      ctx.beginPath();
+      ctx.ellipse(12, 16, 4, 2, -0.4, 0, Math.PI * 2);
+      ctx.fill();
+      // Right leaf
+      ctx.fillStyle = '#a3e635';
+      ctx.beginPath();
+      ctx.ellipse(20, 15, 4, 2, 0.4, 0, Math.PI * 2);
+      ctx.fill();
+      scene.textures.addCanvas('crop_stage_1', canvas);
+    }
+
+    // 5. Crop Stage 2: Growing Bush Foliage (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Lush green cluster
+      ctx.fillStyle = '#4d7c0f';
+      ctx.beginPath();
+      ctx.ellipse(16, 18, 10, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#65a30d';
+      ctx.beginPath();
+      ctx.ellipse(13, 16, 7, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#84cc16';
+      ctx.beginPath();
+      ctx.ellipse(19, 15, 7, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      scene.textures.addCanvas('crop_stage_2', canvas);
+    }
+
+    // 6. Mature White Turnip (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Turnip bulb peeking from soil
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.ellipse(16, 20, 8, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Purple top blush
+      ctx.fillStyle = '#c084fc';
+      ctx.beginPath();
+      ctx.ellipse(16, 17, 7, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Crisp leafy greens
+      ctx.fillStyle = '#4d7c0f';
+      ctx.fillRect(14, 8, 4, 8);
+      ctx.fillStyle = '#65a30d';
+      ctx.beginPath();
+      ctx.ellipse(11, 10, 6, 3, -0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#84cc16';
+      ctx.beginPath();
+      ctx.ellipse(21, 9, 6, 3, 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      scene.textures.addCanvas('crop_turnip_3', canvas);
+    }
+
+    // 7. Mature Wild Strawberry Bush (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Foliage base
+      ctx.fillStyle = '#15803d';
+      ctx.beginPath();
+      ctx.ellipse(16, 18, 11, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.ellipse(14, 15, 8, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Plump ruby strawberries
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.ellipse(11, 19, 4, 5, -0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(21, 18, 4, 5, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(16, 22, 4, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Yellow seeds
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(10, 19, 1, 1);
+      ctx.fillRect(20, 18, 1, 1);
+      ctx.fillRect(15, 22, 1, 1);
+      scene.textures.addCanvas('crop_strawberry_3', canvas);
+    }
+
+    // 8. Mature Golden Corn Stalk (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Tall central stalk
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(15, 4, 3, 24);
+      // Broad corn leaves
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.ellipse(10, 14, 8, 3, -0.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(22, 12, 8, 3, 0.6, 0, Math.PI * 2);
+      ctx.fill();
+      // Golden cobs
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(11, 16, 5, 8);
+      ctx.fillRect(17, 18, 5, 8);
+      // Silk tassels
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(12, 14, 3, 2);
+      ctx.fillRect(18, 16, 3, 2);
+      scene.textures.addCanvas('crop_corn_3', canvas);
+    }
+
+    // 9. Mature Bioluminescent Glowshroom (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Soft purple bioluminescent stem
+      ctx.fillStyle = '#7e22ce';
+      ctx.fillRect(14, 16, 4, 10);
+      // Broad dome cap
+      ctx.fillStyle = '#a855f7';
+      ctx.beginPath();
+      ctx.ellipse(16, 14, 11, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Glowing cyan spots
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(11, 11, 3, 3);
+      ctx.fillRect(18, 10, 3, 3);
+      ctx.fillRect(14, 16, 2, 2);
+      ctx.fillRect(22, 15, 2, 2);
+      scene.textures.addCanvas('crop_glowshroom_3', canvas);
+    }
+
+    // 10. Mature Golden Oak Sapling (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Woody trunk
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(14, 17, 4, 10);
+      // Golden shimmering canopy
+      ctx.fillStyle = '#d97706';
+      ctx.beginPath();
+      ctx.ellipse(16, 12, 11, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fbbf24';
+      ctx.beginPath();
+      ctx.ellipse(15, 10, 9, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Polished golden acorns
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(10, 13, 3, 3);
+      ctx.fillRect(19, 11, 3, 3);
+      ctx.fillRect(15, 15, 3, 3);
+      scene.textures.addCanvas('crop_golden_acorn_3', canvas);
     }
   }
 }

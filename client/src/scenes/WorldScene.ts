@@ -16,6 +16,7 @@ import { FishingEngine, FISH_SPECIES } from '../../../shared/src/fishing';
 import { WeatherEngine, CAMPFIRES, type WeatherType, type WeatherState, type DayPhase, type CampfireDefinition } from '../../../shared/src/weather';
 import { OCARINA_NOTES, type OcarinaNote } from '../../../shared/src/ocarina';
 import { telemetryProfiler } from '../../../shared/src/telemetry';
+import { farmingManager } from '../../../shared/src/farming';
 
 export class WorldScene extends Phaser.Scene {
   public localPlayer: Player | null = null;
@@ -28,6 +29,10 @@ export class WorldScene extends Phaser.Scene {
   public playerGlow?: Phaser.GameObjects.Image;
   public particles!: ParticlePipeline;
   public physicsDebugGraphics!: Phaser.GameObjects.Graphics;
+
+  // Cozy Farming & Crop Cultivation (Expansion Milestone 1)
+  private farmSoilSprites = new Map<string, Phaser.GameObjects.Image>();
+  private farmCropSprites = new Map<string, Phaser.GameObjects.Sprite>();
 
   // Cozy Bobber Fishing (Task 7.5 / Issue #23)
   public isLocalFishing = false;
@@ -649,6 +654,85 @@ export class WorldScene extends Phaser.Scene {
 
     // 11. Subterranean World: The Sunken Catacombs (Floor 1 & Floor 2)
     this.buildCatacombsDungeon();
+
+    // 12. Cozy Community Farm & Garden Plots (Expansion Milestone 1)
+    this.setupGardenPlots();
+  }
+
+  private setupGardenPlots() {
+    const TILE = 32;
+    // Grandma Bramble's Community Garden (tileX: 43 to 46, tileY: 26 to 28)
+    const initialCrops: Array<{ x: number; y: number; seed: string }> = [
+      { x: 43, y: 26, seed: 'seed_turnip' },
+      { x: 44, y: 26, seed: 'seed_turnip' },
+      { x: 45, y: 26, seed: 'seed_strawberry' },
+      { x: 46, y: 26, seed: 'seed_strawberry' },
+      { x: 43, y: 27, seed: 'seed_corn' },
+      { x: 44, y: 27, seed: 'seed_corn' },
+      { x: 45, y: 27, seed: 'seed_glowshroom' },
+      { x: 46, y: 27, seed: 'seed_acorn' },
+      { x: 43, y: 28, seed: 'seed_turnip' },
+      { x: 44, y: 28, seed: 'seed_strawberry' },
+      { x: 45, y: 28, seed: 'seed_corn' },
+      { x: 46, y: 28, seed: 'seed_turnip' }
+    ];
+
+    for (const plotInfo of initialCrops) {
+      farmingManager.tillPlot(plotInfo.x, plotInfo.y);
+      farmingManager.plantCrop(plotInfo.x, plotInfo.y, plotInfo.seed);
+      farmingManager.waterPlot(plotInfo.x, plotInfo.y);
+
+      const px = plotInfo.x * TILE + 16;
+      const py = plotInfo.y * TILE + 16;
+      const key = `${plotInfo.x},${plotInfo.y}`;
+
+      // Soil tile image (depth 5, above base grass, beneath entities)
+      const soilImg = this.add.image(px, py, 'tile_soil_tilled_wet');
+      soilImg.setDepth(5);
+      this.farmSoilSprites.set(key, soilImg);
+
+      // Crop sprite (depth 20 + py for proper Y-sorting)
+      const cropSpr = this.add.sprite(px, py, 'crop_stage_1');
+      cropSpr.setDepth(20 + py);
+      this.farmCropSprites.set(key, cropSpr);
+    }
+  }
+
+  private updateFarming(delta: number) {
+    const isRaining = this.currentWeather === 'rain' || this.currentWeather === 'storm';
+    farmingManager.update(delta / 1000, isRaining);
+
+    const plots = farmingManager.getAllPlots();
+    for (const plot of plots) {
+      const key = `${plot.x},${plot.y}`;
+      const soilImg = this.farmSoilSprites.get(key);
+      if (soilImg) {
+        soilImg.setTexture(plot.isWatered ? 'tile_soil_tilled_wet' : 'tile_soil_tilled_dry');
+      }
+
+      const cropSpr = this.farmCropSprites.get(key);
+      if (cropSpr) {
+        if (!plot.cropSpecies) {
+          cropSpr.setVisible(false);
+        } else {
+          cropSpr.setVisible(true);
+          let tex = 'crop_stage_0';
+          if (plot.stage === 0) {
+            tex = 'crop_stage_0';
+          } else if (plot.stage === 1) {
+            tex = 'crop_stage_1';
+          } else if (plot.stage === 2) {
+            tex = 'crop_stage_2';
+          } else {
+            // Stage 3 mature texture
+            tex = `crop_${plot.cropSpecies}_3`;
+          }
+          if (cropSpr.texture.key !== tex && this.textures.exists(tex)) {
+            cropSpr.setTexture(tex);
+          }
+        }
+      }
+    }
   }
 
   private buildCatacombsDungeon() {
@@ -2620,6 +2704,32 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
+    // 2b. Cozy Crop Harvesting & Tending Check (Expansion Milestone 1)
+    for (const plot of farmingManager.getAllPlots()) {
+      const dist = Math.hypot(px - plot.worldX, py - plot.worldY);
+      if (dist <= 40) {
+        if (plot.cropSpecies && plot.stage === 3) {
+          const res = farmingManager.harvestPlot(plot.x, plot.y);
+          if (res.success && res.itemId) {
+            sounds.playPickup();
+            this.showFloatingText(plot.worldX, plot.worldY - 16, res.message, res.isGolden ? '#facc15' : '#4ade80');
+            this.emitHeartBurst(plot.worldX, plot.worldY);
+            return;
+          }
+        } else if (!plot.isWatered) {
+          farmingManager.waterPlot(plot.x, plot.y);
+          sounds.playWaterSplash();
+          this.showFloatingText(plot.worldX, plot.worldY - 16, '💧 Watered Soil', '#38bdf8');
+          return;
+        } else if (!plot.cropSpecies) {
+          farmingManager.plantCrop(plot.x, plot.y, 'seed_turnip');
+          sounds.playPickup();
+          this.showFloatingText(plot.worldX, plot.worldY - 16, '🌱 Planted Turnip!', '#a3e635');
+          return;
+        }
+      }
+    }
+
     // 3. Unified Prioritized Interaction Pipeline
     const interaction = BehaviorRegistry.getPrioritizedInteraction(px, py, this.worldEntities.values(), 56, this.localPlayer as any);
     if (!interaction) return;
@@ -4058,6 +4168,9 @@ export class WorldScene extends Phaser.Scene {
 
       // 11. Spatial Partitioning & Viewport Frustum Culling
       this.updateViewportCulling();
+
+      // 12. Cozy Farming & Crop Cultivation (Expansion Milestone 1)
+      this.updateFarming(delta);
     }
 
     for (const other of this.otherPlayers.values()) {

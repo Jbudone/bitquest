@@ -48,6 +48,7 @@
     "test:palette": "bun run tools/test_palette_auditor.ts",
     "check:palette": "bun run tools/check_palette.ts",
     "test:telemetry": "bun run tools/test_telemetry_profiler.ts",
+    "test:farming": "bun run tools/test_farming_system.ts",
     "test:bg": "bun run tools/run_background_tests.ts",
     "test:qa": "bun run tools/run_deep_qa.ts",
     "ingest:assets": "bun run tools/ingest_assets.ts",

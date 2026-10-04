@@ -166,4 +166,33 @@ if (tick4.delta.length !== 1 || tick4.delta[0]!.id !== 'p1') {
 }
 console.log("✅ Delta synchronization state caching, >80% bandwidth reduction, and player lifecycle verified.");
 
-console.log("\n✨ All Authoritative Netcode & Prediction tests passed flawlessly!\n");
+// 5. Multi-Client Network Chaos & Desync Stress Simulator (Issue #34)
+console.log("\n5. Testing Multi-Client Network Chaos & Desync Stress Simulator (Issue #34)...");
+import { runMultiplayerChaosSimulation } from './network_chaos_simulator';
+
+const chaosResult = runMultiplayerChaosSimulation({
+  botCount: 6,
+  durationTicks: 100,
+  baseLatencyMs: 80,
+  jitterPercent: 0.15,
+  outOfOrderRate: 0.15
+});
+
+console.log(`  ✓ Spawned ${chaosResult.botCount} headless bot clients under synthetic network chaos`);
+console.log(`  ✓ Simulated 80ms latency, 15% jitter (+/- 12ms), and out-of-order delivery (${chaosResult.outOfOrderPackets} reordered packets)`);
+console.log(`  ✓ Delivered ${chaosResult.totalPacketsDelivered} packets across client/server chaos channels`);
+console.log(`  ✓ Max entity position divergence: ${chaosResult.maxEntityDivergence}px (Threshold: <= 2.0px)`);
+console.log(`  ✓ Health desyncs detected: ${chaosResult.healthDesyncs} (Expected: 0)`);
+
+if (!chaosResult.passed) {
+  console.error(`❌ Network chaos simulation failed acceptance criteria: maxDiv=${chaosResult.maxEntityDivergence}px, healthDesyncs=${chaosResult.healthDesyncs}`);
+  process.exit(1);
+}
+
+for (const b of chaosResult.botSummaries) {
+  console.log(`    Bot [${b.botId}]: Div=${b.divergence}px | ClientHP=${b.clientHealth} ServerHP=${b.serverHealth} | Corrections=${b.corrections}`);
+}
+
+console.log("✅ Multi-client lobby network chaos and prediction reconciliation stress verified.");
+
+console.log("\n✨ All Authoritative Netcode, Prediction & Chaos tests passed flawlessly!\n");

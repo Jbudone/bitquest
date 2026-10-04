@@ -31,6 +31,7 @@ import { FishingEngine, FISH_SPECIES, type FishSpecies, type PlayerFishLog } fro
 import { WeatherEngine, CAMPFIRES, type WeatherType, type WeatherState, type DayPhase, type CampfireDefinition } from '../../shared/src/weather';
 import { ShopEngine, MERCHANTS, SHOP_ITEMS, type ShopItem, type MerchantDefinition, type CurrencyType } from '../../shared/src/shop';
 import { PetEngine, PET_DEFINITIONS, MOUNT_DEFINITIONS, type PetDefinition, type MountDefinition } from '../../shared/src/pets';
+import { OCARINA_NOTES, OCARINA_SONGS, OcarinaEngine, type OcarinaNote, type NoteEvent } from '../../shared/src/ocarina';
 
 function pointToSegmentDistance(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
   const dx = x2 - x1;
@@ -85,6 +86,11 @@ export class WorldManager {
   public onShopTransactionResult?: (playerId: string, success: boolean, message: string, newCoins: number, newAcorns: number, inventory: string[], wares?: ShopItem[]) => void;
   public onMountToggle?: (playerId: string, mountId: string | null, x: number, y: number) => void;
   public onPetAlert?: (petId: string, alertType: 'secret' | 'enemy', x: number, y: number, text: string) => void;
+  public onOcarinaNote?: (playerId: string, note: OcarinaNote, x: number, y: number) => void;
+  public onOcarinaSong?: (playerId: string, songId: string, songName: string, effectType: string, x: number, y: number) => void;
+  public onOcarinaJamResonance?: (playerIds: string[], x: number, y: number) => void;
+  public recentOcarinaNotes: NoteEvent[] = [];
+  public playerSongCooldowns = new Map<string, number>();
   private petAlertCooldown = 0;
 
   public weatherState: WeatherState = {
@@ -2736,4 +2742,97 @@ export class WorldManager {
       timestamp: Date.now()
     };
   }
+
+  public playOcarinaNote(playerId: string, note: OcarinaNote, x: number, y: number) {
+    if (!OcarinaEngine.isValidNote(note)) return;
+    const now = Date.now();
+    this.recentOcarinaNotes.push({ note, time: now, playerId });
+    if (this.recentOcarinaNotes.length > 50) {
+      this.recentOcarinaNotes.splice(0, this.recentOcarinaNotes.length - 50);
+    }
+
+    this.onOcarinaNote?.(playerId, note, x, y);
+
+    const jam = OcarinaEngine.checkJamResonance(this.recentOcarinaNotes, playerId, now);
+    if (jam.isJam) {
+      this.onOcarinaJamResonance?.(jam.participantIds, x, y);
+    }
+  }
+
+  public playOcarinaSong(playerId: string, songId: string, x: number, y: number) {
+    const song = OcarinaEngine.getSongById(songId);
+    if (!song) return;
+
+    const now = Date.now();
+    const last = this.playerSongCooldowns.get(playerId) || 0;
+    if (now - last < 2000) return;
+    this.playerSongCooldowns.set(playerId, now);
+
+    // Apply authoritative gameplay effect based on song effectType
+    switch (song.effectType) {
+      case 'sun': {
+        this.setWeather('clear');
+        this.setTimeOfDay(7); // 7 AM morning dawn
+        break;
+      }
+      case 'storm': {
+        this.setWeather('rain');
+        this.onLightningStrike?.(x + 50, y - 40);
+        break;
+      }
+      case 'woodlands': {
+        // Spawns wild sweet berry drops near the player
+        for (let i = 0; i < 2; i++) {
+          const berryId = `berry_song_${Date.now()}_${i}`;
+          const offsetAngle = (i / 2) * Math.PI * 2 + Math.PI / 4;
+          const drop: ItemDropData = {
+            id: berryId,
+            itemType: 'strawberry',
+            x: Math.round(x + Math.cos(offsetAngle) * 32),
+            y: Math.round(y + Math.sin(offsetAngle) * 32),
+            value: 1
+          };
+          this.items.set(berryId, drop);
+          this.onItemSpawned?.(drop);
+        }
+        break;
+      }
+      case 'hearth': {
+        const player = this.players.get(playerId);
+        if (player) {
+          player.health = Math.min(player.maxHealth, player.health + 1);
+          this.onPlayerStatsUpdated?.(player);
+        }
+        // Soothe nearby pet Buster if within 250px
+        const petBuster = this.entities.get('pet_buster_dog');
+        if (petBuster && Math.hypot(petBuster.x - x, petBuster.y - y) < 250) {
+          petBuster.state.action = 'nap';
+          this.onEntityStateChanged?.(petBuster);
+          this.onPetAlert?.('pet_buster_dog', 'secret', petBuster.x, petBuster.y, 'Buster curled up for a peaceful hearth nap zZz');
+        }
+        break;
+      }
+      case 'revelation': {
+        // Detect chests or hidden caches within 250px
+        let foundSecret = false;
+        for (const [id, entity] of this.entities) {
+          if (entity.type === 'chest' || id.includes('chest') || id.includes('cache')) {
+            const dist = Math.hypot(entity.x - x, entity.y - y);
+            if (dist < 250) {
+              foundSecret = true;
+              this.onPetAlert?.('pet_buster_dog', 'secret', entity.x, entity.y, `Mystic revelation: ${id.replace(/_/g, ' ')} detected!`);
+              break;
+            }
+          }
+        }
+        if (!foundSecret) {
+          this.onPetAlert?.('pet_buster_dog', 'secret', x, y, 'The ancient minuet resonates across the soil...');
+        }
+        break;
+      }
+    }
+
+    this.onOcarinaSong?.(playerId, song.id, song.name, song.effectType, x, y);
+  }
 }
+

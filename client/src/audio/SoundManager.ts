@@ -1,4 +1,5 @@
 import { AdaptiveMusicDirector } from './AdaptiveMusicDirector';
+import { OCARINA_NOTES, type OcarinaNote } from '../../../shared/src/ocarina';
 
 export class SoundManager {
   private ctx: AudioContext | null = null;
@@ -2044,6 +2045,154 @@ export class SoundManager {
     gain.connect(this.soundDestination);
     osc.start(now);
     osc.stop(now + 0.11);
+  }
+
+  /**
+   * Warm procedural chiptune ocarina note synthesis with authentic breath chiff,
+   * triangle voice, harmonic overtone, and delayed expressive vibrato.
+   */
+  public playOcarinaNote(note: OcarinaNote, pan = 0, volumeScale = 1.0, duration = 0.42) {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const def = OCARINA_NOTES[note];
+    if (!def) return;
+
+    const baseFreq = def.freq;
+
+    // Panner node for spatial separation
+    let destNode: AudioNode = this.soundDestination!;
+    if (pan !== 0 && this.ctx.createStereoPanner) {
+      const panner = this.ctx.createStereoPanner();
+      panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), now);
+      panner.connect(this.soundDestination!);
+      destNode = panner;
+    }
+
+    // Main Note Gain Envelope
+    const noteGain = this.ctx.createGain();
+    const peakVol = 0.22 * this.sfxVol * volumeScale;
+    noteGain.gain.setValueAtTime(0.001, now);
+    noteGain.gain.linearRampToValueAtTime(peakVol, now + 0.025);
+    noteGain.gain.setValueAtTime(peakVol * 0.95, now + duration - 0.10);
+    noteGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    noteGain.connect(destNode);
+
+    // Primary Flute Voice (Triangle)
+    const primaryOsc = this.ctx.createOscillator();
+    primaryOsc.type = 'triangle';
+    primaryOsc.frequency.setValueAtTime(baseFreq, now);
+
+    // LFO Vibrato (delayed onset after 100ms)
+    const vibrato = this.ctx.createOscillator();
+    const vibratoGain = this.ctx.createGain();
+    vibrato.frequency.setValueAtTime(5.4, now);
+    vibratoGain.gain.setValueAtTime(0, now);
+    vibratoGain.gain.setValueAtTime(0, now + 0.10);
+    vibratoGain.gain.linearRampToValueAtTime(baseFreq * 0.015, now + 0.22);
+    vibrato.connect(vibratoGain);
+    vibratoGain.connect(primaryOsc.frequency);
+    vibrato.start(now);
+    vibrato.stop(now + duration);
+
+    primaryOsc.connect(noteGain);
+    primaryOsc.start(now);
+    primaryOsc.stop(now + duration);
+
+    // Subtle Octave Harmonic (Sine)
+    const harmonicOsc = this.ctx.createOscillator();
+    const harmonicGain = this.ctx.createGain();
+    harmonicOsc.type = 'sine';
+    harmonicOsc.frequency.setValueAtTime(baseFreq * 2, now);
+    harmonicGain.gain.setValueAtTime(0.03 * this.sfxVol * volumeScale, now);
+    harmonicGain.gain.exponentialRampToValueAtTime(0.001, now + duration * 0.7);
+    harmonicOsc.connect(harmonicGain);
+    harmonicGain.connect(destNode);
+    harmonicOsc.start(now);
+    harmonicOsc.stop(now + duration * 0.75);
+
+    // Soft Breath Transient (white noise chiff)
+    try {
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.02);
+      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = noiseBuffer;
+      const noiseFilter = this.ctx.createBiquadFilter();
+      noiseFilter.type = 'bandpass';
+      noiseFilter.frequency.setValueAtTime(baseFreq * 1.5, now);
+      noiseFilter.Q.setValueAtTime(2.0, now);
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.04 * this.sfxVol * volumeScale, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.02);
+      noise.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(destNode);
+      noise.start(now);
+      noise.stop(now + 0.025);
+    } catch {}
+  }
+
+  /**
+   * Sparkling 8-bit Zelda-style secret discovery fanfare.
+   */
+  public playOcarinaSongDiscovery() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const notes = [
+      { freq: 392.00, time: 0, dur: 0.12 },
+      { freq: 523.25, time: 0.11, dur: 0.12 },
+      { freq: 659.25, time: 0.22, dur: 0.12 },
+      { freq: 783.99, time: 0.33, dur: 0.16 },
+      { freq: 1046.50, time: 0.48, dur: 0.50 }
+    ];
+
+    notes.forEach(n => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      const st = now + n.time;
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(n.freq, st);
+      gain.gain.setValueAtTime(0.001, st);
+      gain.gain.linearRampToValueAtTime(0.24 * this.sfxVol, st + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, st + n.dur);
+
+      osc.connect(gain);
+      gain.connect(this.soundDestination!);
+      osc.start(st);
+      osc.stop(st + n.dur + 0.02);
+    });
+  }
+
+  /**
+   * Harmonious golden chord for multiplayer jam sessions.
+   */
+  public playJamResonance() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const freqs = [523.25, 659.25, 783.99, 1046.50];
+    freqs.forEach((freq, idx) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      const st = now + idx * 0.04;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, st);
+      gain.gain.setValueAtTime(0.001, st);
+      gain.gain.linearRampToValueAtTime(0.18 * this.sfxVol, st + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, st + 0.65);
+
+      osc.connect(gain);
+      gain.connect(this.soundDestination!);
+      osc.start(st);
+      osc.stop(st + 0.70);
+    });
   }
 }
 

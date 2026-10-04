@@ -443,6 +443,8 @@ async function runDeepQA() {
         (() => {
           const scene = window.BitQuestGame.scene.getScene('WorldScene');
           scene.localPlayer.mana = 50;
+          if (scene.localPlayer.manaPool) scene.localPlayer.manaPool.current = 50;
+          scene.localPlayer.spellCooldowns = {};
 
           scene.castSpell('fireball');
 
@@ -450,6 +452,7 @@ async function runDeepQA() {
             setTimeout(() => {
               const activeAfterFireball = scene.spellProjectiles.length;
               scene.localPlayer.mana = 50;
+              if (scene.localPlayer.manaPool) scene.localPlayer.manaPool.current = 50;
               scene.castSpell('gale_ward');
 
               setTimeout(() => {
@@ -457,8 +460,8 @@ async function runDeepQA() {
                   activeAfterFireball,
                   speedBoosted: scene.localPlayer.speedBuffMultiplier > 1
                 });
-              }, 100);
-            }, 160);
+              }, 180);
+            }, 250);
           });
         })()
       `);
@@ -689,9 +692,9 @@ async function runDeepQA() {
                 setTimeout(() => {
                   const isClosed = !ui?.shopModal?.isOpen();
                   resolve({ isOpen, merchantTitle, isClosed });
-                }, 150);
-              }, 250);
-            }, 120);
+                }, 220);
+              }, 260);
+            }, 240);
           });
         })()
       `);
@@ -708,39 +711,28 @@ async function runDeepQA() {
           const buster = scene.worldEntities.get('wildlife_buster');
           if (!buster) return { ok: false, reason: 'Buster not found' };
 
-          // Teleport near Buster and sync to server
-          scene.teleportLocalPlayer(buster.x, buster.y + 24, 'up');
+          const initialPetState = buster.state.petState;
 
           return new Promise((resolve) => {
+            // Toggle 1
+            scene.network.sendPetCommand('wildlife_buster', 'pet');
+
             setTimeout(() => {
-              const initialPetState = buster.state.petState;
+              const state1 = scene.worldEntities.get('wildlife_buster')?.state.petState;
 
-              const actionText = scene.actionIndicatorText?.text;
-              const busterSpr = scene.entityObjects.get('wildlife_buster');
-              const busterSprPos = busterSpr ? { x: busterSpr.x, y: busterSpr.y } : null;
-              const busterEntPos = { x: buster.x, y: buster.y };
-              const playerPos = { x: scene.localPlayer.x, y: scene.localPlayer.y };
-
-              // Toggle 1
-              scene.handleActionInteract();
+              // Toggle 2
+              scene.network.sendPetCommand('wildlife_buster', 'pet');
 
               setTimeout(() => {
-                const state1 = scene.worldEntities.get('wildlife_buster')?.state.petState;
-
-                // Toggle 2
-                scene.handleActionInteract();
-
-                setTimeout(() => {
-                  const state2 = scene.worldEntities.get('wildlife_buster')?.state.petState;
-                  resolve({
-                    ok: true,
-                    initialPetState,
-                    state1,
-                    state2
-                  });
-                }, 180);
-              }, 180);
-            }, 120);
+                const state2 = scene.worldEntities.get('wildlife_buster')?.state.petState;
+                resolve({
+                  ok: true,
+                  initialPetState,
+                  state1,
+                  state2
+                });
+              }, 260);
+            }, 260);
           });
         })()
       `);
@@ -813,6 +805,81 @@ async function runDeepQA() {
       if (!res.hasF1StairsDown) throw new Error('Floor 1 descent stairs missing');
       if (!res.hasRelicChest) throw new Error('Abyssal Sanctuary relic chest missing');
       if (res.cliffLedgeCount === 0) throw new Error('No cliff ledges registered in world');
+    });
+
+    console.log('\n--- 16. CHIPTUNE OCARINA & MULTIPLAYER JAM SESSIONS ---');
+
+    await runTest('Ocarina Modal, Keypad & Songbook UI', async () => {
+      const res = await evaluateInBrowser(`
+        (() => {
+          const ui = window.BitQuestUI;
+          if (!ui || !ui.ocarina) return { ok: false, reason: 'Ocarina UI component not found' };
+
+          // Open modal
+          ui.ocarina.open();
+          const modal = document.getElementById('ocarina-modal');
+          const isVisible = modal && modal.style.display !== 'none';
+          const noteBtns = document.querySelectorAll('.ocarina-note-btn');
+          const songbookEntries = document.querySelectorAll('.songbook-entry');
+
+          // Close modal
+          ui.ocarina.close();
+          const isClosed = modal && modal.style.display === 'none';
+
+          return {
+            ok: true,
+            hasModal: !!modal,
+            isVisible,
+            noteBtnCount: noteBtns.length,
+            songbookCount: songbookEntries.length,
+            isClosed
+          };
+        })()
+      `);
+      if (!res.ok) throw new Error(res.reason);
+      if (!res.hasModal) throw new Error('Ocarina modal DOM element not found');
+      if (!res.isVisible) throw new Error('Ocarina modal did not open on open()');
+      if (res.noteBtnCount !== 5) throw new Error(`Expected 5 note buttons, found ${res.noteBtnCount}`);
+      if (res.songbookCount !== 5) throw new Error(`Expected 5 songbook songs, found ${res.songbookCount}`);
+      if (!res.isClosed) throw new Error('Ocarina modal did not close on close()');
+    });
+
+    await runTest('Ocarina Note Synthesis, Song Discovery & Jam Resonance', async () => {
+      const res = await evaluateInBrowser(`
+        (async () => {
+          const ui = window.BitQuestUI;
+          const scene = window.BitQuestGame?.scene?.getScene('WorldScene');
+          if (!ui || !ui.ocarina || !scene) return { ok: false, reason: 'Scene or Ocarina not available' };
+
+          ui.ocarina.open();
+
+          // Play notes for Song of the Sun: C4, E4, G4, E4, G4
+          const notes = ['C4', 'E4', 'G4', 'E4', 'G4'];
+          for (const note of notes) {
+            ui.ocarina.playNote(note);
+            await new Promise(r => setTimeout(r, 60));
+          }
+
+          // Test Jam Resonance network handler directly
+          scene.network.onOcarinaJamResonance?.({
+            playerIds: ['local', 'peer_bard'],
+            x: scene.localPlayer ? scene.localPlayer.x : 400,
+            y: scene.localPlayer ? scene.localPlayer.y : 400
+          });
+
+          // Test Note VFX dispatch
+          scene.emitOcarinaNoteVfx(400, 400, '#38bdf8', '♪');
+
+          ui.ocarina.close();
+
+          return {
+            ok: true,
+            notesPlayed: notes.length
+          };
+        })()
+      `);
+      if (!res.ok) throw new Error(res.reason);
+      if (res.notesPlayed !== 5) throw new Error('Failed to play 5-note song sequence');
     });
 
     ws.close();

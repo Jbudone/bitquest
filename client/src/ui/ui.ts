@@ -9,6 +9,7 @@ import { DialogueParser } from './DialogueParser';
 import { EquipmentSheetManager } from './EquipmentSheet';
 import { FishLogbookManager } from './FishLogbook';
 import { ShopModal } from './ShopModal';
+import { OcarinaModal } from './OcarinaModal';
 import { saveManager } from '../storage/SaveManager';
 import type { EmoteType, CharacterClassId, WeatherType } from '../../../shared/src/types';
 import { ClassManager } from '../../../shared/src/classes';
@@ -23,6 +24,7 @@ export class UIManager {
   public equipmentSheet: EquipmentSheetManager;
   public fishLogbook: FishLogbookManager;
   public shopModal: ShopModal;
+  public ocarina: OcarinaModal;
   private selectedPalette = 0;
   public selectedClass: CharacterClassId = 'warrior';
   private currentTypewriterTimer: any = null;
@@ -43,9 +45,14 @@ export class UIManager {
     this.equipmentSheet = new EquipmentSheetManager();
     this.fishLogbook = new FishLogbookManager();
     this.shopModal = new ShopModal();
+    this.ocarina = new OcarinaModal();
 
     document.getElementById('gear-toggle-btn')?.addEventListener('click', () => {
       this.equipmentSheet.toggle();
+    });
+
+    document.getElementById('ocarina-toggle-btn')?.addEventListener('click', () => {
+      this.ocarina.toggle();
     });
 
     this.setupJoinModal();
@@ -78,6 +85,10 @@ export class UIManager {
         sounds.ensureContext();
         this.fishLogbook.toggle();
       }
+      if (e.key === 'o' || e.key === 'O') {
+        sounds.ensureContext();
+        this.ocarina.toggle();
+      }
       if (e.key === ' ' || e.key === 'Enter' || e.key === 'e' || e.key === 'E' || e.key === 'k' || e.key === 'K') {
         const dialogueModal = document.getElementById('dialogue-modal');
         if (dialogueModal && dialogueModal.classList.contains('active')) {
@@ -97,6 +108,11 @@ export class UIManager {
         }
       }
       if (e.key === 'Escape') {
+        if (this.ocarina.isOpen()) {
+          this.ocarina.close();
+          e.stopPropagation();
+          return;
+        }
         if (this.fishLogbook.isOpen) {
           this.fishLogbook.close();
           e.stopPropagation();

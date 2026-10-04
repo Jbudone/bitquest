@@ -14,6 +14,7 @@ import { ClassManager, CLASS_DEFINITIONS, type CharacterClassId, type ClassAbili
 import { DUNGEON_CONSTANTS, MALAKOR_SPECS, DungeonManager, CATACOMBS_FLOORS, type DungeonFloorId } from '../../../shared/src/dungeon';
 import { FishingEngine, FISH_SPECIES } from '../../../shared/src/fishing';
 import { WeatherEngine, CAMPFIRES, type WeatherType, type WeatherState, type DayPhase, type CampfireDefinition } from '../../../shared/src/weather';
+import { OCARINA_NOTES, type OcarinaNote } from '../../../shared/src/ocarina';
 
 export class WorldScene extends Phaser.Scene {
   public localPlayer: Player | null = null;
@@ -1158,6 +1159,34 @@ export class WorldScene extends Phaser.Scene {
       } else {
         this.showFloatingText(data.x, data.y - 22, data.text, "#ef4444", true);
       }
+    };
+
+    network.onOcarinaNote = (data) => {
+      let pan = 0;
+      let vol = 0.85;
+      if (this.localPlayer) {
+        const dx = data.x - this.localPlayer.sprite.x;
+        const dy = data.y - this.localPlayer.sprite.y;
+        const dist = Math.hypot(dx, dy);
+        pan = Math.max(-1, Math.min(1, dx / 300));
+        vol = Math.max(0.1, 1 - (dist / 800)) * 0.85;
+      }
+      sounds.playOcarinaNote(data.note, vol, pan);
+      const noteDef = OCARINA_NOTES[data.note];
+      this.emitOcarinaNoteVfx(data.x, data.y, noteDef ? noteDef.color : '#38bdf8', noteDef ? noteDef.glyph : '♪');
+    };
+
+    network.onOcarinaSong = (data) => {
+      sounds.playOcarinaSongDiscovery();
+      this.cameras.main.flash(400, 255, 240, 180);
+      this.showFloatingText(data.x, data.y - 28, `♪ ${data.songName}! ♪`, '#fde047', true);
+      this.emitGoldSparkles(data.x, data.y);
+    };
+
+    network.onOcarinaJamResonance = (data) => {
+      sounds.playJamResonance();
+      this.showFloatingText(data.x, data.y - 36, `✨ HARMONIC JAM RESONANCE! ✨`, '#c084fc', true);
+      this.emitGoldSparkles(data.x, data.y);
     };
 
     network.connect();
@@ -4802,6 +4831,48 @@ export class WorldScene extends Phaser.Scene {
         scale: 0.2,
         duration: 450 + Math.random() * 200,
         ease: 'Cubic.easeOut',
+        onComplete: () => p.destroy()
+      });
+    }
+  }
+
+  public emitOcarinaNoteVfx(x: number, y: number, color: string = '#38bdf8', glyph: string = '♪') {
+    const noteText = this.add.text(x + (Math.random() * 16 - 8), y - 10, glyph, {
+      fontFamily: 'monospace',
+      fontSize: '16px',
+      color: color,
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setOrigin(0.5).setDepth(3600);
+
+    const endX = noteText.x + (Math.random() * 24 - 12);
+    const endY = noteText.y - 32 - Math.random() * 16;
+
+    this.tweens.add({
+      targets: noteText,
+      x: endX,
+      y: endY,
+      alpha: 0,
+      scale: 1.35,
+      duration: 850,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        noteText.destroy();
+      }
+    });
+
+    // Mini harmonic sparkles
+    for (let i = 0; i < 4; i++) {
+      const p = this.add.circle(x + (Math.random() * 12 - 6), y - 6, 2, Phaser.Display.Color.HexStringToColor(color).color);
+      p.setDepth(3550);
+      this.tweens.add({
+        targets: p,
+        x: p.x + (Math.random() * 20 - 10),
+        y: p.y - 15 - Math.random() * 15,
+        alpha: 0,
+        scale: 0.2,
+        duration: 500,
+        ease: 'Quad.easeOut',
         onComplete: () => p.destroy()
       });
     }

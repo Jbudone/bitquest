@@ -368,6 +368,37 @@ world.onPetAlert = (petId, alertType, x, y, text) => {
   });
 };
 
+world.onOcarinaNote = (playerId, note, x, y) => {
+  broadcast({
+    type: 'ocarina_note_broadcast',
+    playerId,
+    note,
+    x,
+    y
+  });
+};
+
+world.onOcarinaSong = (playerId, songId, songName, effectType, x, y) => {
+  broadcast({
+    type: 'ocarina_song_broadcast',
+    playerId,
+    songId,
+    songName,
+    effectType,
+    x,
+    y
+  });
+};
+
+world.onOcarinaJamResonance = (playerIds, x, y) => {
+  broadcast({
+    type: 'ocarina_jam_resonance',
+    playerIds,
+    x,
+    y
+  });
+};
+
 // 25Hz World Tick Loop with Delta State Compression
 const deltaSync = new DeltaSyncEngine();
 let tickCounter = 0;
@@ -762,6 +793,16 @@ const server = Bun.serve<SocketData>({
 
           case 'admin_command': {
             world.handleAdminCommand(id, msg.action, msg.payload);
+            break;
+          }
+
+          case 'ocarina_note': {
+            world.playOcarinaNote(id, msg.note, msg.x, msg.y);
+            break;
+          }
+
+          case 'ocarina_song': {
+            world.playOcarinaSong(id, msg.songId, msg.x, msg.y);
             break;
           }
         }

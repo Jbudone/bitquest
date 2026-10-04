@@ -19,6 +19,7 @@ import type {
   ClassAbilityId,
   WeatherType
 } from '../../../shared/src/types';
+import type { OcarinaNote } from '../../../shared/src/ocarina';
 
 export class NetworkClient {
   private ws: WebSocket | null = null;
@@ -58,6 +59,9 @@ export class NetworkClient {
   public onFishLogSync?: (data: { playerId: string; log: any }) => void;
   public onWeatherSync?: (data: { weather: WeatherType; timeOfDaySec: number; transitionProgress: number; windAngle: number; windSpeed: number }) => void;
   public onLightningStrike?: (data: { x: number; y: number }) => void;
+  public onOcarinaNote?: (data: { playerId: string; note: OcarinaNote; x: number; y: number }) => void;
+  public onOcarinaSong?: (data: { playerId: string; songId: string; songName: string; effectType: string; x: number; y: number }) => void;
+  public onOcarinaJamResonance?: (data: { playerIds: string[]; x: number; y: number }) => void;
   public onCampfireRest?: (data: { playerId: string; campfireId: string; healedHp: number; restoredMana: number }) => void;
   public onShopSync?: (data: { merchantId: string; merchantName: string; merchantTitle: string; portrait: string; greeting: string; wares: any[]; playerCoins: number; playerAcorns: number; inventory: string[] }) => void;
   public onShopTransactionResult?: (data: { success: boolean; message: string; newCoins: number; newAcorns: number; inventory: string[]; wares?: any[] }) => void;
@@ -244,6 +248,15 @@ export class NetworkClient {
       case 'pet_alert':
         this.onPetAlert?.(packet);
         break;
+      case 'ocarina_note_broadcast':
+        this.onOcarinaNote?.(packet);
+        break;
+      case 'ocarina_song_broadcast':
+        this.onOcarinaSong?.(packet);
+        break;
+      case 'ocarina_jam_resonance':
+        this.onOcarinaJamResonance?.(packet);
+        break;
       case 'reconcile':
         this.onReconcile?.(packet.ackSeq, packet.x, packet.y);
         break;
@@ -369,6 +382,14 @@ export class NetworkClient {
       targetId: petId,
       action: 'pet_command'
     });
+  }
+
+  public sendOcarinaNote(note: OcarinaNote, x: number, y: number) {
+    this.send({ type: 'ocarina_note', note, x, y });
+  }
+
+  public sendOcarinaSong(songId: string, x: number, y: number) {
+    this.send({ type: 'ocarina_song', songId, x, y });
   }
 }
 

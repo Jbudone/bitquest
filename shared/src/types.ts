@@ -26,6 +26,7 @@ import type { CharacterClassId, ClassAbilityId } from './classes';
 import type { PlayerFishLog } from './fishing';
 import type { WeatherType } from './weather';
 import type { ShopItem } from './shop';
+import type { OcarinaNote } from './ocarina';
 
 // Network protocol packets
 export type ClientPacket =
@@ -50,6 +51,8 @@ export type ClientPacket =
   | { type: 'emote'; emote: EmoteType }
   | { type: 'dialogue_choice'; npcId: string; choiceIndex: number }
   | { type: 'collect_item'; itemId: string }
+  | { type: 'ocarina_note'; note: OcarinaNote; x: number; y: number }
+  | { type: 'ocarina_song'; songId: string; x: number; y: number }
   | { type: 'admin_command'; action: 'toggle_gate' | 'teleport' | 'heal' | 'spawn_item' | 'set_flag' | 'speed_boost' | 'spawn_enemy' | 'spawn_boss' | 'set_weather' | 'set_time'; payload?: any };
 
 export type ServerPacket =
@@ -91,7 +94,10 @@ export type ServerPacket =
   | { type: 'shop_sync'; merchantId: string; merchantName: string; merchantTitle: string; portrait: string; greeting: string; wares: ShopItem[]; playerCoins: number; playerAcorns: number; inventory: string[] }
   | { type: 'shop_transaction_result'; success: boolean; message: string; newCoins: number; newAcorns: number; inventory: string[]; wares?: ShopItem[] }
   | { type: 'mount_toggle'; playerId: string; mountId: string | null; x: number; y: number }
-  | { type: 'pet_alert'; petId: string; alertType: 'secret' | 'enemy'; x: number; y: number; text: string };
+  | { type: 'pet_alert'; petId: string; alertType: 'secret' | 'enemy'; x: number; y: number; text: string }
+  | { type: 'ocarina_note_broadcast'; playerId: string; note: OcarinaNote; x: number; y: number }
+  | { type: 'ocarina_song_broadcast'; playerId: string; songId: string; songName: string; effectType: string; x: number; y: number }
+  | { type: 'ocarina_jam_resonance'; playerIds: string[]; x: number; y: number };
 
 
 

@@ -1465,6 +1465,7 @@ export class WorldScene extends Phaser.Scene {
       let texture = 'npc_barnaby';
       if (ent.subtype === 'grandma') texture = 'npc_grandma';
       if (ent.subtype === 'rooster') texture = 'npc_rooster';
+      if (ent.subtype === 'otter') texture = 'npc_otter';
 
       const sprite = this.add.sprite(ent.x, ent.y, texture);
       this.add.text(ent.x, ent.y - 20, ent.name || 'NPC', {
@@ -1706,6 +1707,27 @@ export class WorldScene extends Phaser.Scene {
       if (shadow) {
         shadow.setVisible(!isMounted);
         shadow.setPosition(ent.x + 2, ent.y + 6);
+      }
+    } else if (ent.type === 'npc' || ent.type === 'merchant') {
+      const dist = Math.hypot(obj.x - ent.x, obj.y - ent.y);
+      if (dist > 4) {
+        this.tweens.add({
+          targets: obj,
+          x: ent.x,
+          y: ent.y,
+          duration: 400,
+          ease: 'Power1',
+          onUpdate: () => {
+            obj.setDepth(20 + obj.y);
+            const shadow = this.entityShadows.get(ent.id);
+            if (shadow) shadow.setPosition(obj.x + 2, obj.y + 8);
+          }
+        });
+      } else {
+        obj.setPosition(ent.x, ent.y);
+        obj.setDepth(20 + ent.y);
+        const shadow = this.entityShadows.get(ent.id);
+        if (shadow) shadow.setPosition(ent.x + 2, ent.y + 8);
       }
     } else if (ent.type === 'enemy') {
       const wasVisible = obj.visible;

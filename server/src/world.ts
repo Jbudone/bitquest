@@ -32,6 +32,7 @@ import { WeatherEngine, CAMPFIRES, type WeatherType, type WeatherState, type Day
 import { ShopEngine, MERCHANTS, SHOP_ITEMS, type ShopItem, type MerchantDefinition, type CurrencyType } from '../../shared/src/shop';
 import { PetEngine, PET_DEFINITIONS, MOUNT_DEFINITIONS, type PetDefinition, type MountDefinition } from '../../shared/src/pets';
 import { OCARINA_NOTES, OCARINA_SONGS, OcarinaEngine, type OcarinaNote, type NoteEvent } from '../../shared/src/ocarina';
+import { NPCScheduleEngine } from '../../shared/src/npcSchedules';
 
 function pointToSegmentDistance(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
   const dx = x2 - x1;
@@ -343,6 +344,17 @@ export class WorldManager {
       y: 1030,
       interactable: true,
       state: { dialogueKey: 'sir_reginald', direction: 'right' }
+    });
+
+    this.entities.set('npc_finn', {
+      id: 'npc_finn',
+      type: 'npc',
+      subtype: 'otter',
+      name: 'Finn the Otter',
+      x: 520,
+      y: 960,
+      interactable: true,
+      state: { dialogueKey: 'finn', direction: 'down' }
     });
 
     // 5b. Merchants & Wandering Traders (Task 7.7)
@@ -1033,6 +1045,29 @@ export class WorldManager {
         }
       }
 
+      // 4b. Update Village NPC Daily Schedules & Organic Waypoints (Milestone 3)
+      const scheduledIds = NPCScheduleEngine.getAllScheduledNPCIds();
+      const scratchNpcPos = { x: 0, y: 0 };
+      for (let i = 0; i < scheduledIds.length; i++) {
+        const npcId = scheduledIds[i];
+        const ent = this.entities.get(npcId);
+        if (ent && NPCScheduleEngine.getTargetPosition(npcId, this.weatherState.timeOfDaySec, scratchNpcPos)) {
+          const kf = NPCScheduleEngine.getScheduleKeyframe(npcId, this.weatherState.timeOfDaySec);
+          if (ent.x !== scratchNpcPos.x || ent.y !== scratchNpcPos.y || ent.state.activity !== kf?.activity) {
+            ent.x = scratchNpcPos.x;
+            ent.y = scratchNpcPos.y;
+            if (kf) {
+              ent.state.direction = kf.direction;
+              ent.state.activity = kf.activity;
+              ent.state.ambientEmote = kf.ambientEmote;
+              ent.state.contextualGreeting = kf.greeting;
+            }
+            this.spatialGrid.update(ent);
+            this.onEntityStateChanged?.(ent);
+          }
+        }
+      }
+
       // 5. Periodic Weather Sync (every 3 seconds or immediately on weather change)
       this.weatherSyncTimer += dt;
       if (weatherChanged || this.weatherSyncTimer >= 3.0) {
@@ -1076,6 +1111,29 @@ export class WorldManager {
         corvusEnt.state.campfireId = nextPos.campfireId;
         this.spatialGrid.update(corvusEnt);
         this.onEntityStateChanged?.(corvusEnt);
+      }
+    }
+
+    // Reposition scheduled NPCs immediately on time override
+    const scheduledIds = NPCScheduleEngine.getAllScheduledNPCIds();
+    const scratchNpcPos = { x: 0, y: 0 };
+    for (let i = 0; i < scheduledIds.length; i++) {
+      const npcId = scheduledIds[i];
+      const ent = this.entities.get(npcId);
+      if (ent && NPCScheduleEngine.getTargetPosition(npcId, this.weatherState.timeOfDaySec, scratchNpcPos)) {
+        const kf = NPCScheduleEngine.getScheduleKeyframe(npcId, this.weatherState.timeOfDaySec);
+        if (ent.x !== scratchNpcPos.x || ent.y !== scratchNpcPos.y || ent.state.activity !== kf?.activity) {
+          ent.x = scratchNpcPos.x;
+          ent.y = scratchNpcPos.y;
+          if (kf) {
+            ent.state.direction = kf.direction;
+            ent.state.activity = kf.activity;
+            ent.state.ambientEmote = kf.ambientEmote;
+            ent.state.contextualGreeting = kf.greeting;
+          }
+          this.spatialGrid.update(ent);
+          this.onEntityStateChanged?.(ent);
+        }
       }
     }
 

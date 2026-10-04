@@ -1964,6 +1964,39 @@ export class TextureGenerator {
       scene.textures.addCanvas('npc_rooster', canvas);
     }
 
+    // 3b. Finn the Otter Angler (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Sleek warm brown otter body
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(8, 8, 8, 11);
+      // Cream belly & throat patch
+      ctx.fillStyle = '#fef3c7';
+      ctx.fillRect(10, 10, 4, 7);
+      // Head & snout
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(9, 6, 6, 5);
+      // Black nose & eyes
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(11, 8, 2, 2);
+      ctx.fillRect(9, 7, 1, 1);
+      ctx.fillRect(14, 7, 1, 1);
+      // Blue fisherman's knit beanie cap
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(8, 3, 8, 4);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(11, 1, 2, 2); // pom-pom
+      // Bamboo fishing rod held in paw
+      ctx.strokeStyle = '#d97706';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(17, 16);
+      ctx.lineTo(21, 2);
+      ctx.stroke();
+
+      scene.textures.addCanvas('npc_otter', canvas);
+    }
+
     // 4. Buster the Village Pup (24x24)
     {
       const [canvas, ctx] = this.createCanvas(24, 24);

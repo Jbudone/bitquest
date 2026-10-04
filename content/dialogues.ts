@@ -152,5 +152,38 @@ export const STARTER_DIALOGUES: Record<string, Record<string, DialogueNode>> = {
       portrait: 'sign',
       text: '🪨 [CO-OP PUZZLE ENGRAVING]\n"When two kindred spirits stand upon the twin sun stones at once, the verdant gate shall yield its path. (Solo hint: Clay pots work as trusty stand-ins!)"',
     }
+  },
+
+  finn: {
+    greeting: {
+      speaker: 'Finn the Otter Angler',
+      portrait: 'otter',
+      text: '{mood:happy}Splash! Greetings friend! Cast your line into the calm ripples whenever you spot silver glints. Patience brings the biggest catches!',
+      responses: [
+        { text: 'Any tips for catching rare fish, Finn?', nextDialogueKey: 'fishing_tips' },
+        { text: 'Can fish be cooked at the campfire?', nextDialogueKey: 'cooking_tips' }
+      ]
+    },
+    fishing_tips: {
+      speaker: 'Finn the Otter Angler',
+      portrait: 'otter',
+      text: '{mood:smug}Watch the water ripple frequency! Rare species like Azure Brook Trout bite hardest during dawn and dusk. Keep your bobber in the green sweet spot!',
+      responses: [
+        { text: 'Thanks for the wisdom, Finn!', nextDialogueKey: 'thanks' }
+      ]
+    },
+    cooking_tips: {
+      speaker: 'Finn the Otter Angler',
+      portrait: 'otter',
+      text: '{mood:happy}Oh, absolutely! Roast a fresh minnow on a wooden skewer over the campfire coals for a tasty speed boost!',
+      responses: [
+        { text: 'My mouth is already watering.', nextDialogueKey: 'thanks' }
+      ]
+    },
+    thanks: {
+      speaker: 'Finn the Otter Angler',
+      portrait: 'otter',
+      text: '{mood:happy}Tight lines and peaceful ripples, adventurer! May the river currents be kind.'
+    }
   }
 };

@@ -50,6 +50,7 @@
     "test:telemetry": "bun run tools/test_telemetry_profiler.ts",
     "test:farming": "bun run tools/test_farming_system.ts",
     "test:cooking": "bun run tools/test_cooking_system.ts",
+    "test:schedules": "bun run tools/test_npc_schedules.ts",
     "test:bg": "bun run tools/run_background_tests.ts",
     "test:qa": "bun run tools/run_deep_qa.ts",
     "ingest:assets": "bun run tools/ingest_assets.ts",

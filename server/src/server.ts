@@ -683,12 +683,13 @@ const server = Bun.serve<SocketData>({
               if (diagKey && STARTER_DIALOGUES[diagKey]) {
                 const node = STARTER_DIALOGUES[diagKey]['greeting'];
                 if (node) {
+                  const greetingText = entity.state.contextualGreeting || node.text;
                   ws.send(JSON.stringify({
                     type: 'dialogue_event',
                     npcId: msg.targetId,
                     speaker: node.speaker,
                     portrait: node.portrait || 'default',
-                    text: node.text,
+                    text: greetingText,
                     responses: node.responses
                   }));
                 }

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BitQuest - Multiplayer GM God Mode Console (/tools/gm)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #07090e;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    #gm-app-root {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .btn {
+      background: #1e293b;
+      color: #fff;
+      border: 1px solid #334155;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn:hover { background: #334155; }
+    .btn-primary { background: #e11d48; border-color: #f43f5e; }
+    .btn-primary:hover { background: #be123c; }
+    .btn.active { background: #e11d48; border-color: #f43f5e; }
+  </style>
+</head>
+<body>
+  <div id="gm-app-root">
+    <div id="gm-console-container" style="width: 100%; height: 100%;"></div>
+  </div>
+
+  <script type="module">
+    import { GMConsoleStudio } from '/src/tools/gmConsoleStudio.ts';
+    window.addEventListener('DOMContentLoaded', () => {
+      const studio = new GMConsoleStudio('gm-console-container');
+      window.GMConsoleStudio = studio;
+      console.log('⚡ BitQuest Multiplayer GM God Mode Console initialized on /gm-console.html');
+    });
+  </script>
+</body>
+</html>

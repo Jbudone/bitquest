@@ -841,6 +841,44 @@ export const AtmosphereCalibrationPresetSchema = z.object({
 });
 export type AtmosphereCalibrationPreset = z.infer<typeof AtmosphereCalibrationPresetSchema>;
 
+// ==========================================
+// 18. Multiplayer GM God Mode & Spectator Console Schemas (Milestone 9.7)
+// ==========================================
+export const GMLocationBookmarkSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  category: z.enum(['village', 'dungeon', 'nature', 'boss']),
+  x: z.number().int(),
+  y: z.number().int(),
+  description: z.string().optional()
+});
+export type GMLocationBookmark = z.infer<typeof GMLocationBookmarkSchema>;
+
+export const GMSpawnCommandSchema = z.object({
+  target: z.enum(['item', 'enemy', 'boss']),
+  type: z.string(),
+  x: z.number(),
+  y: z.number(),
+  value: z.number().optional(),
+  count: z.number().int().min(1).max(100).default(1)
+});
+export type GMSpawnCommand = z.infer<typeof GMSpawnCommandSchema>;
+
+export const GMTelemetryReportSchema = z.object({
+  connectedPlayers: z.number().int().nonnegative(),
+  activeEntities: z.number().int().nonnegative(),
+  activeItems: z.number().int().nonnegative(),
+  avgPingMs: z.number().nonnegative(),
+  minPingMs: z.number().nonnegative(),
+  maxPingMs: z.number().nonnegative(),
+  packetLossPercent: z.number().min(0).max(100),
+  worldTimeHour: z.number().min(0).max(24),
+  weather: z.enum(['clear', 'rain', 'storm', 'fog']),
+  serverUptimeSec: z.number().nonnegative()
+});
+export type GMTelemetryReport = z.infer<typeof GMTelemetryReportSchema>;
+
+
 
 
 

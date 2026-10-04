@@ -10,6 +10,7 @@ import { NPCScheduleStudio } from './npcScheduleStudio';
 import { DungeonStudio } from './dungeonStudio';
 import { SoundboardStudio } from './soundboardStudio';
 import { AtmosphereStudio } from './atmosphereStudio';
+import { GMConsoleStudio } from './gmConsoleStudio';
 
 interface Command {
   name: string;
@@ -2194,6 +2195,13 @@ window.addEventListener('DOMContentLoaded', () => {
     (window as any).AtmosphereStudio = atmosphereStudio;
   }
 
+  // Initialize Multiplayer GM God Mode & Spectator Console (Milestone 9.7)
+  let gmConsoleStudio: GMConsoleStudio | null = null;
+  if (document.getElementById('gm-console-container')) {
+    gmConsoleStudio = new GMConsoleStudio('gm-console-container');
+    (window as any).GMConsoleStudio = gmConsoleStudio;
+  }
+
   // Tabs
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -2243,6 +2251,9 @@ window.addEventListener('DOMContentLoaded', () => {
         } else if (target === 'tab-atmosphere') {
           copilotContext.innerText = 'Context: Lighting & Atmosphere Calibration';
           atmosphereStudio?.onTabActivated();
+        } else if (target === 'tab-gm') {
+          copilotContext.innerText = 'Context: Multiplayer GM "God Mode" Console';
+          gmConsoleStudio?.onTabActivated();
         }
       }
     });

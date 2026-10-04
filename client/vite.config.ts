@@ -24,7 +24,8 @@ export default defineConfig({
         npc_schedules: 'npc-schedules.html',
         dungeon_generator: 'dungeon-generator.html',
         soundboard: 'soundboard.html',
-        atmosphere: 'atmosphere.html'
+        atmosphere: 'atmosphere.html',
+        gm_console: 'gm-console.html'
       }
     }
   }

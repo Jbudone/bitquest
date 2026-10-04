@@ -1,0 +1,82 @@
+[
+  {
+    "id": "village_center",
+    "name": "Oakridge Village Square",
+    "category": "village",
+    "x": 480,
+    "y": 720,
+    "description": "Heart of the starter village with fountain, bulletin board and wandering villagers."
+  },
+  {
+    "id": "grandma_bakery",
+    "name": "Grandma Bramble's Bakery Hearth",
+    "category": "village",
+    "x": 1248,
+    "y": 870,
+    "description": "Cozy oven bakery station and community pastry kitchen."
+  },
+  {
+    "id": "ancient_gate",
+    "name": "The Sun Gate & Dual Switches",
+    "category": "dungeon",
+    "x": 1024,
+    "y": 512,
+    "description": "Massive monolithic gateway secured by interlocking solar pressure switches."
+  },
+  {
+    "id": "catacombs_entrance",
+    "name": "Sunken Catacombs Descent",
+    "category": "dungeon",
+    "x": 896,
+    "y": 384,
+    "description": "Descent into Floor 1 of the multi-level subterranean crypts."
+  },
+  {
+    "id": "arch_lich_chamber",
+    "name": "Arch-Lich Vespera Abyssal Necropolis",
+    "category": "boss",
+    "x": 1536,
+    "y": 256,
+    "description": "Catacombs Floor 3 boss arena with necrotic soul pylons and void chasm."
+  },
+  {
+    "id": "baron_arena",
+    "name": "Baron Von Grumble Overlook",
+    "category": "boss",
+    "x": 1024,
+    "y": 280,
+    "description": "Rocky mountain summit where the Forest Baron rules."
+  },
+  {
+    "id": "crystal_lake",
+    "name": "Crystal Lake Pier & Boat Slalom",
+    "category": "nature",
+    "x": 1088,
+    "y": 1344,
+    "description": "Serene alpine lake with boat course and cozy fishing docks."
+  },
+  {
+    "id": "whispering_meadow",
+    "name": "Whispering Meadow Archery Range",
+    "category": "nature",
+    "x": 1472,
+    "y": 768,
+    "description": "Open rolling meadow with target archery stands and flower foraging."
+  },
+  {
+    "id": "pip_shop",
+    "name": "Pip's Oddities Trade Caravan",
+    "category": "village",
+    "x": 640,
+    "y": 920,
+    "description": "Caravan encampment of Pip the Fox merchant selling rare wares."
+  },
+  {
+    "id": "farm_pasture",
+    "name": "Community Garden & Animal Sanctuary",
+    "category": "nature",
+    "x": 1420,
+    "y": 880,
+    "description": "Agricultural tilled soil beds, Highland cows, and silken sheep."
+  }
+]

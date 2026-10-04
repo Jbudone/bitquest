@@ -138,7 +138,7 @@
         "armor": null,
         "weapon": null
       },
-      "lastSeen": 1791078291587
+      "lastSeen": 1791052458661
     },
     "p_musqdrug_ebng": {
       "name": "Adventurer",
@@ -182,7 +182,7 @@
         "armor": null,
         "weapon": null
       },
-      "lastSeen": 1791078290917
+      "lastSeen": 1791052458089
     },
     "p_alice": {
       "name": "Alice",
@@ -204,7 +204,7 @@
         "armor": null,
         "weapon": null
       },
-      "lastSeen": 1791078290966
+      "lastSeen": 1791052458132
     },
     "p_bob": {
       "name": "Bob",
@@ -226,7 +226,7 @@
         "armor": null,
         "weapon": null
       },
-      "lastSeen": 1791078290967
+      "lastSeen": 1791052458132
     },
     "test_mage": {
       "name": "Mage",
@@ -248,7 +248,7 @@
         "armor": null,
         "weapon": null
       },
-      "lastSeen": 1791078291409
+      "lastSeen": 1791052458492
     },
     "test_p_1791052458570": {
       "name": "Arthur",
@@ -954,31 +954,9 @@
       },
       "lastSeen": 1791078281391
     },
-    "test_p_1791078291488": {
-      "name": "Arthur",
+    "p_mut5x25j_llkm": {
+      "name": "Adventurer",
       "color": "#2e9939",
-      "paletteIndex": 0,
-      "coins": 10,
-      "inventory": [
-        "Wooden Practice Stick"
-      ],
-      "classId": "warrior",
-      "equipment": {
-        "weapon": "bow_recurve",
-        "offhand": null,
-        "armor": "armor_plate",
-        "relic": null
-      },
-      "vanity": {
-        "head": "vanity_crown",
-        "armor": "vanity_cape_hero",
-        "weapon": null
-      },
-      "lastSeen": 1791078291490
-    },
-    "p_tester_classes_1791078291535": {
-      "name": "Aiden",
-      "color": "#ffffff",
       "paletteIndex": 0,
       "coins": 10,
       "inventory": [
@@ -996,33 +974,11 @@
         "armor": null,
         "weapon": null
       },
-      "lastSeen": 1791078291538
+      "lastSeen": 1791078544939
     },
-    "p_teammate_1791078291538": {
-      "name": "Chloe",
-      "color": "#ffffff",
-      "paletteIndex": 1,
-      "coins": 10,
-      "inventory": [
-        "Wooden Practice Stick"
-      ],
-      "classId": "warrior",
-      "equipment": {
-        "weapon": "sword_wood",
-        "offhand": null,
-        "armor": null,
-        "relic": null
-      },
-      "vanity": {
-        "head": null,
-        "armor": null,
-        "weapon": null
-      },
-      "lastSeen": 1791078291538
-    },
-    "p_fisherman_test": {
-      "name": "OldFisherman",
-      "color": "#0284c7",
+    "p_mut6bi4z_hzgi": {
+      "name": "Adventurer",
+      "color": "#2e9939",
       "paletteIndex": 0,
       "coins": 10,
       "inventory": [
@@ -1040,59 +996,7 @@
         "armor": null,
         "weapon": null
       },
-      "lastSeen": 1791078291642,
-      "fishLog": {
-        "glowing_perch": {
-          "speciesId": "glowing_perch",
-          "caughtCount": 1,
-          "maxSizeCm": 9.1,
-          "firstCaughtAt": 1791078291643
-        }
-      }
-    },
-    "test_player_weather": {
-      "name": "CampfireTraveler",
-      "color": "#0284c7",
-      "paletteIndex": 0,
-      "coins": 10,
-      "inventory": [
-        "Wooden Practice Stick"
-      ],
-      "classId": "warrior",
-      "equipment": {
-        "weapon": "sword_wood",
-        "offhand": null,
-        "armor": null,
-        "relic": null
-      },
-      "vanity": {
-        "head": null,
-        "armor": null,
-        "weapon": null
-      },
-      "lastSeen": 1791078291728
-    },
-    "hero_1": {
-      "name": "PetMaster",
-      "color": "#3b82f6",
-      "paletteIndex": 1,
-      "coins": 10,
-      "inventory": [
-        "Wooden Practice Stick"
-      ],
-      "classId": "warrior",
-      "equipment": {
-        "weapon": "sword_wood",
-        "offhand": null,
-        "armor": null,
-        "relic": null
-      },
-      "vanity": {
-        "head": null,
-        "armor": null,
-        "weapon": null
-      },
-      "lastSeen": 1791078291810
+      "lastSeen": 1791079214017
     }
   }
 }

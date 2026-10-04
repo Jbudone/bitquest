@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BitQuest - Visual Keyframe & Hitbox Editor (/tools/animator)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0b0f19;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    #animator-app-root {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .btn {
+      background: #334155;
+      color: #fff;
+      border: 1px solid #475569;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn:hover { background: #475569; }
+    .btn-primary { background: #6366f1; border-color: #6366f1; }
+    .btn-primary:hover { background: #4f46e5; }
+  </style>
+</head>
+<body>
+  <div id="animator-app-root">
+    <div id="animator-studio-container" style="width: 100%; height: 100%;"></div>
+  </div>
+
+  <script type="module">
+    import { AnimatorStudio } from '/src/tools/animatorStudio.ts';
+    window.addEventListener('DOMContentLoaded', () => {
+      const studio = new AnimatorStudio('animator-studio-container');
+      window.AnimatorStudio = studio;
+      console.log('🎞️ BitQuest Keyframe & Hitbox Studio initialized on /animator.html');
+    });
+  </script>
+</body>
+</html>

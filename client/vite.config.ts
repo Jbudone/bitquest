@@ -14,6 +14,7 @@ export default defineConfig({
       input: {
         main: 'index.html',
         tools: 'tools.html',
+        animator: 'animator.html',
         render_map: 'render_map.html'
       }
     }

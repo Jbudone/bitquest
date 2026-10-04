@@ -975,6 +975,87 @@ async function runDeepQA() {
       if (!res.released) throw new Error('Virtual joystick did not release cleanly');
     });
 
+    console.log('\n--- 18. VISUAL KEYFRAME, HITBOX & HURTBOX TIMELINE EDITOR ---');
+
+    await runTest('Keyframe & Hitbox Editor (/tools/animator) Page & Studio Initialization', async () => {
+      await sendCommand('Page.enable');
+      await sendCommand('Page.navigate', { url: 'http://localhost:5173/animator.html' });
+      await new Promise(r => setTimeout(r, 1200));
+
+      const res = await evaluateInBrowser(`
+        (() => {
+          const studio = window.AnimatorStudio;
+          if (!studio) return { ok: false, reason: 'AnimatorStudio not mounted on window' };
+
+          const canvas = document.getElementById('anim-viewport-canvas');
+          const track = document.getElementById('timeline-track');
+          const curAnim = studio.getAnimation();
+
+          return {
+            ok: true,
+            hasCanvas: !!canvas,
+            hasTrack: !!track,
+            totalFrames: curAnim.frames.length,
+            currentFrame: studio.getCurrentFrame(),
+            animId: curAnim.id
+          };
+        })()
+      `);
+      if (!res.ok) throw new Error(res.reason);
+      if (!res.hasCanvas) throw new Error('Viewport canvas not found in DOM');
+      if (!res.hasTrack) throw new Error('Timeline scrubber track not found in DOM');
+      if (res.totalFrames < 4) throw new Error('Expected at least 4 animation frames');
+    });
+
+    await runTest('Scrubber Navigation, Onion-Skinning & Bounding Box Manipulation', async () => {
+      const res = await evaluateInBrowser(`
+        (() => {
+          const studio = window.AnimatorStudio;
+          if (!studio) return { ok: false, reason: 'AnimatorStudio not available' };
+
+          // Step frame
+          const initialFrame = studio.getCurrentFrame();
+          studio.stepFrame(1);
+          const steppedFrame = studio.getCurrentFrame();
+
+          // Toggle onion skinning
+          studio.toggleOnionSkinning(false);
+          studio.toggleOnionSkinning(true);
+
+          // Add a custom test hitbox
+          const f = studio.getCurrentKeyframe();
+          const initialBoxCount = f.boxes.length;
+          f.boxes.push({
+            id: 'qa_hitbox',
+            type: 'hitbox',
+            x: 5,
+            y: 5,
+            width: 20,
+            height: 15,
+            damage: 25,
+            knockback: 10
+          });
+          studio.render();
+          const afterAddBoxCount = studio.getCurrentKeyframe().boxes.length;
+
+          // Export metadata JSON
+          const exported = studio.exportJson(true);
+          const parsed = JSON.parse(exported);
+
+          return {
+            ok: true,
+            stepped: steppedFrame !== initialFrame,
+            boxAdded: afterAddBoxCount === initialBoxCount + 1,
+            validExport: parsed && parsed.id === studio.getAnimation().id
+          };
+        })()
+      `);
+      if (!res.ok) throw new Error(res.reason);
+      if (!res.stepped) throw new Error('Frame stepping failed');
+      if (!res.boxAdded) throw new Error('Hitbox addition failed');
+      if (!res.validExport) throw new Error('JSON export metadata failed validation');
+    });
+
     ws.close();
   } catch (err: any) {
     console.error('Fatal test error:', err);

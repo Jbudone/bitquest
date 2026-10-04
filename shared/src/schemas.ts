@@ -448,3 +448,59 @@ export const ChatMessageSchema = z.object({
   timestamp: z.number()
 });
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;
+
+// ==========================================
+// 10. Animation Keyframe & Hitbox/Hurtbox Schemas (Issue #29)
+// ==========================================
+export const BoxTypeSchema = z.enum(['hurtbox', 'hitbox', 'footprint']);
+export type BoxType = z.infer<typeof BoxTypeSchema>;
+
+export const BoundingBoxSchema = z.object({
+  id: z.string(),
+  type: BoxTypeSchema, // 'hurtbox' (green), 'hitbox' (red), 'footprint' (blue)
+  x: z.number(), // relative to sprite top-left
+  y: z.number(),
+  width: z.number().positive(),
+  height: z.number().positive(),
+  damage: z.number().nonnegative().optional(), // for hitboxes
+  knockback: z.number().nonnegative().optional() // for hitboxes
+});
+export type BoundingBox = z.infer<typeof BoundingBoxSchema>;
+
+export const FrameEventAudioCueSchema = z.object({
+  soundId: z.string(), // e.g. 'slash', 'hit', 'step', 'woosh', 'grunt'
+  volume: z.number().min(0).max(1).default(1)
+});
+export type FrameEventAudioCue = z.infer<typeof FrameEventAudioCueSchema>;
+
+export const FrameEventParticleCueSchema = z.object({
+  particleType: z.string(), // e.g. 'slash_spark', 'dust_puff', 'sparkle', 'blood'
+  offsetX: z.number().default(0),
+  offsetY: z.number().default(0),
+  count: z.number().int().positive().default(1)
+});
+export type FrameEventParticleCue = z.infer<typeof FrameEventParticleCueSchema>;
+
+export const AnimationKeyframeSchema = z.object({
+  frameIndex: z.number().int().nonnegative(),
+  durationMs: z.number().positive().default(100),
+  boxes: z.array(BoundingBoxSchema).default([]),
+  audioCues: z.array(FrameEventAudioCueSchema).default([]),
+  particleCues: z.array(FrameEventParticleCueSchema).default([])
+});
+export type AnimationKeyframe = z.infer<typeof AnimationKeyframeSchema>;
+
+export const AnimationMetadataSchema = z.object({
+  id: z.string(), // e.g. 'player_slash_down', 'slime_bounce'
+  targetId: z.string(), // e.g. 'player', 'slime'
+  action: z.string(), // e.g. 'slash', 'walk', 'idle'
+  direction: DirectionSchema.optional(),
+  fps: z.number().positive().default(10),
+  loop: z.boolean().default(true),
+  frameWidth: z.number().positive().default(16),
+  frameHeight: z.number().positive().default(16),
+  totalFrames: z.number().int().positive().default(4),
+  frames: z.array(AnimationKeyframeSchema)
+});
+export type AnimationMetadata = z.infer<typeof AnimationMetadataSchema>;
+

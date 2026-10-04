@@ -35,9 +35,10 @@
     "test:pets": "bun run tools/test_pets_and_mounts.ts",
     "test:ocarina": "bun run tools/test_ocarina_system.ts",
     "test:touch": "bun run tools/test_touch_controls.ts",
+    "test:animator": "bun run tools/test_animator_studio.ts",
     "test:qa": "bun run tools/run_deep_qa.ts",
     "ingest:assets": "bun run tools/ingest_assets.ts",
-    "test:all": "bun run check:map && bun run check:quests && bun run check:dialogue && bun run test:balance && bun run test:perf && bun run test:playthrough && bun run test:coop && bun run test:vfx && bun run test:foliage && bun run test:ambient_ai && bun run test:blocks && bun run test:decals && bun run test:elevation && bun run test:pathfinding && bun run test:spatial_culling && bun run test:behaviors && bun run test:netcode && bun run test:magic && bun run test:equipment && bun run test:classes && bun run test:catacombs && bun run test:fishing && bun run test:weather && bun run test:shop && bun run test:pets && bun run test:ocarina && bun run test:touch && bun run ingest:assets"
+    "test:all": "bun run check:map && bun run check:quests && bun run check:dialogue && bun run test:balance && bun run test:perf && bun run test:playthrough && bun run test:coop && bun run test:vfx && bun run test:foliage && bun run test:ambient_ai && bun run test:blocks && bun run test:decals && bun run test:elevation && bun run test:pathfinding && bun run test:spatial_culling && bun run test:behaviors && bun run test:netcode && bun run test:magic && bun run test:equipment && bun run test:classes && bun run test:catacombs && bun run test:fishing && bun run test:weather && bun run test:shop && bun run test:pets && bun run test:ocarina && bun run test:touch && bun run test:animator && bun run ingest:assets"
   },
   "devDependencies": {
     "@types/bun": "latest"

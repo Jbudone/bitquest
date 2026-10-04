@@ -1,5 +1,6 @@
 import { DataRegistry } from '../../../shared/src/dataRegistry';
 import { TARGET_REGISTRY, drawPlaceholderPreview, generateSampleSheetDataUrl, type TargetMeta } from './placeholderDrawers';
+import { AnimatorStudio } from './animatorStudio';
 
 interface Command {
   name: string;
@@ -2131,9 +2132,27 @@ window.addEventListener('DOMContentLoaded', () => {
         else if (target === 'tab-quests') copilotContext.innerText = 'Context: Quests & Dialogue';
         else if (target === 'tab-entities') copilotContext.innerText = 'Context: Enemies & Items';
         else if (target === 'tab-art') copilotContext.innerText = 'Context: Art Studio';
+        else if (target === 'tab-animator') {
+          copilotContext.innerText = 'Context: Keyframe & Hitbox Editor';
+          animatorStudio?.render();
+        }
       }
     });
   });
+
+  // Initialize Animator Studio (Issue #29)
+  let animatorStudio: AnimatorStudio | null = null;
+  if (document.getElementById('animator-studio-container')) {
+    animatorStudio = new AnimatorStudio('animator-studio-container');
+    (window as any).AnimatorStudio = animatorStudio;
+  }
+
+  // URL Hash Auto-Tab Switch (e.g. #tab-animator)
+  if (window.location.hash) {
+    const hashTab = window.location.hash.replace('#', '');
+    const tabBtn = document.querySelector(`.tab-btn[data-tab="${hashTab}"]`) as HTMLElement | null;
+    tabBtn?.click();
+  }
 
   // Undo / Redo buttons
   document.getElementById('btn-undo')?.addEventListener('click', () => commands.undo());

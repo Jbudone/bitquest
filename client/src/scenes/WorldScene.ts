@@ -15,6 +15,7 @@ import { DUNGEON_CONSTANTS, MALAKOR_SPECS, DungeonManager, CATACOMBS_FLOORS, typ
 import { FishingEngine, FISH_SPECIES } from '../../../shared/src/fishing';
 import { WeatherEngine, CAMPFIRES, type WeatherType, type WeatherState, type DayPhase, type CampfireDefinition } from '../../../shared/src/weather';
 import { OCARINA_NOTES, type OcarinaNote } from '../../../shared/src/ocarina';
+import { telemetryProfiler } from '../../../shared/src/telemetry';
 
 export class WorldScene extends Phaser.Scene {
   public localPlayer: Player | null = null;
@@ -26,6 +27,7 @@ export class WorldScene extends Phaser.Scene {
   public itemObjects = new Map<string, { sprite: Phaser.GameObjects.Sprite; shapeText?: Phaser.GameObjects.Text; data: ItemDropData }>();
   public playerGlow?: Phaser.GameObjects.Image;
   public particles!: ParticlePipeline;
+  public physicsDebugGraphics!: Phaser.GameObjects.Graphics;
 
   // Cozy Bobber Fishing (Task 7.5 / Issue #23)
   public isLocalFishing = false;
@@ -212,6 +214,10 @@ export class WorldScene extends Phaser.Scene {
     // 1e. Centralized Zero-Allocation VFX & Ambient Particle Pipeline
     this.particles = new ParticlePipeline(this);
 
+    // 1f. Physics Inspector & Bounding Box Wireframe Renderer (depth 99999)
+    this.physicsDebugGraphics = this.add.graphics();
+    this.physicsDebugGraphics.setDepth(99999);
+
     // 2. Setup Input
     if (this.input.keyboard) {
       this.cursors = this.input.keyboard.createCursorKeys();
@@ -237,8 +243,12 @@ export class WorldScene extends Phaser.Scene {
         SIX: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SIX),
         Z: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z),
         X: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X),
-        F: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F)
+        F: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F),
+        F3: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F3)
       };
+
+      // F3: In-Engine Telemetry & Profiler (Issue #37)
+      this.keys.F3.on('down', () => (window as any).BitQuestTelemetry?.toggle());
 
       // F: Fishing Cast & Reel
       this.keys.F.on('down', () => this.handleActionFishing(true));
@@ -4052,6 +4062,99 @@ export class WorldScene extends Phaser.Scene {
 
     for (const other of this.otherPlayers.values()) {
       other.updateInterpolation(delta);
+    }
+
+    // 12. In-Engine Telemetry, Profiler & Physics Inspector (Issue #37)
+    const drawCalls = (this.renderer as any)?.drawCount ?? (this.renderer as any)?.currentDrawCalls ?? 0;
+    const particleCount = this.particles?.getActiveCount() ?? 0;
+    const entityCount = this.entityObjects.size + this.otherPlayers.size + (this.localPlayer ? 1 : 0);
+    const obstacleCount = this.obstacles?.children?.size ?? 0;
+    telemetryProfiler.recordFrame(delta, drawCalls, particleCount, entityCount, obstacleCount);
+    telemetryProfiler.recordPing(network.pingMs);
+
+    const telemetryOverlay = (window as any).BitQuestTelemetry;
+    if (telemetryOverlay) {
+      telemetryOverlay.update(time);
+      this.renderPhysicsInspector(telemetryOverlay);
+    }
+  }
+
+  private renderPhysicsInspector(overlay: any) {
+    if (!this.physicsDebugGraphics) return;
+
+    if (!overlay.isVisible || !overlay.isPhysicsInspectorEnabled) {
+      this.physicsDebugGraphics.clear();
+      return;
+    }
+
+    this.physicsDebugGraphics.clear();
+    telemetryProfiler.resetWireframes();
+
+    // 1. Local Player Wireframes
+    if (this.localPlayer) {
+      telemetryProfiler.addPlayerWireframes(
+        this.localPlayer.x,
+        this.localPlayer.y,
+        this.localPlayer.direction,
+        this.localPlayer.isAttacking,
+        this.localPlayer.equipmentStats?.cleaveRadius || 46,
+        this.localPlayer.equipmentStats?.cleaveAngle || ((2 * Math.PI) / 3)
+      );
+    }
+
+    // 2. Other Players
+    for (const other of this.otherPlayers.values()) {
+      telemetryProfiler.addPlayerWireframes(other.x, other.y, other.direction, false);
+    }
+
+    // 3. Visible Entities
+    const cam = this.cameras.main;
+    const viewL = cam.worldView.x - 48;
+    const viewR = cam.worldView.right + 48;
+    const viewT = cam.worldView.y - 48;
+    const viewB = cam.worldView.bottom + 48;
+
+    for (const [id, obj] of this.entityObjects.entries()) {
+      const ent = obj as Phaser.GameObjects.Sprite;
+      if (ent.x < viewL || ent.x > viewR || ent.y < viewT || ent.y > viewB) continue;
+      const data = this.worldEntities.get(id);
+      const type = data?.type || (id.startsWith('enemy_') ? 'monster' : 'npc');
+      const isInteractable = !!(data?.state?.dialogueKey || id.startsWith('chest_') || id.startsWith('pot_') || id.startsWith('merchant_'));
+      telemetryProfiler.addEntityWireframes(ent.x, ent.y, type, isInteractable);
+    }
+
+    // 4. Render Wireframes from Pool (zero-allocation WebGL draw commands)
+    for (let i = 0; i < telemetryProfiler.wireframeCount; i++) {
+      const box = telemetryProfiler.wireframePool[i];
+      if (box.radius > 0) {
+        if (box.arcEnd - box.arcStart < Math.PI * 1.9) {
+          // Conical sweep slice
+          if (box.fillAlpha > 0) {
+            this.physicsDebugGraphics.fillStyle(box.color, box.fillAlpha);
+            this.physicsDebugGraphics.slice(box.x, box.y, box.radius, box.arcStart, box.arcEnd, false);
+            this.physicsDebugGraphics.fillPath();
+          }
+          this.physicsDebugGraphics.lineStyle(2, box.color, box.alpha);
+          this.physicsDebugGraphics.slice(box.x, box.y, box.radius, box.arcStart, box.arcEnd, false);
+          this.physicsDebugGraphics.strokePath();
+        } else {
+          // Full circle
+          if (box.fillAlpha > 0) {
+            this.physicsDebugGraphics.fillStyle(box.color, box.fillAlpha);
+            this.physicsDebugGraphics.fillCircle(box.x, box.y, box.radius);
+          }
+          this.physicsDebugGraphics.lineStyle(1.5, box.color, box.alpha);
+          this.physicsDebugGraphics.strokeCircle(box.x, box.y, box.radius);
+        }
+      } else {
+        // Bounding box rectangle
+        if (box.fillAlpha > 0) {
+          this.physicsDebugGraphics.fillStyle(box.color, box.fillAlpha);
+          this.physicsDebugGraphics.fillRect(box.x, box.y, box.width, box.height);
+        }
+        this.physicsDebugGraphics.lineStyle(1.5, box.color, box.alpha);
+        this.physicsDebugGraphics.strokeRect(box.x, box.y, box.width, box.height);
+      }
     }
   }
 

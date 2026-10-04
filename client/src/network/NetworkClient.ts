@@ -70,6 +70,13 @@ export class NetworkClient {
   public onReconcile?: (ackSeq: number, x: number, y: number) => void;
   public onConnectionChange?: (connected: boolean) => void;
 
+  // Zero-allocation ping and network latency telemetry (Issue #37)
+  public pingMs = 0;
+  public pingHistory = new Float32Array(60);
+  public pingIndex = 0;
+  public pingCount = 0;
+  private pingTimer: any = null;
+
   public connect(url?: string) {
     let wsHost: string;
     if (window.location.port === '5173' || window.location.port === '5174' || window.location.port === '5175') {
@@ -89,12 +96,14 @@ export class NetworkClient {
       this.ws.onopen = () => {
         console.log('[NetworkClient] Connected to server!');
         this.isConnected = true;
+        this.startPingHeartbeat();
         this.onConnectionChange?.(true);
       };
 
       this.ws.onclose = () => {
         console.log('[NetworkClient] Disconnected from server');
         this.isConnected = false;
+        this.stopPingHeartbeat();
         this.onConnectionChange?.(false);
         // Auto-reconnect after 2 seconds
         setTimeout(() => this.connect(wsUrl), 2000);
@@ -260,6 +269,37 @@ export class NetworkClient {
       case 'reconcile':
         this.onReconcile?.(packet.ackSeq, packet.x, packet.y);
         break;
+      case 'pong':
+        this.recordPing(Date.now() - packet.timestamp);
+        break;
+    }
+  }
+
+  public sendPing() {
+    this.send({ type: 'ping', timestamp: Date.now() });
+  }
+
+  public recordPing(rtt: number) {
+    this.pingMs = Math.max(0, Math.round(rtt));
+    this.pingHistory[this.pingIndex] = this.pingMs;
+    this.pingIndex = (this.pingIndex + 1) % 60;
+    if (this.pingCount < 60) this.pingCount++;
+  }
+
+  private startPingHeartbeat() {
+    this.stopPingHeartbeat();
+    this.sendPing();
+    this.pingTimer = setInterval(() => {
+      if (this.isConnected) {
+        this.sendPing();
+      }
+    }, 1500);
+  }
+
+  private stopPingHeartbeat() {
+    if (this.pingTimer) {
+      clearInterval(this.pingTimer);
+      this.pingTimer = null;
     }
   }
 

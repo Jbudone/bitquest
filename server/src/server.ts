@@ -805,6 +805,16 @@ const server = Bun.serve<SocketData>({
             world.playOcarinaSong(id, msg.songId, msg.x, msg.y);
             break;
           }
+
+          case 'ping': {
+            const pong: ServerPacket = {
+              type: 'pong',
+              timestamp: msg.timestamp,
+              serverTime: Date.now()
+            };
+            ws.send(JSON.stringify(pong));
+            break;
+          }
         }
       } catch (err) {
         console.error('[Server] Failed to handle message:', err);

@@ -9,6 +9,7 @@ import { CutsceneStudio } from './cutsceneStudio';
 import { NPCScheduleStudio } from './npcScheduleStudio';
 import { DungeonStudio } from './dungeonStudio';
 import { SoundboardStudio } from './soundboardStudio';
+import { AtmosphereStudio } from './atmosphereStudio';
 
 interface Command {
   name: string;
@@ -2186,6 +2187,13 @@ window.addEventListener('DOMContentLoaded', () => {
     (window as any).SoundboardStudio = soundboardStudio;
   }
 
+  // Initialize Dynamic Lighting & Atmosphere Calibration Studio (Milestone 9.6)
+  let atmosphereStudio: AtmosphereStudio | null = null;
+  if (document.getElementById('atmosphere-studio-container')) {
+    atmosphereStudio = new AtmosphereStudio('atmosphere-studio-container');
+    (window as any).AtmosphereStudio = atmosphereStudio;
+  }
+
   // Tabs
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -2232,6 +2240,9 @@ window.addEventListener('DOMContentLoaded', () => {
         } else if (target === 'tab-soundboard') {
           copilotContext.innerText = 'Context: Chiptune & Foley Soundboard';
           soundboardStudio?.onTabActivated();
+        } else if (target === 'tab-atmosphere') {
+          copilotContext.innerText = 'Context: Lighting & Atmosphere Calibration';
+          atmosphereStudio?.onTabActivated();
         }
       }
     });

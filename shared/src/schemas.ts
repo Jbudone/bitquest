@@ -806,6 +806,42 @@ export const ChiptuneSoundDefSchema = z.object({
 });
 export type ChiptuneSoundDef = z.infer<typeof ChiptuneSoundDefSchema>;
 
+// ==========================================
+// 17. Dynamic Lighting & Atmosphere Calibration Schemas (Milestone 9.6)
+// ==========================================
+export const LightingKeyframeSchema = z.object({
+  hour: z.number().min(0).max(24),
+  color: z.number().int().nonnegative(),
+  alpha: z.number().min(0).max(1),
+  name: z.string()
+});
+export type LightingKeyframe = z.infer<typeof LightingKeyframeSchema>;
+
+export const WeatherParticleConfigSchema = z.object({
+  rainDensity: z.number().min(0).max(500).default(0),
+  rainSpeed: z.number().min(100).max(1200).default(600),
+  rainAngleDeg: z.number().min(-45).max(45).default(12),
+  windSpeed: z.number().min(0).max(100).default(15),
+  windAngleDeg: z.number().min(0).max(360).default(75),
+  lightningFrequency: z.number().min(0).max(1).default(0),
+  lightningIntensity: z.number().min(0).max(1).default(0.85),
+  fireflyCount: z.number().min(0).max(100).default(20),
+  fireflyGlowColor: z.string().default('#a3e635'),
+  fogDensity: z.number().min(0).max(1).default(0)
+});
+export type WeatherParticleConfig = z.infer<typeof WeatherParticleConfigSchema>;
+
+export const AtmosphereCalibrationPresetSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  biome: z.string(),
+  weather: z.enum(['clear', 'rain', 'storm', 'fog']),
+  lightingKeyframes: z.array(LightingKeyframeSchema),
+  particles: WeatherParticleConfigSchema
+});
+export type AtmosphereCalibrationPreset = z.infer<typeof AtmosphereCalibrationPresetSchema>;
+
+
 
 
 

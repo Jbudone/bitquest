@@ -1,0 +1,138 @@
+{
+  "village_fair": {
+    "id": "village_fair",
+    "name": "Oakridge Village & Commons",
+    "biome": "village",
+    "weather": "clear",
+    "lightingKeyframes": [
+      { "hour": 0.0, "color": 593178, "alpha": 0.62, "name": "Midnight" },
+      { "hour": 4.0, "color": 922664, "alpha": 0.60, "name": "Late Night" },
+      { "hour": 5.0, "color": 1973067, "alpha": 0.48, "name": "Pre-Dawn Blue" },
+      { "hour": 6.0, "color": 16020150, "alpha": 0.25, "name": "Sunrise Rose" },
+      { "hour": 7.2, "color": 16638023, "alpha": 0.12, "name": "Golden Dawn" },
+      { "hour": 8.5, "color": 16776171, "alpha": 0.02, "name": "Bright Morning" },
+      { "hour": 12.0, "color": 16777215, "alpha": 0.00, "name": "High Noon" },
+      { "hour": 16.5, "color": 16708551, "alpha": 0.02, "name": "Warm Afternoon" },
+      { "hour": 17.5, "color": 16096779, "alpha": 0.14, "name": "Golden Hour" },
+      { "hour": 18.5, "color": 14753096, "alpha": 0.26, "name": "Crimson Sunset" },
+      { "hour": 19.8, "color": 4988309, "alpha": 0.40, "name": "Dusk Violet" },
+      { "hour": 21.0, "color": 1973067, "alpha": 0.54, "name": "Twilight Indigo" },
+      { "hour": 22.0, "color": 593178, "alpha": 0.62, "name": "Nightfall" },
+      { "hour": 24.0, "color": 593178, "alpha": 0.62, "name": "Midnight Loop" }
+    ],
+    "particles": {
+      "rainDensity": 0,
+      "rainSpeed": 600,
+      "rainAngleDeg": 12,
+      "windSpeed": 15,
+      "windAngleDeg": 75,
+      "lightningFrequency": 0,
+      "lightningIntensity": 0.85,
+      "fireflyCount": 25,
+      "fireflyGlowColor": "#a3e635",
+      "fogDensity": 0
+    }
+  },
+  "haunted_catacombs": {
+    "id": "haunted_catacombs",
+    "name": "Sunken Catacombs & Abyssal Crypt",
+    "biome": "dungeon",
+    "weather": "fog",
+    "lightingKeyframes": [
+      { "hour": 0.0, "color": 3018853, "alpha": 0.75, "name": "Abyssal Gloom" },
+      { "hour": 6.0, "color": 3018853, "alpha": 0.72, "name": "Subterranean Fog" },
+      { "hour": 12.0, "color": 3804791, "alpha": 0.68, "name": "Dim Bioluminescence" },
+      { "hour": 18.0, "color": 3018853, "alpha": 0.72, "name": "Creeping Shadows" },
+      { "hour": 24.0, "color": 3018853, "alpha": 0.75, "name": "Abyssal Gloom" }
+    ],
+    "particles": {
+      "rainDensity": 0,
+      "rainSpeed": 300,
+      "rainAngleDeg": 0,
+      "windSpeed": 5,
+      "windAngleDeg": 0,
+      "lightningFrequency": 0,
+      "lightningIntensity": 0,
+      "fireflyCount": 35,
+      "fireflyGlowColor": "#c084fc",
+      "fogDensity": 0.65
+    }
+  },
+  "stormy_cliffs": {
+    "id": "stormy_cliffs",
+    "name": "Stormy Cliffs & Sea Gale",
+    "biome": "coastal",
+    "weather": "storm",
+    "lightingKeyframes": [
+      { "hour": 0.0, "color": 461349, "alpha": 0.82, "name": "Thunderous Midnight" },
+      { "hour": 6.0, "color": 1515569, "alpha": 0.70, "name": "Stormy Dawn" },
+      { "hour": 12.0, "color": 3358525, "alpha": 0.55, "name": "Dark Noon Gale" },
+      { "hour": 18.0, "color": 1974844, "alpha": 0.72, "name": "Violent Twilight" },
+      { "hour": 24.0, "color": 461349, "alpha": 0.82, "name": "Thunderous Midnight" }
+    ],
+    "particles": {
+      "rainDensity": 380,
+      "rainSpeed": 850,
+      "rainAngleDeg": 22,
+      "windSpeed": 65,
+      "windAngleDeg": 115,
+      "lightningFrequency": 0.45,
+      "lightningIntensity": 0.95,
+      "fireflyCount": 0,
+      "fireflyGlowColor": "#ffffff",
+      "fogDensity": 0.25
+    }
+  },
+  "whispering_meadows": {
+    "id": "whispering_meadows",
+    "name": "Whispering Meadows & Forest Path",
+    "biome": "meadow",
+    "weather": "clear",
+    "lightingKeyframes": [
+      { "hour": 0.0, "color": 658466, "alpha": 0.58, "name": "Starlight Meadow" },
+      { "hour": 5.5, "color": 16027289, "alpha": 0.22, "name": "Dewdrop Dawn" },
+      { "hour": 9.0, "color": 16777195, "alpha": 0.00, "name": "Meadow Sunshine" },
+      { "hour": 13.0, "color": 16777215, "alpha": 0.00, "name": "Zenith Sun" },
+      { "hour": 17.5, "color": 16753443, "alpha": 0.12, "name": "Honey Amber" },
+      { "hour": 19.5, "color": 13454737, "alpha": 0.32, "name": "Lavender Dusk" },
+      { "hour": 24.0, "color": 658466, "alpha": 0.58, "name": "Starlight Meadow" }
+    ],
+    "particles": {
+      "rainDensity": 0,
+      "rainSpeed": 500,
+      "rainAngleDeg": 10,
+      "windSpeed": 22,
+      "windAngleDeg": 60,
+      "lightningFrequency": 0,
+      "lightningIntensity": 0,
+      "fireflyCount": 40,
+      "fireflyGlowColor": "#facc15",
+      "fogDensity": 0.05
+    }
+  },
+  "blood_moon_eclipse": {
+    "id": "blood_moon_eclipse",
+    "name": "Blood Moon Eclipse Event",
+    "biome": "boss_arena",
+    "weather": "fog",
+    "lightingKeyframes": [
+      { "hour": 0.0, "color": 8330781, "alpha": 0.72, "name": "Blood Eclipse" },
+      { "hour": 6.0, "color": 10034971, "alpha": 0.65, "name": "Crimson Haze" },
+      { "hour": 12.0, "color": 12658468, "alpha": 0.50, "name": "Ominous Red Noon" },
+      { "hour": 18.0, "color": 10034971, "alpha": 0.68, "name": "Sanguine Twilight" },
+      { "hour": 24.0, "color": 8330781, "alpha": 0.72, "name": "Blood Eclipse" }
+    ],
+    "particles": {
+      "rainDensity": 0,
+      "rainSpeed": 400,
+      "rainAngleDeg": 0,
+      "windSpeed": 45,
+      "windAngleDeg": 210,
+      "lightningFrequency": 0.20,
+      "lightningIntensity": 0.90,
+      "fireflyCount": 50,
+      "fireflyGlowColor": "#ea580c",
+      "fogDensity": 0.35
+    }
+  }
+}

@@ -23,7 +23,8 @@ export default defineConfig({
         cutscene_sequencer: 'cutscene-sequencer.html',
         npc_schedules: 'npc-schedules.html',
         dungeon_generator: 'dungeon-generator.html',
-        soundboard: 'soundboard.html'
+        soundboard: 'soundboard.html',
+        atmosphere: 'atmosphere.html'
       }
     }
   }

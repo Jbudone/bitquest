@@ -923,6 +923,32 @@
     "stackable": true,
     "maxStack": 30,
     "stats": {}
+  },
+  {
+    "id": "material_soft_wool",
+    "name": "Silken Cloud Wool",
+    "category": "material",
+    "tier": 1,
+    "description": "Luxuriously soft fleece sheared from Bella the Sheep. Prized for warm tailoring.",
+    "iconColor": "#f8fafc",
+    "soundKey": "pickup",
+    "value": 16,
+    "stackable": true,
+    "maxStack": 99,
+    "stats": {}
+  },
+  {
+    "id": "material_fresh_milk",
+    "name": "Highland Cream Milk",
+    "category": "consumable",
+    "tier": 1,
+    "description": "Rich creamy milk freshly collected from Clover the Cow. Restores 4 HP and refreshes stamina.",
+    "iconColor": "#ffffff",
+    "soundKey": "pickup",
+    "value": 18,
+    "stackable": true,
+    "maxStack": 20,
+    "stats": { "healAmount": 4 }
   }
 ]
 

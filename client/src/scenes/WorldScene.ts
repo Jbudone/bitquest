@@ -34,6 +34,13 @@ import {
   type FloraEvaluationResult,
   type SwayVector
 } from '../../../shared/src/foliageDynamics';
+import {
+  HusbandryEngine,
+  SANCTUARY_ANIMALS,
+  SANCTUARY_CONFIG,
+  type SanctuaryAnimalDef,
+  type SanctuaryAnimalState
+} from '../../../shared/src/husbandry';
 
 export class WorldScene extends Phaser.Scene {
   public localPlayer: Player | null = null;
@@ -84,6 +91,14 @@ export class WorldScene extends Phaser.Scene {
   }> = new Map();
   private foliageSwayOut: SwayVector = { x: 0, y: 0, angleRad: 0 };
   private floraEvalOut: FloraEvaluationResult = { state: 'dormant', glowAlpha: 0, glowRadius: 0, bonusForageYield: 0 };
+
+  // Cozy Animal Husbandry & Pet Sanctuary (Expansion Milestone 7)
+  public sanctuaryAnimals: Map<string, {
+    def: SanctuaryAnimalDef;
+    state: SanctuaryAnimalState;
+    sprite: Phaser.GameObjects.Sprite;
+  }> = new Map();
+  private pastureFenceGraphics?: Phaser.GameObjects.Graphics;
 
   // Cozy Bobber Fishing (Task 7.5 / Issue #23)
   public isLocalFishing = false;
@@ -717,6 +732,9 @@ export class WorldScene extends Phaser.Scene {
 
     // 15. Weather-Driven Ambient Flora & Foliage Dynamics (Expansion Milestone 6)
     this.setupWorldFlora();
+
+    // 16. Cozy Animal Husbandry & Pet Sanctuary (Expansion Milestone 7)
+    this.setupAnimalSanctuary();
   }
 
   private setupCookingStations() {
@@ -1030,6 +1048,61 @@ export class WorldScene extends Phaser.Scene {
           duration: 400 + Math.random() * 200,
           onComplete: () => p.destroy()
         });
+      }
+    }
+  }
+
+  private setupAnimalSanctuary() {
+    const p = SANCTUARY_CONFIG.PASTURE;
+    this.pastureFenceGraphics = this.add.graphics();
+    this.pastureFenceGraphics.setDepth(15 + p.minY);
+
+    // Fence perimeter posts & rails
+    this.pastureFenceGraphics.lineStyle(2, 0x78350f, 0.85);
+    this.pastureFenceGraphics.strokeRect(p.minX, p.minY, p.maxX - p.minX, p.maxY - p.minY);
+
+    // Fence corner posts
+    this.pastureFenceGraphics.fillStyle(0x451a03, 1.0);
+    this.pastureFenceGraphics.fillRect(p.minX - 2, p.minY - 2, 4, 6);
+    this.pastureFenceGraphics.fillRect(p.maxX - 2, p.minY - 2, 4, 6);
+    this.pastureFenceGraphics.fillRect(p.minX - 2, p.maxY - 2, 4, 6);
+    this.pastureFenceGraphics.fillRect(p.maxX - 2, p.maxY - 2, 4, 6);
+
+    // Register sanctuary animals
+    SANCTUARY_ANIMALS.forEach(def => {
+      let tex = 'animal_sheep';
+      if (def.species === 'cow') tex = 'animal_cow';
+      else if (def.species === 'bunny') tex = 'animal_bunny';
+      else if (def.species === 'duck') tex = 'animal_duckling';
+
+      const sprite = this.add.sprite(def.initialX, def.initialY, tex);
+      sprite.setDepth(20 + def.initialY);
+
+      const state = HusbandryEngine.createInitialState(def);
+      this.sanctuaryAnimals.set(def.id, {
+        def,
+        state,
+        sprite
+      });
+    });
+  }
+
+  private updateAnimalSanctuary(delta: number) {
+    const deltaSec = delta / 1000;
+    const p = SANCTUARY_CONFIG.PASTURE;
+
+    for (const [, animal] of this.sanctuaryAnimals) {
+      HusbandryEngine.updateAnimalWander(animal.state, p, deltaSec);
+
+      animal.sprite.x = animal.state.x;
+      animal.sprite.y = animal.state.y;
+      animal.sprite.setDepth(20 + animal.state.y);
+      animal.sprite.setFlipX(animal.state.facing === 'left');
+
+      if (animal.state.isEating) {
+        animal.sprite.setScale(1.06, 0.94);
+      } else {
+        animal.sprite.setScale(1.0, 1.0);
       }
     }
   }
@@ -3268,6 +3341,87 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
+    // 2f. Cozy Animal Husbandry & Pet Sanctuary (Milestone 7)
+    for (const [, animal] of this.sanctuaryAnimals) {
+      const distAnimal = Math.hypot(px - animal.state.x, py - animal.state.y);
+      if (distAnimal <= 46) {
+        // 1. Check if produce is ready to harvest
+        const harvest = HusbandryEngine.harvestAnimalProduce(animal.def, animal.state, nowSec);
+        if (harvest) {
+          for (let i = 0; i < harvest.amount; i++) {
+            this.playerInventory.push(harvest.itemId);
+          }
+          sounds.playLevelUp?.();
+          const itemName = harvest.itemId === 'material_soft_wool' ? 'Silken Wool' : 'Highland Milk';
+          this.showFloatingText(animal.state.x, animal.state.y - 20, `+${harvest.amount}x ${itemName}! ✨`, '#fbbf24');
+          this.tweens.add({
+            targets: animal.sprite,
+            scaleY: 1.3,
+            scaleX: 0.9,
+            yoyo: true,
+            duration: 180
+          });
+          return;
+        }
+
+        // 2. Check if player has food in inventory to feed
+        let foodToFeed: string | null = null;
+        let isFav = false;
+        const favIdx = this.playerInventory.indexOf(animal.def.favoriteFood);
+        if (favIdx !== -1) {
+          foodToFeed = animal.def.favoriteFood;
+          isFav = true;
+          this.playerInventory.splice(favIdx, 1);
+        } else {
+          for (const secFood of animal.def.secondaryFoods) {
+            const secIdx = this.playerInventory.indexOf(secFood);
+            if (secIdx !== -1) {
+              foodToFeed = secFood;
+              isFav = false;
+              this.playerInventory.splice(secIdx, 1);
+              break;
+            }
+          }
+        }
+
+        if (foodToFeed) {
+          const feedRes = HusbandryEngine.feedAnimal(animal.def, animal.state, foodToFeed, nowSec);
+          sounds.playPickup?.();
+          const hearts = '❤️'.repeat(feedRes.hearts);
+          const feedback = feedRes.isFavorite
+            ? `❤️ Loved ${foodToFeed}! (+${feedRes.affectionGained} Affection) ${hearts}`
+            : `❤️ Munching snack! (+${feedRes.affectionGained} Affection) ${hearts}`;
+          this.showFloatingText(animal.state.x, animal.state.y - 20, feedback, '#f43f5e');
+          this.tweens.add({
+            targets: animal.sprite,
+            y: animal.state.y - 6,
+            yoyo: true,
+            duration: 150
+          });
+          return;
+        }
+
+        // 3. Petting interaction
+        const petRes = HusbandryEngine.petAnimal(animal.state, nowSec);
+        if (petRes.success) {
+          sounds.playPickup?.();
+          const hearts = '❤️'.repeat(petRes.hearts);
+          this.showFloatingText(animal.state.x, animal.state.y - 20, `❤️ Pet ${animal.def.name}! ${hearts}`, '#f472b6');
+          this.tweens.add({
+            targets: animal.sprite,
+            scaleY: 1.25,
+            scaleX: 0.9,
+            yoyo: true,
+            duration: 160
+          });
+          return;
+        } else {
+          this.showFloatingText(animal.state.x, animal.state.y - 18, `"${animal.def.greetingText}"`, '#fef08a');
+          return;
+        }
+      }
+    }
+
     // 3. Unified Prioritized Interaction Pipeline
     const interaction = BehaviorRegistry.getPrioritizedInteraction(px, py, this.worldEntities.values(), 56, this.localPlayer as any);
     if (!interaction) return;
@@ -4108,6 +4262,7 @@ export class WorldScene extends Phaser.Scene {
       this.updateFishing(time, delta);
       this.updateMinigames(delta);
       this.updateFoliageDynamics(time, delta);
+      this.updateAnimalSanctuary(delta);
 
       // Update moving stone platform position and riding kinematics
       const platformSprite = this.entityObjects.get(DUNGEON_CONSTANTS.F1_PLATFORM.id) as Phaser.GameObjects.Sprite | undefined;

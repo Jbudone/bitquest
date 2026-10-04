@@ -19,6 +19,7 @@ export class TextureGenerator {
     this.createCookingTextures(scene);
     this.createMinigameTextures(scene);
     this.createFloraTextures(scene);
+    this.createHusbandryTextures(scene);
   }
 
   private static createCanvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -5649,6 +5650,274 @@ export class TextureGenerator {
       ctx.fillRect(11, 6, 1, 1);
 
       scene.textures.addCanvas('flora_shroom_glowcap', canvas);
+    }
+  }
+
+  private static createHusbandryTextures(scene: Phaser.Scene) {
+    // 1. Bella the Cloud Sheep (32x28)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 28);
+      // Shadow
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.25)';
+      ctx.beginPath();
+      ctx.ellipse(16, 25, 12, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Black slender hooves
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(10, 20, 3, 6);
+      ctx.fillRect(14, 20, 3, 6);
+      ctx.fillRect(18, 20, 3, 6);
+      ctx.fillRect(22, 20, 3, 6);
+
+      // Fluffy Cloud Wool Body (Round puffs)
+      ctx.fillStyle = '#e2e8f0';
+      ctx.beginPath();
+      ctx.arc(12, 14, 8, 0, Math.PI * 2);
+      ctx.arc(17, 12, 9, 0, Math.PI * 2);
+      ctx.arc(22, 14, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.arc(12, 13, 7, 0, Math.PI * 2);
+      ctx.arc(17, 11, 8, 0, Math.PI * 2);
+      ctx.arc(21, 13, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Sheep Head
+      ctx.fillStyle = '#fed7aa';
+      ctx.beginPath();
+      ctx.ellipse(8, 12, 5, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Pink Floppy Ear
+      ctx.fillStyle = '#f472b6';
+      ctx.beginPath();
+      ctx.ellipse(10, 9, 2.5, 4, Math.PI / 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Cute Eyes & Nose
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(6, 11, 2, 2);
+      ctx.fillStyle = '#f43f5e';
+      ctx.fillRect(4, 13, 2, 1);
+
+      scene.textures.addCanvas('animal_sheep', canvas);
+    }
+
+    // 2. Clover the Highland Cow (36x30)
+    {
+      const [canvas, ctx] = this.createCanvas(36, 30);
+      // Shadow
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.25)';
+      ctx.beginPath();
+      ctx.ellipse(18, 27, 15, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Hooves
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(10, 22, 4, 6);
+      ctx.fillRect(16, 22, 4, 6);
+      ctx.fillRect(22, 22, 4, 6);
+      ctx.fillRect(28, 22, 4, 6);
+
+      // Warm Caramel Body
+      ctx.fillStyle = '#b45309';
+      ctx.beginPath();
+      ctx.ellipse(22, 16, 12, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Cream Belly Patch
+      ctx.fillStyle = '#fef3c7';
+      ctx.beginPath();
+      ctx.ellipse(22, 18, 8, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Head
+      ctx.fillStyle = '#92400e';
+      ctx.beginPath();
+      ctx.ellipse(10, 14, 6, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Curved Horns
+      ctx.fillStyle = '#fef08a';
+      ctx.beginPath();
+      ctx.moveTo(9, 8);
+      ctx.lineTo(6, 3);
+      ctx.lineTo(10, 6);
+      ctx.closePath();
+      ctx.fill();
+
+      // Muzzle & Pink Nose
+      ctx.fillStyle = '#fcd34d';
+      ctx.beginPath();
+      ctx.ellipse(7, 17, 4, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f43f5e';
+      ctx.fillRect(6, 17, 1.5, 1.5);
+      ctx.fillRect(8, 17, 1.5, 1.5);
+
+      // Eye
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(8, 12, 2, 2);
+
+      scene.textures.addCanvas('animal_cow', canvas);
+    }
+
+    // 3. Pip the Meadow Bunny (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Soft ground shadow
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.2)';
+      ctx.beginPath();
+      ctx.ellipse(12, 21, 7, 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // White fluffy cotton tail
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.arc(18, 16, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Round Bunny Body
+      ctx.fillStyle = '#fed7aa';
+      ctx.beginPath();
+      ctx.ellipse(13, 16, 5, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Bunny Head
+      ctx.fillStyle = '#fed7aa';
+      ctx.beginPath();
+      ctx.ellipse(8, 13, 4, 3.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Upright Long Ears
+      ctx.fillStyle = '#fed7aa';
+      ctx.fillRect(8, 4, 2, 6);
+      ctx.fillRect(11, 5, 2, 5);
+      ctx.fillStyle = '#f472b6';
+      ctx.fillRect(8, 5, 1, 4);
+      ctx.fillRect(11, 6, 1, 3);
+
+      // Eye & Nose
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(7, 12, 1.5, 1.5);
+      ctx.fillStyle = '#f43f5e';
+      ctx.fillRect(5, 14, 1.5, 1.5);
+
+      scene.textures.addCanvas('animal_bunny', canvas);
+    }
+
+    // 4. Quigley the Pond Duckling (24x22)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 22);
+      // Water shadow / ripple
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.3)';
+      ctx.beginPath();
+      ctx.ellipse(12, 19, 8, 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Feet
+      ctx.fillStyle = '#ea580c';
+      ctx.fillRect(9, 17, 3, 3);
+      ctx.fillRect(14, 17, 3, 3);
+
+      // Plump Yellow Body
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.ellipse(13, 13, 6, 4.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Little Wing
+      ctx.fillStyle = '#eab308';
+      ctx.beginPath();
+      ctx.ellipse(14, 12, 3.5, 2.5, Math.PI / 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Round Head
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.arc(8, 9, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Orange Bill
+      ctx.fillStyle = '#f97316';
+      ctx.fillRect(3, 9, 4, 2);
+
+      // Beady Eye
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(7, 8, 1.5, 1.5);
+
+      scene.textures.addCanvas('animal_duckling', canvas);
+    }
+
+    // 5. Silken Cloud Wool (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Shadow
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.2)';
+      ctx.beginPath();
+      ctx.ellipse(12, 20, 8, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Skein of soft yarn
+      ctx.fillStyle = '#e2e8f0';
+      ctx.beginPath();
+      ctx.ellipse(12, 12, 8, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.ellipse(12, 11, 7, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Skein texture grooves
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(12, 11, 4, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Lavender ribbon bow
+      ctx.fillStyle = '#c084fc';
+      ctx.fillRect(11, 10, 2, 4);
+      ctx.fillRect(9, 11, 2, 2);
+      ctx.fillRect(13, 11, 2, 2);
+
+      scene.textures.addCanvas('material_soft_wool', canvas);
+    }
+
+    // 6. Highland Cream Milk (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Shadow
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.2)';
+      ctx.beginPath();
+      ctx.ellipse(12, 21, 6, 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Bottle neck & cork/stopper
+      ctx.fillStyle = '#0284c7'; // Blue ceramic lid
+      ctx.fillRect(10, 4, 4, 3);
+
+      // Glass Bottle Body
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(8, 7, 8, 13);
+      ctx.fillRect(9, 6, 6, 2);
+
+      // Pure Cream Milk Fill
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(9, 8, 6, 11);
+
+      // Blue emblem
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(11, 12, 2, 2);
+
+      // Glass reflection highlight
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.fillRect(9, 8, 1, 10);
+
+      scene.textures.addCanvas('material_fresh_milk', canvas);
     }
   }
 }

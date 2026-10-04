@@ -160,6 +160,22 @@ assert(Array.isArray(parsed['greeting'].responses), "Exported node has responses
 assert(parsed['greeting'].responses[0].nextDialogueKey !== undefined, "Response contains nextDialogueKey");
 
 // ---------------------------------------------------------------------------
+// 7. Auto-Centering & Tab Activation Handling
+// ---------------------------------------------------------------------------
+console.log('\n--- 7. Auto-Centering & Tab Activation Handling ---');
+// Test fitToNodes calculates valid zoom and pan
+const initialZoom = studio.zoom;
+studio.fitToNodes();
+assert(typeof studio.zoom === 'number' && studio.zoom > 0 && !isNaN(studio.zoom), "fitToNodes computes valid zoom");
+assert(typeof studio.panX === 'number' && !isNaN(studio.panX), "fitToNodes computes valid panX");
+assert(typeof studio.panY === 'number' && !isNaN(studio.panY), "fitToNodes computes valid panY");
+
+// Test onTabActivated executes without error
+assert(typeof studio.onTabActivated === 'function', "onTabActivated method exists");
+studio.onTabActivated();
+assert(studio.simCurrentNodeId !== null, "Simulator node still active after onTabActivated");
+
+// ---------------------------------------------------------------------------
 // SUMMARY
 // ---------------------------------------------------------------------------
 console.log(`\n========================================`);

@@ -106,6 +106,8 @@ export class QuestGraphStudio {
     if (this.root) {
       this.buildUI();
       this.attachEvents();
+      this.resizeCanvas();
+      this.fitToNodes();
       this.render();
       this.updateSimulator();
       this.runLinter();
@@ -209,6 +211,7 @@ export class QuestGraphStudio {
           </div>
 
           <div style="display: flex; align-items: center; gap: 6px;">
+            <button id="qg-btn-fit" class="btn" style="font-size: 11px; padding: 3px 8px;" title="Center all nodes in view">🎯 Center View</button>
             <button id="qg-btn-lint" class="btn" style="font-size: 11px; padding: 3px 8px;">🔍 Verify DAG</button>
             <button id="qg-btn-export" class="btn btn-primary" style="font-size: 11px; padding: 3px 8px;">💾 Export JSON</button>
             <button id="qg-btn-reset-sim" class="btn" style="font-size: 11px; padding: 3px 8px;">↺ Restart Sim</button>
@@ -266,11 +269,101 @@ export class QuestGraphStudio {
     this.resizeCanvas();
   }
 
-  private resizeCanvas() {
+  public resizeCanvas() {
     const vp = this.root?.querySelector('#qg-canvas-viewport') as HTMLElement;
     if (!vp || !this.canvas) return;
-    this.canvas.width = vp.clientWidth;
-    this.canvas.height = vp.clientHeight;
+    const w = vp.clientWidth;
+    const h = vp.clientHeight;
+    if (w > 0 && h > 0) {
+      if (this.canvas.width !== w || this.canvas.height !== h) {
+        this.canvas.width = w;
+        this.canvas.height = h;
+      }
+    }
+  }
+
+  /**
+   * Centers and zooms the camera viewport so all nodes are clearly visible.
+   */
+  public fitToNodes() {
+    if (this.nodes.size === 0) return;
+    this.resizeCanvas();
+    const vp = this.root?.querySelector('#qg-canvas-viewport') as HTMLElement;
+    const width = vp?.clientWidth || (this.canvas ? this.canvas.width : 800) || 800;
+    const height = vp?.clientHeight || (this.canvas ? this.canvas.height : 600) || 600;
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    for (const [, node] of this.nodes) {
+      if (node.x < minX) minX = node.x;
+      if (node.y < minY) minY = node.y;
+      if (node.x + node.width > maxX) maxX = node.x + node.width;
+      if (node.y + node.height > maxY) maxY = node.y + node.height;
+    }
+
+    if (!isFinite(minX) || !isFinite(minY)) return;
+
+    const graphWidth = maxX - minX;
+    const graphHeight = maxY - minY;
+    const padding = 60;
+
+    const scaleX = (width - padding * 2) / Math.max(graphWidth, 100);
+    const scaleY = (height - padding * 2) / Math.max(graphHeight, 100);
+    this.zoom = Math.max(0.4, Math.min(1.2, Math.min(scaleX, scaleY)));
+
+    const centerGraphX = minX + graphWidth / 2;
+    const centerGraphY = minY + graphHeight / 2;
+    this.panX = (width / 2) - (centerGraphX * this.zoom);
+    this.panY = (height / 2) - (centerGraphY * this.zoom);
+
+    this.render();
+  }
+
+  /**
+   * Called when the Quests & Dialogue tab is switched to.
+   */
+  public onTabActivated() {
+    this.resizeCanvas();
+    this.fitToNodes();
+    this.render();
+    this.updateSimulator();
+    this.runLinter();
+  }
+
+  /**
+   * Safe rounded rectangle renderer that works consistently across all Canvas implementations.
+   */
+  private drawRoundedRect(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    radii: number | [number, number, number, number]
+  ) {
+    let rTopLeft = 0, rTopRight = 0, rBottomRight = 0, rBottomLeft = 0;
+    if (typeof radii === 'number') {
+      rTopLeft = rTopRight = rBottomRight = rBottomLeft = radii;
+    } else if (Array.isArray(radii)) {
+      rTopLeft = radii[0] ?? 0;
+      rTopRight = radii[1] ?? 0;
+      rBottomRight = radii[2] ?? 0;
+      rBottomLeft = radii[3] ?? 0;
+    }
+    ctx.beginPath();
+    ctx.moveTo(x + rTopLeft, y);
+    ctx.lineTo(x + w - rTopRight, y);
+    if (rTopRight > 0) ctx.quadraticCurveTo(x + w, y, x + w, y + rTopRight);
+    ctx.lineTo(x + w, y + h - rBottomRight);
+    if (rBottomRight > 0) ctx.quadraticCurveTo(x + w, y + h, x + w - rBottomRight, y + h);
+    ctx.lineTo(x + rBottomLeft, y + h);
+    if (rBottomLeft > 0) ctx.quadraticCurveTo(x, y + h, x, y + h - rBottomLeft);
+    ctx.lineTo(x, y + rTopLeft);
+    if (rTopLeft > 0) ctx.quadraticCurveTo(x, y, x + rTopLeft, y);
+    ctx.closePath();
   }
 
   // -------------------------------------------------------------------------
@@ -278,6 +371,8 @@ export class QuestGraphStudio {
   // -------------------------------------------------------------------------
   public render() {
     if (!this.ctx || !this.canvas) return;
+    this.resizeCanvas();
+    if (this.canvas.width === 0 || this.canvas.height === 0) return;
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -377,19 +472,13 @@ export class QuestGraphStudio {
       ctx.strokeStyle = isSimActive ? '#38bdf8' : isSelected ? '#a855f7' : '#334155';
       ctx.lineWidth = isSimActive || isSelected ? 2 : 1;
 
-      ctx.beginPath();
-      ctx.roundRect
-        ? ctx.roundRect(node.x, node.y, node.width, node.height, 8)
-        : ctx.fillRect(node.x, node.y, node.width, node.height);
+      this.drawRoundedRect(ctx, node.x, node.y, node.width, node.height, 8);
       ctx.fill();
       ctx.stroke();
 
       // Node header
       ctx.fillStyle = node.type === 'dialogue' ? '#312e81' : node.type === 'quest_stage' ? '#065f46' : '#831843';
-      ctx.beginPath();
-      ctx.roundRect
-        ? ctx.roundRect(node.x, node.y, node.width, 28, [8, 8, 0, 0])
-        : ctx.fillRect(node.x, node.y, node.width, 28);
+      this.drawRoundedRect(ctx, node.x, node.y, node.width, 28, [8, 8, 0, 0]);
       ctx.fill();
 
       // Header title
@@ -607,6 +696,19 @@ export class QuestGraphStudio {
     if (!this.root || !this.canvas) return;
     const vp = this.root.querySelector('#qg-canvas-viewport') as HTMLElement;
 
+    // ResizeObserver for hidden tabs & dynamic layouts
+    if (typeof ResizeObserver !== 'undefined' && vp) {
+      const ro = new ResizeObserver(() => {
+        if (vp.clientWidth > 0 && vp.clientHeight > 0) {
+          if (this.canvas.width !== vp.clientWidth || this.canvas.height !== vp.clientHeight) {
+            this.resizeCanvas();
+            this.render();
+          }
+        }
+      });
+      ro.observe(vp);
+    }
+
     // Window resize
     window.addEventListener('resize', () => {
       this.resizeCanvas();
@@ -617,9 +719,15 @@ export class QuestGraphStudio {
     const npcSelect = this.root.querySelector('#qg-select-npc') as HTMLSelectElement;
     npcSelect?.addEventListener('change', () => {
       this.loadNpcDialogues(npcSelect.value);
+      this.fitToNodes();
       this.render();
       this.updateSimulator();
       this.runLinter();
+    });
+
+    // Center View / Fit to Nodes
+    this.root.querySelector('#qg-btn-fit')?.addEventListener('click', () => {
+      this.fitToNodes();
     });
 
     // Add Node Button

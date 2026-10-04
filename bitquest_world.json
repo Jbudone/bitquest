@@ -138,7 +138,7 @@
         "armor": null,
         "weapon": null
       },
-      "lastSeen": 1791052458661
+      "lastSeen": 1791127822678
     },
     "p_musqdrug_ebng": {
       "name": "Adventurer",
@@ -997,6 +997,50 @@
         "weapon": null
       },
       "lastSeen": 1791079214017
+    },
+    "p_mutz9bsf_azjm": {
+      "name": "Adventurer",
+      "color": "#2e9939",
+      "paletteIndex": 0,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "classId": "warrior",
+      "equipment": {
+        "weapon": "sword_wood",
+        "offhand": null,
+        "armor": null,
+        "relic": null
+      },
+      "vanity": {
+        "head": null,
+        "armor": null,
+        "weapon": null
+      },
+      "lastSeen": 1791127821200
+    },
+    "p_mutzb03b_cqx9": {
+      "name": "fgf",
+      "color": "#2e9939",
+      "paletteIndex": 0,
+      "coins": 10,
+      "inventory": [
+        "Wooden Practice Stick"
+      ],
+      "classId": "warrior",
+      "equipment": {
+        "weapon": "sword_wood",
+        "offhand": null,
+        "armor": null,
+        "relic": null
+      },
+      "vanity": {
+        "head": null,
+        "armor": null,
+        "weapon": null
+      },
+      "lastSeen": 1791128116189
     }
   }
 }

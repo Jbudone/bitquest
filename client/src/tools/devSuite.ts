@@ -2119,37 +2119,6 @@ function initArtStudio() {
 // App Boot & Hotkeys
 // ----------------------------------------------------------------------
 window.addEventListener('DOMContentLoaded', () => {
-  // Tabs
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const target = (e.currentTarget as HTMLElement).getAttribute('data-tab');
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
-      (e.currentTarget as HTMLElement).classList.add('active');
-      document.getElementById(target!)?.classList.add('active');
-
-      const copilotContext = document.getElementById('copilot-context');
-      if (copilotContext) {
-        if (target === 'tab-map') copilotContext.innerText = 'Context: Map Editor';
-        else if (target === 'tab-sandbox') copilotContext.innerText = 'Context: Combat Sandbox';
-        else if (target === 'tab-quests') copilotContext.innerText = 'Context: Quests & Dialogue';
-        else if (target === 'tab-entities') copilotContext.innerText = 'Context: Enemies & Items';
-        else if (target === 'tab-art') copilotContext.innerText = 'Context: Art Studio';
-        else if (target === 'tab-animator') {
-          copilotContext.innerText = 'Context: Keyframe & Hitbox Editor';
-          animatorStudio?.render();
-        } else if (target === 'tab-vfx') {
-          copilotContext.innerText = 'Context: Live VFX Studio';
-          vfxStudio?.render();
-        } else if (target === 'tab-save-state') {
-          copilotContext.innerText = 'Context: Save-State & Time Machine';
-          saveStateInspector?.render();
-        }
-      }
-    });
-  });
-
   // Initialize Animator Studio (Issue #29)
   let animatorStudio: AnimatorStudio | null = null;
   if (document.getElementById('animator-studio-container')) {
@@ -2184,6 +2153,45 @@ window.addEventListener('DOMContentLoaded', () => {
     questGraphStudio = new QuestGraphStudio('quest-graph-container');
     (window as any).QuestGraphStudio = questGraphStudio;
   }
+
+  // Tabs
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const target = (e.currentTarget as HTMLElement).getAttribute('data-tab');
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      (e.currentTarget as HTMLElement).classList.add('active');
+      document.getElementById(target!)?.classList.add('active');
+
+      const copilotContext = document.getElementById('copilot-context');
+      if (copilotContext) {
+        if (target === 'tab-map') {
+          copilotContext.innerText = 'Context: Map Editor';
+          levelEditorStudio?.render();
+          levelEditorStudio?.renderMinimap();
+        } else if (target === 'tab-sandbox') {
+          copilotContext.innerText = 'Context: Combat Sandbox';
+        } else if (target === 'tab-quests') {
+          copilotContext.innerText = 'Context: Quests & Dialogue';
+          questGraphStudio?.onTabActivated();
+        } else if (target === 'tab-entities') {
+          copilotContext.innerText = 'Context: Enemies & Items';
+        } else if (target === 'tab-art') {
+          copilotContext.innerText = 'Context: Art Studio';
+        } else if (target === 'tab-animator') {
+          copilotContext.innerText = 'Context: Keyframe & Hitbox Editor';
+          animatorStudio?.render();
+        } else if (target === 'tab-vfx') {
+          copilotContext.innerText = 'Context: Live VFX Studio';
+          vfxStudio?.render();
+        } else if (target === 'tab-save-state') {
+          copilotContext.innerText = 'Context: Save-State & Time Machine';
+          saveStateInspector?.render();
+        }
+      }
+    });
+  });
 
   // URL Hash Auto-Tab Switch (e.g. #tab-animator)
   if (window.location.hash) {

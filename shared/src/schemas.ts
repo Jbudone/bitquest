@@ -247,7 +247,9 @@ export const ItemCategorySchema = z.enum([
   'vanity',
   'tool',
   'fish',
-  'treasure'
+  'treasure',
+  'material',
+  'equipment'
 ]);
 export type ItemCategory = z.infer<typeof ItemCategorySchema>;
 

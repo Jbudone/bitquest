@@ -204,6 +204,14 @@ export class WeatherEngine {
   }
 
   /**
+   * Fast getter for the current day phase enum ('night' | 'early_dawn' | 'dawn' | 'morning' | 'day' | 'golden_hour' | 'twilight').
+   * Zero heap allocations.
+   */
+  public static getDayPhase(timeOfDaySec: number): DayPhase {
+    return this.getTimeOfDay(timeOfDaySec).phase;
+  }
+
+  /**
    * Linearly interpolates RGB components and alpha between day/night keyframes,
    * then applies weather modulation. Zero heap allocations.
    */

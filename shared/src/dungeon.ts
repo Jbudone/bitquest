@@ -83,6 +83,8 @@ export const DUNGEON_CONSTANTS = {
   F2_BOSS_SPAWN: { x: 1024, y: 4700 },
   // Floor 2 descent to Floor 3
   F2_STAIRS_DOWN: { id: 'stairs_f2_to_f3', x: 1024, y: 5080 },
+  F2_EXIT_PORTAL: { id: 'portal_catacombs_exit', x: 1024, y: 4520 },
+  F2_RELIC_CHEST: { id: 'chest_catacombs_relic', x: 1024, y: 4660 },
 
   // Floor 3 coordinates (The Abyssal Necropolis)
   F3_SPAWN: { x: 1024, y: 5920 },

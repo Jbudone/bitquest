@@ -25,7 +25,8 @@ export default defineConfig({
         dungeon_generator: 'dungeon-generator.html',
         soundboard: 'soundboard.html',
         atmosphere: 'atmosphere.html',
-        gm_console: 'gm-console.html'
+        gm_console: 'gm-console.html',
+        profiler: 'profiler.html'
       }
     }
   }

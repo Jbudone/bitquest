@@ -11,6 +11,7 @@ import { DungeonStudio } from './dungeonStudio';
 import { SoundboardStudio } from './soundboardStudio';
 import { AtmosphereStudio } from './atmosphereStudio';
 import { GMConsoleStudio } from './gmConsoleStudio';
+import { ProfilerStudio } from './profilerStudio';
 
 interface Command {
   name: string;
@@ -2202,6 +2203,13 @@ window.addEventListener('DOMContentLoaded', () => {
     (window as any).GMConsoleStudio = gmConsoleStudio;
   }
 
+  // Initialize Zero-Allocation Heap Watchdog & Micro-Profiler (Milestone 9.8)
+  let profilerStudio: ProfilerStudio | null = null;
+  if (document.getElementById('profiler-container')) {
+    profilerStudio = new ProfilerStudio('profiler-container');
+    (window as any).ProfilerStudio = profilerStudio;
+  }
+
   // Tabs
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -2254,6 +2262,9 @@ window.addEventListener('DOMContentLoaded', () => {
         } else if (target === 'tab-gm') {
           copilotContext.innerText = 'Context: Multiplayer GM "God Mode" Console';
           gmConsoleStudio?.onTabActivated();
+        } else if (target === 'tab-profiler') {
+          copilotContext.innerText = 'Context: Zero-Allocation Micro-Profiler';
+          profilerStudio?.onTabActivated();
         }
       }
     });

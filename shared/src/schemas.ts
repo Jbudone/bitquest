@@ -878,6 +878,40 @@ export const GMTelemetryReportSchema = z.object({
 });
 export type GMTelemetryReport = z.infer<typeof GMTelemetryReportSchema>;
 
+// ==========================================
+// 19. Zero-Allocation Heap Watchdog & Micro-Profiler Schemas (Milestone 9.8)
+// ==========================================
+export const SubsystemProfileMetricSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  category: z.enum(['render', 'physics', 'audio', 'network', 'ai', 'particles']),
+  avgDurationUs: z.number().nonnegative(), // microseconds
+  maxDurationUs: z.number().nonnegative(),
+  targetBudgetUs: z.number().positive(),
+  allocationsPerTick: z.number().int().nonnegative(),
+  status: z.enum(['optimal', 'warning', 'violation'])
+});
+export type SubsystemProfileMetric = z.infer<typeof SubsystemProfileMetricSchema>;
+
+export const MicroProfilerReportSchema = z.object({
+  timestamp: z.number(),
+  fps: z.number().min(0).max(240),
+  frameTimeMs: z.number().nonnegative(),
+  gcStallsDetected: z.number().int().nonnegative(),
+  heapUsedMb: z.number().nonnegative(),
+  heapTotalMb: z.number().nonnegative(),
+  subsystems: z.array(SubsystemProfileMetricSchema),
+  spatialGridStats: z.object({
+    totalCells: z.number().int().positive(),
+    populatedCells: z.number().int().nonnegative(),
+    maxEntitiesPerCell: z.number().int().nonnegative(),
+    cullEfficiencyPercent: z.number().min(0).max(100)
+  }),
+  isZeroAllocationCompliant: z.boolean()
+});
+export type MicroProfilerReport = z.infer<typeof MicroProfilerReportSchema>;
+
+
 
 
 

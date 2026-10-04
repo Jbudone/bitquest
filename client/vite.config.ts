@@ -26,7 +26,8 @@ export default defineConfig({
         soundboard: 'soundboard.html',
         atmosphere: 'atmosphere.html',
         gm_console: 'gm-console.html',
-        profiler: 'profiler.html'
+        profiler: 'profiler.html',
+        economy_sim: 'economy-sim.html'
       }
     }
   }

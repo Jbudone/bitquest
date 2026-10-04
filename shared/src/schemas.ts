@@ -911,11 +911,69 @@ export const MicroProfilerReportSchema = z.object({
 });
 export type MicroProfilerReport = z.infer<typeof MicroProfilerReportSchema>;
 
+// ==========================================
+// 20. Macro-Economy & Progression Monte Carlo Simulator Schemas (Milestone 9.9)
+// ==========================================
+export const EconomyArchetypeSchema = z.enum(['farmer', 'adventurer', 'angler', 'balanced']);
+export type EconomyArchetype = z.infer<typeof EconomyArchetypeSchema>;
 
+export const EconomySimulationConfigSchema = z.object({
+  days: z.number().int().min(10).max(365).default(100),
+  numSimulations: z.number().int().min(1).max(200).default(50),
+  cropSellMultiplier: z.number().min(0.1).max(5.0).default(1.0),
+  mobLootMultiplier: z.number().min(0.1).max(5.0).default(1.0),
+  shopPriceMarkup: z.number().min(0.1).max(5.0).default(1.0),
+  fishRarityWeight: z.number().min(0.1).max(5.0).default(1.0),
+  taxRatePercent: z.number().min(0).max(50).default(0),
+  dailyPassiveStipend: z.number().min(0).max(100).default(0)
+});
+export type EconomySimulationConfig = z.infer<typeof EconomySimulationConfigSchema>;
 
+export const DayProgressionSnapshotSchema = z.object({
+  day: z.number().int().nonnegative(),
+  goldNetWorth: z.number(),
+  acornBalance: z.number(),
+  dailyGoldInflow: z.number(),
+  dailyGoldOutflow: z.number(),
+  cumulativeFaucetBreakdown: z.object({
+    farming: z.number().nonnegative(),
+    combat: z.number().nonnegative(),
+    fishing: z.number().nonnegative(),
+    quests: z.number().nonnegative(),
+    foraging: z.number().nonnegative()
+  }),
+  cumulativeSinkBreakdown: z.object({
+    equipment: z.number().nonnegative(),
+    seeds: z.number().nonnegative(),
+    potions: z.number().nonnegative(),
+    vanity: z.number().nonnegative(),
+    miscellaneous: z.number().nonnegative()
+  }),
+  equipmentTier: z.number().int().nonnegative()
+});
+export type DayProgressionSnapshot = z.infer<typeof DayProgressionSnapshotSchema>;
 
+export const ArchetypeSimResultSchema = z.object({
+  archetype: EconomyArchetypeSchema,
+  label: z.string(),
+  daySnapshots: z.array(DayProgressionSnapshotSchema),
+  finalNetWorthMedian: z.number(),
+  finalNetWorthMin: z.number(),
+  finalNetWorthMax: z.number(),
+  totalEarned: z.number(),
+  totalSpent: z.number(),
+  faucetRatio: z.number(),
+  sinkRatio: z.number(),
+  povertyDay: z.number().nullable()
+});
+export type ArchetypeSimResult = z.infer<typeof ArchetypeSimResultSchema>;
 
-
-
-
-
+export const EconomySimulationReportSchema = z.object({
+  config: EconomySimulationConfigSchema,
+  resultsByArchetype: z.record(EconomyArchetypeSchema, ArchetypeSimResultSchema),
+  giniCoefficient: z.number().min(0).max(1),
+  inflationIndex: z.number(),
+  economicHealth: z.enum(['healthy', 'hyperinflation', 'deflationary_stall', 'faucet_heavy', 'sink_heavy']),
+  recommendations: z.array(z.string())
+});
+export type EconomySimulationReport = z.infer<typeof EconomySimulationReportSchema>;

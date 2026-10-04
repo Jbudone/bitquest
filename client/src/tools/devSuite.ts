@@ -12,6 +12,7 @@ import { SoundboardStudio } from './soundboardStudio';
 import { AtmosphereStudio } from './atmosphereStudio';
 import { GMConsoleStudio } from './gmConsoleStudio';
 import { ProfilerStudio } from './profilerStudio';
+import { EconomySimStudio } from './economySimStudio';
 
 interface Command {
   name: string;
@@ -2210,6 +2211,13 @@ window.addEventListener('DOMContentLoaded', () => {
     (window as any).ProfilerStudio = profilerStudio;
   }
 
+  // Initialize Macro-Economy & Progression Monte Carlo Simulator (Milestone 9.9)
+  let economyStudio: EconomySimStudio | null = null;
+  if (document.getElementById('economy-studio-container')) {
+    economyStudio = new EconomySimStudio('economy-studio-container');
+    (window as any).EconomySimStudio = economyStudio;
+  }
+
   // Tabs
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -2265,6 +2273,9 @@ window.addEventListener('DOMContentLoaded', () => {
         } else if (target === 'tab-profiler') {
           copilotContext.innerText = 'Context: Zero-Allocation Micro-Profiler';
           profilerStudio?.onTabActivated();
+        } else if (target === 'tab-economy') {
+          copilotContext.innerText = 'Context: Macro-Economy Simulator';
+          economyStudio?.onTabActivated();
         }
       }
     });

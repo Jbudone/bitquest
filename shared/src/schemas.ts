@@ -530,4 +530,48 @@ export const ParticleConfigSchema = z.object({
 });
 export type ParticleConfig = z.infer<typeof ParticleConfigSchema>;
 
+// ==========================================
+// 12. Save State & World State Schemas (Issue #31)
+// ==========================================
+export const SaveSnapshotPlayerSchema = z.object({
+  name: z.string().default('Adventurer'),
+  palette: z.number().int().default(0),
+  x: z.number().default(1024),
+  y: z.number().default(928),
+  health: z.number().positive().default(3),
+  maxHealth: z.number().positive().default(3),
+  coins: z.number().nonnegative().default(0),
+  acorns: z.number().nonnegative().default(0),
+  inventory: z.array(z.string()).default([])
+});
+export type SaveSnapshotPlayer = z.infer<typeof SaveSnapshotPlayerSchema>;
+
+export const SaveSnapshotQuestSchema = z.object({
+  questId: z.string(),
+  currentStageIndex: z.number().int().nonnegative().default(0),
+  stageProgress: z.number().int().nonnegative().default(0),
+  completed: z.boolean().default(false),
+  completedAt: z.number().optional()
+});
+export type SaveSnapshotQuest = z.infer<typeof SaveSnapshotQuestSchema>;
+
+export const SaveSnapshotSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  timestamp: z.number(),
+  player: SaveSnapshotPlayerSchema,
+  quests: z.record(z.string(), SaveSnapshotQuestSchema).default({}),
+  stats: z.record(z.string(), z.number()).default({}),
+  worldFlags: z.array(z.string()).default([])
+});
+export type SaveSnapshot = z.infer<typeof SaveSnapshotSchema>;
+
+export const WorldStatePresetSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  snapshot: SaveSnapshotSchema
+});
+export type WorldStatePreset = z.infer<typeof WorldStatePresetSchema>;
+
 

@@ -2,6 +2,7 @@ import { DataRegistry } from '../../../shared/src/dataRegistry';
 import { TARGET_REGISTRY, drawPlaceholderPreview, generateSampleSheetDataUrl, type TargetMeta } from './placeholderDrawers';
 import { AnimatorStudio } from './animatorStudio';
 import { VFXStudio } from './vfxStudio';
+import { SaveStateInspector } from './saveStateInspector';
 
 interface Command {
   name: string;
@@ -2139,6 +2140,9 @@ window.addEventListener('DOMContentLoaded', () => {
         } else if (target === 'tab-vfx') {
           copilotContext.innerText = 'Context: Live VFX Studio';
           vfxStudio?.render();
+        } else if (target === 'tab-save-state') {
+          copilotContext.innerText = 'Context: Save-State & Time Machine';
+          saveStateInspector?.render();
         }
       }
     });
@@ -2156,6 +2160,13 @@ window.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('vfx-studio-container')) {
     vfxStudio = new VFXStudio('vfx-studio-container');
     (window as any).VFXStudio = vfxStudio;
+  }
+
+  // Initialize Save-State Inspector & Time Machine (Issue #31)
+  let saveStateInspector: SaveStateInspector | null = null;
+  if (document.getElementById('save-state-container')) {
+    saveStateInspector = new SaveStateInspector('save-state-container');
+    (window as any).SaveStateInspector = saveStateInspector;
   }
 
   // URL Hash Auto-Tab Switch (e.g. #tab-animator)

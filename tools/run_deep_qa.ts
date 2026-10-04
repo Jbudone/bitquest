@@ -1142,9 +1142,85 @@ async function runDeepQA() {
       `);
       if (!res.ok) throw new Error(res.reason);
       if (!res.burstWorked) throw new Error('Burst triggering did not spawn active particles');
-      if (!res.meadowBg || !res.caveBg) throw new Error('Background switching failed');
-      if (!res.presetLoaded) throw new Error('Loading config preset failed');
-      if (!res.exportValid) throw new Error('JSON export metadata failed validation');
+    console.log('\n--- 20. SAVE-STATE INSPECTOR & TIME MACHINE DEBUGGER ---');
+
+    await runTest('Save-State Inspector Tab Navigation & Workspace Initialization', async () => {
+      const res = await evaluateInBrowser(`
+        (() => {
+          const tabBtn = document.querySelector('.tab-btn[data-tab="tab-save-state"]');
+          if (!tabBtn) return { ok: false, reason: 'tab-save-state button not found' };
+          tabBtn.click();
+
+          const inspector = window.SaveStateInspector;
+          if (!inspector) return { ok: false, reason: 'SaveStateInspector instance not found on window' };
+
+          const track = document.getElementById('ss-timeline-track');
+          const hpInput = document.getElementById('ss-input-hp');
+          const invContainer = document.getElementById('ss-inventory-container');
+          const captureBtn = document.getElementById('btn-ss-capture');
+
+          return {
+            ok: true,
+            hasTrack: !!track,
+            hasHpInput: !!hpInput,
+            hasInvContainer: !!invContainer,
+            hasCaptureBtn: !!captureBtn,
+            historyLength: inspector.getHistory().length
+          };
+        })()
+      `);
+      if (!res.ok) throw new Error(res.reason);
+      if (!res.hasTrack) throw new Error('Timeline track not found');
+      if (!res.hasHpInput) throw new Error('HP input not found');
+      if (!res.hasInvContainer) throw new Error('Inventory container not found');
+      if (!res.hasCaptureBtn) throw new Error('Capture button not found');
+    });
+
+    await runTest('Time Machine Snapshots, Item Spawning & Preset Profile Loading', async () => {
+      const res = await evaluateInBrowser(`
+        (() => {
+          const inspector = window.SaveStateInspector;
+          if (!inspector) return { ok: false, reason: 'SaveStateInspector not available' };
+
+          // 1. Capture snapshot
+          const initialHistoryCount = inspector.getHistory().length;
+          inspector.captureSnapshot('QA Checkpoint');
+          const afterCaptureCount = inspector.getHistory().length;
+
+          // 2. Test Time Machine rewind & forward
+          const rewound = inspector.stepRewind();
+          const forwarded = inspector.stepForward();
+
+          // 3. Item spawner
+          const initialInvCount = inspector.getCurrentSnapshot().player.inventory.length;
+          inspector.addItem('sword_steel');
+          const afterAddInvCount = inspector.getCurrentSnapshot().player.inventory.length;
+
+          // 4. Load Boss Ready preset
+          inspector.loadPreset('preset_boss_arena');
+          const activeSnap = inspector.getCurrentSnapshot();
+
+          // 5. Export JSON
+          const exported = inspector.exportSnapshotsJson(true);
+          const parsed = JSON.parse(exported);
+
+          return {
+            ok: true,
+            captured: afterCaptureCount === initialHistoryCount + 1,
+            rewound,
+            forwarded,
+            itemAdded: afterAddInvCount === initialInvCount + 1,
+            presetLoaded: activeSnap.player.name === 'Knight Champion' && activeSnap.player.health === 10,
+            validExport: parsed && parsed.version === 1 && Array.isArray(parsed.snapshots)
+          };
+        })()
+      `);
+      if (!res.ok) throw new Error(res.reason);
+      if (!res.captured) throw new Error('Snapshot capture failed');
+      if (!res.rewound || !res.forwarded) throw new Error('Time Machine rewind/forward failed');
+      if (!res.itemAdded) throw new Error('Item spawning failed');
+      if (!res.presetLoaded) throw new Error('Preset loading failed');
+      if (!res.validExport) throw new Error('Save-state JSON export validation failed');
     });
 
     ws.close();

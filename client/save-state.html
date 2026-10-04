@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BitQuest - Save-State Inspector & World State "Time Machine" Debugger (/tools/save-state)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #090d16;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    #ss-app-root {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .btn {
+      background: #334155;
+      color: #fff;
+      border: 1px solid #475569;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn:hover { background: #475569; }
+    .btn-primary { background: #0284c7; border-color: #0284c7; }
+    .btn-primary:hover { background: #0369a1; }
+  </style>
+</head>
+<body>
+  <div id="ss-app-root">
+    <div id="save-state-container" style="width: 100%; height: 100%;"></div>
+  </div>
+
+  <script type="module">
+    import { SaveStateInspector } from '/src/tools/saveStateInspector.ts';
+    window.addEventListener('DOMContentLoaded', () => {
+      const inspector = new SaveStateInspector('save-state-container');
+      window.SaveStateInspector = inspector;
+      console.log('💾 BitQuest Save-State Inspector & Time Machine Debugger initialized on /save-state.html');
+    });
+  </script>
+</body>
+</html>

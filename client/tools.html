@@ -303,28 +303,9 @@
   </header>
 
   <main>
-    <!-- Tab 1: Map Editor -->
-    <div id="tab-map" class="tab-content active" style="flex-direction: row;">
-      <div style="flex: 1; position: relative; overflow: auto; background: #090d16;" id="map-viewport">
-        <canvas id="map-canvas" width="2048" height="1792" style="cursor: crosshair; display: block; image-rendering: pixelated;"></canvas>
-      </div>
-      <aside style="width: 280px; background: var(--panel); border-left: 1px solid var(--border); padding: 16px; overflow-y: auto;">
-        <h3 style="font-size: 14px; margin-bottom: 12px;">🎨 Tile Palette</h3>
-        <div id="palette-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px;"></div>
-
-        <h3 style="font-size: 14px; margin-bottom: 12px;">📍 Spawners & Triggers</h3>
-        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
-          <button class="btn" onclick="window.DevSuite.setTool('spawn_slime')">🔵 Meadow Slime</button>
-          <button class="btn" onclick="window.DevSuite.setTool('spawn_chest')">📦 Treasure Chest</button>
-          <button class="btn" onclick="window.DevSuite.setTool('spawn_bush')">🌿 Berry Bush</button>
-          <button class="btn" onclick="window.DevSuite.setTool('spawn_pot')">🏺 Clay Pot</button>
-        </div>
-
-        <h3 style="font-size: 14px; margin-bottom: 12px;">📊 Selection Info</h3>
-        <div id="selection-info" style="font-size: 12px; color: var(--text-muted); background: #0f172a; padding: 10px; border-radius: 6px;">
-          No area selected. Click & drag on the map to select a region.
-        </div>
-      </aside>
+    <!-- Tab 1: Map Editor (Studio-Grade Level Editor) -->
+    <div id="tab-map" class="tab-content active" style="flex-direction: column; width: 100%; height: 100%;">
+      <div id="level-editor-container" style="width: 100%; height: 100%; display: flex; flex-direction: column;"></div>
     </div>
 
     <!-- Tab 2: Combat Sandbox -->

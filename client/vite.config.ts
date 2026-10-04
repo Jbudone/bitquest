@@ -17,7 +17,8 @@ export default defineConfig({
         animator: 'animator.html',
         vfx: 'vfx.html',
         save_state: 'save-state.html',
-        render_map: 'render_map.html'
+        render_map: 'render_map.html',
+        level_editor: 'level-editor.html'
       }
     }
   }

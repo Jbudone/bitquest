@@ -3,6 +3,7 @@ import { TARGET_REGISTRY, drawPlaceholderPreview, generateSampleSheetDataUrl, ty
 import { AnimatorStudio } from './animatorStudio';
 import { VFXStudio } from './vfxStudio';
 import { SaveStateInspector } from './saveStateInspector';
+import { LevelEditorStudio } from './levelEditorStudio';
 
 interface Command {
   name: string;
@@ -2162,6 +2163,13 @@ window.addEventListener('DOMContentLoaded', () => {
     (window as any).VFXStudio = vfxStudio;
   }
 
+  // Initialize Studio-Grade Level Editor (Phase 10)
+  let levelEditorStudio: LevelEditorStudio | null = null;
+  if (document.getElementById('level-editor-container')) {
+    levelEditorStudio = new LevelEditorStudio('level-editor-container');
+    (window as any).LevelEditorStudio = levelEditorStudio;
+  }
+
   // Initialize Save-State Inspector & Time Machine (Issue #31)
   let saveStateInspector: SaveStateInspector | null = null;
   if (document.getElementById('save-state-container')) {
@@ -2177,8 +2185,14 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   // Undo / Redo buttons
-  document.getElementById('btn-undo')?.addEventListener('click', () => commands.undo());
-  document.getElementById('btn-redo')?.addEventListener('click', () => commands.redo());
+  document.getElementById('btn-undo')?.addEventListener('click', () => {
+    if (levelEditorStudio) levelEditorStudio.undo();
+    else commands.undo();
+  });
+  document.getElementById('btn-redo')?.addEventListener('click', () => {
+    if (levelEditorStudio) levelEditorStudio.redo();
+    else commands.redo();
+  });
 
   // Copilot input
   document.getElementById('btn-copilot-submit')?.addEventListener('click', handleCopilotSubmit);
@@ -2190,10 +2204,12 @@ window.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
       e.preventDefault();
-      commands.undo();
+      if (levelEditorStudio) levelEditorStudio.undo();
+      else commands.undo();
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
       e.preventDefault();
-      commands.redo();
+      if (levelEditorStudio) levelEditorStudio.redo();
+      else commands.redo();
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault();
       document.getElementById('copilot-input')?.focus();
@@ -2203,7 +2219,11 @@ window.addEventListener('DOMContentLoaded', () => {
   // Expose global for inline click handlers
   (window as any).DevSuite = {
     setTool: (tool: string) => {
-      showToast(`Selected tool: ${tool}`);
+      if (levelEditorStudio) {
+        levelEditorStudio.setTool(tool as any);
+      } else {
+        showToast(`Selected tool: ${tool}`);
+      }
     }
   };
 

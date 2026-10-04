@@ -18,7 +18,8 @@ export default defineConfig({
         vfx: 'vfx.html',
         save_state: 'save-state.html',
         render_map: 'render_map.html',
-        level_editor: 'level-editor.html'
+        level_editor: 'level-editor.html',
+        quest_graph: 'quest-graph.html'
       }
     }
   }

@@ -322,15 +322,9 @@
       </div>
     </div>
 
-    <!-- Tab 3: Quests & Dialogue -->
-    <div id="tab-quests" class="tab-content" style="padding: 24px; gap: 24px;">
-      <div style="flex: 1; background: var(--panel); border-radius: 8px; padding: 20px; border: 1px solid var(--border); overflow-y: auto;">
-        <h3>📜 Registered Quests & Dialogue Trees</h3>
-        <p style="font-size: 13px; color: var(--text-muted); margin: 8px 0 20px 0;">
-          Live preview of quests loaded and verified by our Zod schemas.
-        </p>
-        <div id="quest-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
-      </div>
+    <!-- Tab 3: Quests & Dialogue (Visual Node DAG Editor) -->
+    <div id="tab-quests" class="tab-content" style="flex-direction: column; width: 100%; height: 100%;">
+      <div id="quest-graph-container" style="width: 100%; height: 100%; display: flex; flex-direction: column;"></div>
     </div>
 
     <!-- Tab 4: Enemies & Items -->

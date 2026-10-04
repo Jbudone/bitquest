@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BitQuest - Visual Dialogue & Quest Graph Editor (/tools/quest-graph)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #090d16;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    #graph-app-root {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .btn {
+      background: #334155;
+      color: #fff;
+      border: 1px solid #475569;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn:hover { background: #475569; }
+    .btn-primary { background: #6366f1; border-color: #6366f1; }
+    .btn-primary:hover { background: #4f46e5; }
+    .btn.active { background: #6366f1; border-color: #a5b4fc; }
+  </style>
+</head>
+<body>
+  <div id="graph-app-root">
+    <div id="quest-graph-container" style="width: 100%; height: 100%;"></div>
+  </div>
+
+  <script type="module">
+    import { QuestGraphStudio } from '/src/tools/questGraphStudio.ts';
+    window.addEventListener('DOMContentLoaded', () => {
+      const studio = new QuestGraphStudio('quest-graph-container');
+      window.QuestGraphStudio = studio;
+      console.log('📜 BitQuest Dialogue & Quest DAG Graph Editor initialized on /quest-graph.html');
+    });
+  </script>
+</body>
+</html>

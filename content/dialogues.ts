@@ -1,4 +1,4 @@
-import { DialogueNode } from '../../shared/src/types';
+import type { DialogueNode } from '../shared/src/schemas';
 
 export const STARTER_DIALOGUES: Record<string, Record<string, DialogueNode>> = {
   barnaby: {

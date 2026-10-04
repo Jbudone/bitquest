@@ -4,6 +4,7 @@ import { AnimatorStudio } from './animatorStudio';
 import { VFXStudio } from './vfxStudio';
 import { SaveStateInspector } from './saveStateInspector';
 import { LevelEditorStudio } from './levelEditorStudio';
+import { QuestGraphStudio } from './questGraphStudio';
 
 interface Command {
   name: string;
@@ -2175,6 +2176,13 @@ window.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('save-state-container')) {
     saveStateInspector = new SaveStateInspector('save-state-container');
     (window as any).SaveStateInspector = saveStateInspector;
+  }
+
+  // Initialize Visual Quest & Dialogue Graph Studio (Milestone 9.1)
+  let questGraphStudio: QuestGraphStudio | null = null;
+  if (document.getElementById('quest-graph-container')) {
+    questGraphStudio = new QuestGraphStudio('quest-graph-container');
+    (window as any).QuestGraphStudio = questGraphStudio;
   }
 
   // URL Hash Auto-Tab Switch (e.g. #tab-animator)

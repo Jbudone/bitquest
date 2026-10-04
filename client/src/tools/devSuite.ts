@@ -7,6 +7,7 @@ import { LevelEditorStudio } from './levelEditorStudio';
 import { QuestGraphStudio } from './questGraphStudio';
 import { CutsceneStudio } from './cutsceneStudio';
 import { NPCScheduleStudio } from './npcScheduleStudio';
+import { DungeonStudio } from './dungeonStudio';
 
 interface Command {
   name: string;
@@ -2170,6 +2171,13 @@ window.addEventListener('DOMContentLoaded', () => {
     (window as any).NPCScheduleStudio = npcScheduleStudio;
   }
 
+  // Initialize Procedural Dungeon & WFC Seed Generator (Milestone 9.4)
+  let dungeonStudio: DungeonStudio | null = null;
+  if (document.getElementById('dungeon-studio-container')) {
+    dungeonStudio = new DungeonStudio('dungeon-studio-container');
+    (window as any).DungeonStudio = dungeonStudio;
+  }
+
   // Tabs
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -2210,6 +2218,9 @@ window.addEventListener('DOMContentLoaded', () => {
         } else if (target === 'tab-schedules') {
           copilotContext.innerText = 'Context: NPC Schedules';
           npcScheduleStudio?.onTabActivated();
+        } else if (target === 'tab-dungeon') {
+          copilotContext.innerText = 'Context: Dungeon Generator & WFC';
+          dungeonStudio?.onTabActivated();
         }
       }
     });

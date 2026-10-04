@@ -694,6 +694,79 @@ export const NPCScheduleDefSchema = z.object({
 });
 export type NPCScheduleDef = z.infer<typeof NPCScheduleDefSchema>;
 
+// ==========================================
+// 15. Procedural Dungeon & WFC Generator Schemas (Milestone 9.4)
+// ==========================================
+export const DungeonThemeSchema = z.enum(['catacombs', 'crypt', 'cavern', 'ruins']);
+export type DungeonTheme = z.infer<typeof DungeonThemeSchema>;
+
+export const DungeonCellTypeSchema = z.enum([
+  'void',
+  'solid_wall',
+  'floor_room',
+  'floor_corridor',
+  'door_open',
+  'door_locked',
+  'stairs_entrance',
+  'stairs_exit',
+  'hazard_spikes',
+  'hazard_void',
+  'chest_common',
+  'chest_boss'
+]);
+export type DungeonCellType = z.infer<typeof DungeonCellTypeSchema>;
+
+export const DungeonLockKeyNodeSchema = z.object({
+  keyId: z.string(),
+  doorId: z.string(),
+  keyX: z.number().int(),
+  keyY: z.number().int(),
+  doorX: z.number().int(),
+  doorY: z.number().int(),
+  unlocked: z.boolean().default(false)
+});
+export type DungeonLockKeyNode = z.infer<typeof DungeonLockKeyNodeSchema>;
+
+export const DungeonRoomSchema = z.object({
+  id: z.string(),
+  type: z.enum(['spawn', 'normal', 'locked', 'boss', 'vault']),
+  x: z.number().int(),
+  y: z.number().int(),
+  width: z.number().int(),
+  height: z.number().int(),
+  monsterDensity: z.number().min(0).max(1).default(0),
+  hazardDensity: z.number().min(0).max(1).default(0),
+  lootTier: z.number().int().min(0).max(5).default(1)
+});
+export type DungeonRoom = z.infer<typeof DungeonRoomSchema>;
+
+export const DungeonWFCConfigSchema = z.object({
+  seed: z.number().int().default(1337),
+  gridWidth: z.number().int().min(12).max(48).default(24),
+  gridHeight: z.number().int().min(12).max(48).default(24),
+  roomCount: z.number().int().min(4).max(20).default(8),
+  corridorWindiness: z.number().min(0).max(1).default(0.3),
+  hazardDensity: z.number().min(0).max(1).default(0.15),
+  monsterDensity: z.number().min(0).max(1).default(0.35),
+  theme: DungeonThemeSchema.default('catacombs')
+});
+export type DungeonWFCConfig = z.infer<typeof DungeonWFCConfigSchema>;
+
+export const DungeonWFCResultSchema = z.object({
+  seed: z.number().int(),
+  config: DungeonWFCConfigSchema,
+  grid: z.array(z.array(DungeonCellTypeSchema)),
+  rooms: z.array(DungeonRoomSchema),
+  lockKeys: z.array(DungeonLockKeyNodeSchema),
+  isSolvable: z.boolean(),
+  criticalPathLength: z.number().int().nonnegative(),
+  totalRooms: z.number().int().positive(),
+  totalChests: z.number().int().nonnegative(),
+  totalMonsters: z.number().int().nonnegative()
+});
+export type DungeonWFCResult = z.infer<typeof DungeonWFCResultSchema>;
+
+
 
 
 

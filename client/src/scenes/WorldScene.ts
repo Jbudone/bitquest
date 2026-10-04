@@ -18,6 +18,14 @@ import { OCARINA_NOTES, type OcarinaNote } from '../../../shared/src/ocarina';
 import { telemetryProfiler } from '../../../shared/src/telemetry';
 import { farmingManager } from '../../../shared/src/farming';
 import type { BuffTotals } from '../../../shared/src/cooking';
+import {
+  MinigameEngine,
+  ARCHERY_CONFIG,
+  SLALOM_CONFIG,
+  type ArcherySession,
+  type BoatSlalomSession,
+  type ArcheryTarget
+} from '../../../shared/src/minigames';
 
 export class WorldScene extends Phaser.Scene {
   public localPlayer: Player | null = null;
@@ -47,6 +55,16 @@ export class WorldScene extends Phaser.Scene {
   public playerInventory: string[] = ['tool_hoe', 'tool_watering_can', 'seed_turnip', 'seed_strawberry', 'seed_corn', 'acorn', 'acorn'];
   private campfireCookingProp?: Phaser.GameObjects.Sprite;
   private bakeryOvenProp?: Phaser.GameObjects.Sprite;
+
+  // Whispering Meadow Archery & Crystal Lake Slalom Minigames (Milestone 5)
+  public archerySession: ArcherySession | null = null;
+  public archeryTargets: ArcheryTarget[] = [];
+  private archeryTargetSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
+  private archeryStandProp?: Phaser.GameObjects.Sprite;
+  public slalomSession: BoatSlalomSession | null = null;
+  private slalomBuoySprites: Phaser.GameObjects.Sprite[] = [];
+  private boatVehicleSprite: Phaser.GameObjects.Sprite | null = null;
+  private dockedBoatProp?: Phaser.GameObjects.Sprite;
 
   // Cozy Bobber Fishing (Task 7.5 / Issue #23)
   public isLocalFishing = false;
@@ -674,6 +692,9 @@ export class WorldScene extends Phaser.Scene {
 
     // 13. Cozy Hearth & Bakery Oven Cooking Stations (Expansion Milestone 2)
     this.setupCookingStations();
+
+    // 14. Archery Range & Crystal Lake Slalom Minigames (Milestone 5)
+    this.setupMinigameProps();
   }
 
   private setupCookingStations() {
@@ -684,6 +705,207 @@ export class WorldScene extends Phaser.Scene {
     // 2. Grandma Bramble's Bakery Oven (near garden & bakery)
     this.bakeryOvenProp = this.add.sprite(1410, 840, 'prop_bakery_oven');
     this.bakeryOvenProp.setDepth(20 + 840);
+  }
+
+  private setupMinigameProps() {
+    // 1. Whispering Meadow Archery Range Master Dummy Stand
+    this.archeryStandProp = this.add.sprite(1600, 550, 'prop_target_dummy_straw');
+    this.archeryStandProp.setDepth(20 + 550);
+
+    // Targets catalog in archery field
+    ARCHERY_CONFIG.TARGETS.forEach(t => {
+      const tex = t.range === 'bonus' ? 'prop_target_golden_apple' : 'prop_target_dummy_straw';
+      const spr = this.add.sprite(t.x, t.y, tex);
+      spr.setDepth(20 + t.y);
+      spr.setVisible(false);
+      this.archeryTargetSprites.set(t.id, spr);
+    });
+
+    // 2. Crystal Lake Boat Slalom Dock & Checkpoint Buoys
+    this.dockedBoatProp = this.add.sprite(1024, 1380, 'vehicle_rowboat');
+    this.dockedBoatProp.setDepth(20 + 1380);
+
+    SLALOM_CONFIG.CHECKPOINTS.forEach((cp) => {
+      const buoy = this.add.sprite(cp.x, cp.y, 'prop_lake_buoy_ring');
+      buoy.setDepth(20 + cp.y);
+      buoy.setVisible(false);
+      this.slalomBuoySprites.push(buoy);
+    });
+  }
+
+  public startArcheryMinigame() {
+    this.archerySession = MinigameEngine.createArcherySession();
+    this.archerySession.active = true;
+    this.archeryTargets = ARCHERY_CONFIG.TARGETS.map(t => ({
+      ...t,
+      baseX: t.x,
+      baseY: t.y,
+      range: t.range as any,
+      active: true
+    }));
+
+    this.archeryTargets.forEach(t => {
+      const spr = this.archeryTargetSprites.get(t.id);
+      if (spr) {
+        spr.setVisible(true);
+        spr.setPosition(t.x, t.y);
+        spr.setScale(t.range === 'bonus' ? 1.0 : (t.range === 'short' ? 1.1 : t.range === 'medium' ? 1.0 : 0.85));
+      }
+    });
+
+    if (this.localPlayer) {
+      this.localPlayer.x = 1600;
+      this.localPlayer.y = 540;
+      this.localPlayer.direction = 'up';
+    }
+
+    const hud = (window as any).BitQuestUI?.minigameHUD;
+    if (hud) {
+      hud.onAbort = () => this.stopArcheryMinigame();
+      hud.onRetry = () => this.startArcheryMinigame();
+      hud.startArchery();
+      hud.updateArchery(this.archerySession);
+    }
+
+    sounds.playLevelUp?.();
+    this.showFloatingText(1600, 500, '🎯 ARCHERY RANGE START! PRESS SPACE/J TO SHOOT!', '#fbbf24');
+  }
+
+  public stopArcheryMinigame() {
+    if (this.archerySession) {
+      this.archerySession.active = false;
+    }
+    this.archeryTargetSprites.forEach(spr => spr.setVisible(false));
+    (window as any).BitQuestUI?.minigameHUD?.hide();
+  }
+
+  public startSlalomMinigame() {
+    this.slalomSession = MinigameEngine.createBoatSlalomSession();
+    this.slalomSession.active = true;
+
+    this.slalomBuoySprites.forEach(buoy => buoy.setVisible(true));
+
+    if (!this.boatVehicleSprite) {
+      this.boatVehicleSprite = this.add.sprite(1024, 1400, 'vehicle_rowboat');
+    }
+    this.boatVehicleSprite.setVisible(true);
+
+    if (this.localPlayer) {
+      this.localPlayer.isBoating = true;
+      this.localPlayer.x = 1024;
+      this.localPlayer.y = 1400;
+      this.localPlayer.direction = 'down';
+    }
+
+    const hud = (window as any).BitQuestUI?.minigameHUD;
+    if (hud) {
+      hud.onAbort = () => this.stopSlalomMinigame();
+      hud.onRetry = () => this.startSlalomMinigame();
+      hud.startSlalom();
+      hud.updateSlalom(this.slalomSession);
+    }
+
+    sounds.playPickup?.();
+    this.emitWaterRipple(1024, 1400, 32);
+    this.showFloatingText(1024, 1370, '⛵ SLALOM START! STEER THROUGH THE BUOYS!', '#38bdf8');
+  }
+
+  public stopSlalomMinigame() {
+    if (this.slalomSession) {
+      this.slalomSession.active = false;
+    }
+    this.slalomBuoySprites.forEach(buoy => buoy.setVisible(false));
+    if (this.boatVehicleSprite) {
+      this.boatVehicleSprite.setVisible(false);
+    }
+    if (this.localPlayer) {
+      this.localPlayer.isBoating = false;
+      this.localPlayer.x = 1024;
+      this.localPlayer.y = 1380;
+    }
+    (window as any).BitQuestUI?.minigameHUD?.hide();
+  }
+
+  private updateMinigames(delta: number) {
+    // 1. Archery Range
+    if (this.archerySession && this.archerySession.active) {
+      this.archerySession.timeLeftSec -= delta / 1000;
+      const elapsed = ARCHERY_CONFIG.DURATION_SEC - this.archerySession.timeLeftSec;
+
+      for (const target of this.archeryTargets) {
+        if (!target.active) continue;
+        const pos = MinigameEngine.getTargetPosition(target, elapsed);
+        target.x = pos.x;
+        target.y = pos.y;
+        const spr = this.archeryTargetSprites.get(target.id);
+        if (spr) {
+          spr.x = pos.x;
+          spr.y = pos.y;
+        }
+      }
+
+      const hud = (window as any).BitQuestUI?.minigameHUD;
+      if (hud) {
+        hud.updateArchery(this.archerySession);
+      }
+
+      if (this.archerySession.timeLeftSec <= 0) {
+        this.archerySession.active = false;
+        this.archeryTargetSprites.forEach(spr => spr.setVisible(false));
+        if (hud) {
+          hud.showArcheryResults(this.archerySession);
+        }
+      }
+    }
+
+    // 2. Lake Boat Slalom
+    if (this.slalomSession && this.slalomSession.active && this.localPlayer) {
+      this.slalomSession.elapsedTimeSec += delta / 1000;
+
+      if (this.boatVehicleSprite) {
+        this.boatVehicleSprite.x = this.localPlayer.x;
+        this.boatVehicleSprite.y = this.localPlayer.y + 6;
+        this.boatVehicleSprite.setDepth(this.localPlayer.depth - 1);
+        if (Math.hypot(this.localPlayer.body.velocity.x, this.localPlayer.body.velocity.y) > 20) {
+          if (Math.random() < 0.2) {
+            this.emitWaterRipple(this.localPlayer.x, this.localPlayer.y + 8, 16);
+          }
+        }
+      }
+
+      const prevCp = this.slalomSession.currentCheckpointIndex;
+      const hit = MinigameEngine.testCheckpointCollision(this.localPlayer.x, this.localPlayer.y, this.slalomSession);
+      const hud = (window as any).BitQuestUI?.minigameHUD;
+
+      if (hit) {
+        sounds.playPickup?.();
+        this.emitWaterRipple(this.localPlayer.x, this.localPlayer.y, 32);
+        this.showFloatingText(
+          this.localPlayer.x,
+          this.localPlayer.y - 20,
+          `BUOY ${this.slalomSession.currentCheckpointIndex}/${this.slalomSession.totalCheckpoints}!`,
+          '#38bdf8'
+        );
+
+        const buoySpr = this.slalomBuoySprites[prevCp];
+        if (buoySpr) {
+          this.tweens.add({
+            targets: buoySpr,
+            scale: 1.4,
+            yoyo: true,
+            duration: 200
+          });
+        }
+      }
+
+      if (this.slalomSession.finished) {
+        if (hud) {
+          hud.showSlalomResults(this.slalomSession);
+        }
+      } else if (hud) {
+        hud.updateSlalom(this.slalomSession);
+      }
+    }
   }
 
   private setupGardenPlots() {
@@ -2611,10 +2833,42 @@ export class WorldScene extends Phaser.Scene {
               }
             }
           }
+
+          // Check archery targets if archery minigame is active
+          if (this.archerySession && this.archerySession.active) {
+            for (const target of this.archeryTargets) {
+              if (!target.active) continue;
+              if (MinigameEngine.testArrowHit(arrow.x, arrow.y, target.x, target.y, target.radius)) {
+                hasHit = true;
+                const result = MinigameEngine.registerArcheryShot(this.archerySession, target);
+                sounds.playSlash?.();
+                sounds.playCritStrike?.();
+                this.showFloatingText(target.x, target.y - 18, `+${result.pointsAwarded} PTS! (x${this.archerySession.combo})`, '#fbbf24');
+                const spr = this.archeryTargetSprites.get(target.id);
+                if (spr) {
+                  this.tweens.add({
+                    targets: spr,
+                    scale: 1.4,
+                    yoyo: true,
+                    duration: 160
+                  });
+                }
+                arrow.destroy();
+                const hud = (window as any).BitQuestUI?.minigameHUD;
+                if (hud) hud.updateArchery(this.archerySession);
+                return;
+              }
+            }
+          }
         }
       },
       onComplete: () => {
         if (!hasHit && arrow.active) {
+          if (!isRemote && this.archerySession && this.archerySession.active) {
+            MinigameEngine.registerArcheryShot(this.archerySession, null);
+            const hud = (window as any).BitQuestUI?.minigameHUD;
+            if (hud) hud.updateArchery(this.archerySession);
+          }
           arrow.destroy();
         }
       }
@@ -2632,8 +2886,8 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    // If Ranged Bow equipped, fire physical arrow
-    if (this.localPlayer.equipmentStats.isRanged) {
+    // If Archery Minigame active or Ranged Bow equipped, fire physical arrow
+    if (this.localPlayer.equipmentStats.isRanged || (this.archerySession && this.archerySession.active)) {
       this.shootArrow();
       return;
     }
@@ -2837,6 +3091,23 @@ export class WorldScene extends Phaser.Scene {
     if (distBakeryOven <= 56) {
       (window as any).BitQuestUI?.cookingModal?.open('bakery_oven');
       sounds.playPickup();
+      return;
+    }
+
+    // 2d. Whispering Meadow Archery Range & Crystal Lake Boat Slalom (Milestone 5)
+    const distArchery = Math.hypot(px - 1600, py - 550);
+    if (distArchery <= 64) {
+      if (!this.archerySession || !this.archerySession.active) {
+        this.startArcheryMinigame();
+      }
+      return;
+    }
+
+    const distDock = Math.hypot(px - 1024, py - 1380);
+    if (distDock <= 64) {
+      if (!this.slalomSession || !this.slalomSession.active) {
+        this.startSlalomMinigame();
+      }
       return;
     }
 
@@ -3678,6 +3949,7 @@ export class WorldScene extends Phaser.Scene {
     if (this.localPlayer) {
       this.localPlayer.updateMovement(this.cursors, this.keys, delta);
       this.updateFishing(time, delta);
+      this.updateMinigames(delta);
 
       // Update moving stone platform position and riding kinematics
       const platformSprite = this.entityObjects.get(DUNGEON_CONSTANTS.F1_PLATFORM.id) as Phaser.GameObjects.Sprite | undefined;

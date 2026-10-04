@@ -11,6 +11,7 @@ import { FishLogbookManager } from './FishLogbook';
 import { ShopModal } from './ShopModal';
 import { OcarinaModal } from './OcarinaModal';
 import { CookingModal } from './CookingModal';
+import { MinigameHUDManager } from './MinigameHUD';
 import { TouchControls } from './TouchControls';
 import { TelemetryOverlay } from './TelemetryOverlay';
 import { saveManager } from '../storage/SaveManager';
@@ -29,6 +30,7 @@ export class UIManager {
   public shopModal: ShopModal;
   public ocarina: OcarinaModal;
   public cookingModal: CookingModal;
+  public minigameHUD: MinigameHUDManager;
   public touchControls: TouchControls;
   public telemetry: TelemetryOverlay;
   private selectedPalette = 0;
@@ -53,6 +55,7 @@ export class UIManager {
     this.shopModal = new ShopModal();
     this.ocarina = new OcarinaModal();
     this.cookingModal = new CookingModal();
+    this.minigameHUD = new MinigameHUDManager();
     this.telemetry = new TelemetryOverlay();
     (window as any).BitQuestTelemetry = this.telemetry;
     this.touchControls = new TouchControls(() => (window as any).BitQuestGame?.scene?.getScene('WorldScene'));

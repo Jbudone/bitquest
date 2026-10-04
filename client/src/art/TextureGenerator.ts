@@ -17,6 +17,7 @@ export class TextureGenerator {
     this.createCatacombsTextures(scene);
     this.createFarmingTextures(scene);
     this.createCookingTextures(scene);
+    this.createMinigameTextures(scene);
   }
 
   private static createCanvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -5298,6 +5299,202 @@ export class TextureGenerator {
       ctx.fillRect(22, 12, 2, 2);
 
       scene.textures.addCanvas('dish_golden_feast', canvas);
+    }
+  }
+
+  private static createMinigameTextures(scene: Phaser.Scene) {
+    // 1. Straw Target Dummy for Whispering Meadow Archery (36x44)
+    {
+      const [canvas, ctx] = this.createCanvas(36, 44);
+      // Tripod wooden legs & post
+      ctx.fillStyle = '#451a03'; // Dark timber
+      ctx.fillRect(16, 26, 4, 18);
+      ctx.fillRect(10, 34, 4, 10);
+      ctx.fillRect(22, 34, 4, 10);
+      ctx.fillStyle = '#78350f'; // Wood highlight
+      ctx.fillRect(17, 26, 2, 17);
+      ctx.fillRect(11, 35, 2, 8);
+      ctx.fillRect(23, 35, 2, 8);
+
+      // Round woven straw target backing
+      ctx.fillStyle = '#b45309';
+      ctx.beginPath();
+      ctx.arc(18, 18, 16, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Outer Ring - Crisp Ivory/White (10 pts)
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.arc(18, 18, 14, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Middle Ring - Sky Blue (25 pts)
+      ctx.fillStyle = '#0284c7';
+      ctx.beginPath();
+      ctx.arc(18, 18, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Inner Ring - Crimson Red (50 pts)
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath();
+      ctx.arc(18, 18, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Bullseye - Radiant Gold (100 pts)
+      ctx.fillStyle = '#fbbf24';
+      ctx.beginPath();
+      ctx.arc(18, 18, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Concentric target ring outlines for pixel crispness
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(18, 18, 14, 0, Math.PI * 2);
+      ctx.stroke();
+
+      scene.textures.addCanvas('prop_target_dummy_straw', canvas);
+    }
+
+    // 2. Bonus Golden Apple Target (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Soft divine glow aura
+      const aura = ctx.createRadialGradient(12, 12, 4, 12, 12, 11);
+      aura.addColorStop(0, 'rgba(253, 224, 71, 0.45)');
+      aura.addColorStop(1, 'rgba(253, 224, 71, 0)');
+      ctx.fillStyle = aura;
+      ctx.beginPath();
+      ctx.arc(12, 12, 11, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Apple stem
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(11, 4, 2, 4);
+
+      // Little green leaf
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.ellipse(15, 5, 3, 2, Math.PI / 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Golden apple body
+      ctx.fillStyle = '#eab308';
+      ctx.beginPath();
+      ctx.arc(10, 13, 6, 0, Math.PI * 2);
+      ctx.arc(14, 13, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Specular golden shine highlight
+      ctx.fillStyle = '#fef08a';
+      ctx.beginPath();
+      ctx.ellipse(9, 10, 3, 2, -Math.PI / 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(10, 9, 2, 2);
+
+      // Star sparkle
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(8, 9, 1, 1);
+      ctx.fillRect(17, 16, 2, 2);
+
+      scene.textures.addCanvas('prop_target_golden_apple', canvas);
+    }
+
+    // 3. Lake Slalom Race Buoy (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Gentle water ripple ring at waterline
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.35)';
+      ctx.beginPath();
+      ctx.ellipse(16, 24, 13, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Floating cylindrical buoy base
+      ctx.fillStyle = '#0284c7';
+      ctx.beginPath();
+      ctx.ellipse(16, 23, 10, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Buoy column (Red and White alternating stripes)
+      ctx.fillStyle = '#dc2626'; // Bottom red band
+      ctx.fillRect(12, 15, 8, 6);
+      ctx.fillStyle = '#f8fafc'; // Middle white band
+      ctx.fillRect(12, 11, 8, 4);
+      ctx.fillStyle = '#dc2626'; // Top red band
+      ctx.fillRect(12, 8, 8, 3);
+
+      // Buoy mast
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(15, 2, 2, 7);
+
+      // Glowing yellow beacon cap
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(14, 1, 4, 3);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(15, 2, 2, 1);
+
+      // Little checkered pennant / flag
+      ctx.fillStyle = '#10b981'; // Vibrant emerald race flag
+      ctx.beginPath();
+      ctx.moveTo(17, 4);
+      ctx.lineTo(26, 7);
+      ctx.lineTo(17, 10);
+      ctx.closePath();
+      ctx.fill();
+
+      scene.textures.addCanvas('prop_lake_buoy_ring', canvas);
+    }
+
+    // 4. Wooden Rowboat Vehicle (48x28)
+    {
+      const [canvas, ctx] = this.createCanvas(48, 28);
+      // Gentle water displacement shadow
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.25)';
+      ctx.beginPath();
+      ctx.ellipse(24, 16, 22, 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Boat outer hull (Polished cedar/oak)
+      ctx.fillStyle = '#78350f';
+      ctx.beginPath();
+      ctx.ellipse(24, 14, 21, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Boat interior floor (Warm wood planks)
+      ctx.fillStyle = '#b45309';
+      ctx.beginPath();
+      ctx.ellipse(24, 14, 18, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Inner plank seams
+      ctx.strokeStyle = '#92400e';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(10, 14);
+      ctx.lineTo(38, 14);
+      ctx.stroke();
+
+      // Rowing benches (Thwarts)
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(14, 9, 4, 10); // Bow bench
+      ctx.fillRect(22, 8, 5, 12); // Center rower seat
+      ctx.fillRect(31, 9, 4, 10); // Stern bench
+
+      // Rowlocks and Oars
+      ctx.fillStyle = '#94a3b8'; // Metal oarlocks
+      ctx.fillRect(23, 6, 3, 2);
+      ctx.fillRect(23, 20, 3, 2);
+
+      // Oar shafts & blades
+      ctx.fillStyle = '#fde68a';
+      // Left oar
+      ctx.fillRect(18, 3, 13, 2);
+      ctx.fillRect(15, 2, 4, 4); // Blade
+      // Right oar
+      ctx.fillRect(18, 23, 13, 2);
+      ctx.fillRect(15, 22, 4, 4); // Blade
+
+      scene.textures.addCanvas('vehicle_rowboat', canvas);
     }
   }
 }

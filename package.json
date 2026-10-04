@@ -52,6 +52,7 @@
     "test:cooking": "bun run tools/test_cooking_system.ts",
     "test:schedules": "bun run tools/test_npc_schedules.ts",
     "test:floor3": "bun run tools/test_dungeon_floor3.ts",
+    "test:minigames": "bun run tools/test_minigames.ts",
     "test:bg": "bun run tools/run_background_tests.ts",
     "test:qa": "bun run tools/run_deep_qa.ts",
     "ingest:assets": "bun run tools/ingest_assets.ts",

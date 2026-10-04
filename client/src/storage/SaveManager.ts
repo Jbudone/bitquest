@@ -8,6 +8,7 @@ export interface GameSettings {
   shakeIntensity: number; // 0.2 to 2.0
   highContrastFont: boolean;
   integerScaling: boolean;
+  touchControls: 'auto' | 'on' | 'off';
   keybindings: {
     moveUp: string;
     moveDown: string;
@@ -44,6 +45,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   shakeIntensity: 1.0,
   highContrastFont: false,
   integerScaling: false,
+  touchControls: 'auto',
   keybindings: {
     moveUp: 'KeyW',
     moveDown: 'KeyS',
@@ -70,7 +72,7 @@ export class SaveManager {
 
   private loadSave(): PlayerProfileSave {
     try {
-      const raw = localStorage.getItem(SaveManager.STORAGE_KEY);
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(SaveManager.STORAGE_KEY) : null;
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && parsed.version === 1) {
@@ -103,7 +105,9 @@ export class SaveManager {
   public save() {
     try {
       this.currentSave.timestamp = Date.now();
-      localStorage.setItem(SaveManager.STORAGE_KEY, JSON.stringify(this.currentSave));
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(SaveManager.STORAGE_KEY, JSON.stringify(this.currentSave));
+      }
     } catch (e) {
       console.error('Failed to save to localStorage', e);
     }
@@ -127,17 +131,26 @@ export class SaveManager {
     sounds.setBgmVolume(settings.bgmVolume);
 
     // 2. High Contrast Font
-    document.body.classList.toggle('high-contrast-font', settings.highContrastFont);
+    if (typeof document !== 'undefined') {
+      document.body?.classList?.toggle('high-contrast-font', settings.highContrastFont);
+    }
 
     // 3. Integer scaling / pixel crispness
-    const gameCanvas = document.querySelector('#game-container canvas') as HTMLCanvasElement | null;
-    if (gameCanvas) {
-      if (settings.integerScaling) {
-        gameCanvas.style.imageRendering = 'pixelated';
-        gameCanvas.classList.add('integer-scaled');
-      } else {
-        gameCanvas.classList.remove('integer-scaled');
+    if (typeof document !== 'undefined') {
+      const gameCanvas = document.querySelector?.('#game-container canvas') as HTMLCanvasElement | null;
+      if (gameCanvas) {
+        if (settings.integerScaling) {
+          gameCanvas.style.imageRendering = 'pixelated';
+          gameCanvas.classList.add('integer-scaled');
+        } else {
+          gameCanvas.classList.remove('integer-scaled');
+        }
       }
+    }
+
+    // 4. Mobile touch controls
+    if (settings.touchControls && (window as any).BitQuestTouch) {
+      (window as any).BitQuestTouch.setMode(settings.touchControls);
     }
   }
 

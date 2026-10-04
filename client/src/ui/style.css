@@ -24,6 +24,9 @@ body, html {
   background-color: var(--bg-dark);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: #f8fafc;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
 }
 
 #game-container {
@@ -36,6 +39,7 @@ body, html {
   top: 0;
   left: 0;
   z-index: 1;
+  touch-action: none;
 }
 
 canvas {
@@ -44,6 +48,7 @@ canvas {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  touch-action: none;
 }
 
 /* UI Layer Over Canvas */
@@ -3318,6 +3323,182 @@ canvas.integer-scaled {
   font-size: 9px;
   color: #94a3b8;
 }
+
+/* ==========================================================================
+   Mobile Touch Controls & Responsive Viewport (Issue #28 / Task 7.10)
+   ========================================================================== */
+
+.touch-controls-layer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 900;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.touch-joystick-base {
+  position: absolute;
+  bottom: max(24px, env(safe-area-inset-bottom, 24px));
+  left: max(24px, env(safe-area-inset-left, 24px));
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(30, 41, 59, 0.78) 0%, rgba(15, 23, 42, 0.92) 100%);
+  border: 3px solid rgba(148, 163, 184, 0.45);
+  box-shadow: 0 0 16px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(255, 255, 255, 0.08);
+  pointer-events: auto;
+  touch-action: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+}
+
+.touch-joystick-thumb {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #38bdf8 0%, #0284c7 100%);
+  border: 2px solid #e0f2fe;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.6);
+  position: absolute;
+  transform: translate(0px, 0px);
+  transition: transform 0.04s ease-out;
+  pointer-events: none;
+}
+
+.touch-action-cluster {
+  position: absolute;
+  bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  right: max(20px, env(safe-area-inset-right, 20px));
+  width: 170px;
+  height: 170px;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+}
+
+.touch-btn {
+  user-select: none;
+  touch-action: none;
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.08s ease, filter 0.08s ease, box-shadow 0.08s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.touch-btn:active {
+  transform: scale(0.88) !important;
+  filter: brightness(1.25) !important;
+}
+
+/* Responsive Viewport Queries */
+@media (max-width: 768px) {
+  #ui-overlay {
+    padding: max(8px, env(safe-area-inset-top, 8px)) max(8px, env(safe-area-inset-right, 8px)) max(8px, env(safe-area-inset-bottom, 8px)) max(8px, env(safe-area-inset-left, 8px));
+  }
+
+  .controls-hint {
+    display: none !important;
+  }
+
+  .quest-banner {
+    max-width: 90vw;
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+
+  .top-bar {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .brand-badge {
+    padding: 4px 8px;
+  }
+
+  .brand-title {
+    font-size: 11px;
+  }
+
+  .player-stats-badge {
+    padding: 4px 8px;
+    gap: 6px;
+  }
+
+  .bottom-hud {
+    align-self: center;
+    max-width: min(420px, calc(100vw - 40px));
+    margin-bottom: max(6px, env(safe-area-inset-bottom, 6px));
+  }
+
+  /* Modals on Mobile */
+  .settings-window,
+  .journal-window,
+  .equipment-sheet-window,
+  .fish-log-window,
+  .shop-window,
+  .ocarina-window {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    max-height: 88vh !important;
+  }
+}
+
+@media (max-height: 500px) {
+  #ui-overlay {
+    padding: 4px 10px;
+  }
+
+  .controls-hint,
+  .quest-banner {
+    display: none !important;
+  }
+
+  .top-bar {
+    gap: 4px;
+  }
+
+  .brand-badge {
+    padding: 2px 6px;
+  }
+
+  .brand-title {
+    font-size: 10px;
+  }
+
+  .bottom-hud {
+    margin-bottom: 2px;
+    transform: scale(0.9);
+    transform-origin: bottom center;
+  }
+
+  .touch-joystick-base {
+    width: 100px;
+    height: 100px;
+    bottom: max(10px, env(safe-area-inset-bottom, 10px));
+    left: max(10px, env(safe-area-inset-left, 10px));
+  }
+
+  .touch-joystick-thumb {
+    width: 42px;
+    height: 42px;
+  }
+
+  .touch-action-cluster {
+    width: 140px;
+    height: 140px;
+    bottom: max(10px, env(safe-area-inset-bottom, 10px));
+    right: max(10px, env(safe-area-inset-right, 10px));
+  }
+}
+
 
 
 

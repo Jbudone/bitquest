@@ -110,6 +110,17 @@ export class SettingsModal {
               </div>
               <input type="checkbox" id="check-integerscale" class="settings-toggle" />
             </div>
+
+            <div class="settings-group">
+              <label class="settings-label">
+                <span>Mobile Touch Controls</span>
+                <select id="select-touch-controls" class="settings-select" style="background: rgba(15, 23, 42, 0.8); color: #fff; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 4px; padding: 4px 8px; font-family: monospace; font-size: 11px;">
+                  <option value="auto">Auto (Touch Devices)</option>
+                  <option value="on">Always On</option>
+                  <option value="off">Always Off</option>
+                </select>
+              </label>
+            </div>
           </div>
 
           <!-- Save Profile Tab -->
@@ -240,6 +251,16 @@ export class SettingsModal {
     cPixel.addEventListener('change', () => {
       saveManager.updateSettings({ integerScaling: cPixel.checked });
     });
+
+    const sTouch = modal.querySelector('#select-touch-controls') as HTMLSelectElement | null;
+    if (sTouch) {
+      sTouch.value = cfg.touchControls || 'auto';
+      sTouch.addEventListener('change', () => {
+        const val = sTouch.value as 'auto' | 'on' | 'off';
+        saveManager.updateSettings({ touchControls: val });
+        (window as any).BitQuestTouch?.setMode(val);
+      });
+    }
   }
 
   private setupControlsRebinding(modal: HTMLElement) {

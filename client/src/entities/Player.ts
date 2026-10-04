@@ -312,20 +312,27 @@ export class Player extends Phaser.GameObjects.Container {
     let vx = 0;
     let vy = 0;
 
-    const left = cursors.left.isDown || keys.A?.isDown;
-    const right = cursors.right.isDown || keys.D?.isDown;
-    const up = cursors.up.isDown || keys.W?.isDown;
-    const down = cursors.down.isDown || keys.S?.isDown;
+    // Check touch virtual joystick input from TouchControls
+    const touch = (window as any).BitQuestTouch?.state;
+    if (touch && touch.active && (touch.vx !== 0 || touch.vy !== 0)) {
+      vx = touch.vx;
+      vy = touch.vy;
+    } else {
+      const left = cursors.left.isDown || keys.A?.isDown;
+      const right = cursors.right.isDown || keys.D?.isDown;
+      const up = cursors.up.isDown || keys.W?.isDown;
+      const down = cursors.down.isDown || keys.S?.isDown;
 
-    if (left) vx -= 1;
-    if (right) vx += 1;
-    if (up) vy -= 1;
-    if (down) vy += 1;
+      if (left) vx -= 1;
+      if (right) vx += 1;
+      if (up) vy -= 1;
+      if (down) vy += 1;
 
-    // Normalize diagonal
-    if (vx !== 0 && vy !== 0) {
-      vx *= 0.7071;
-      vy *= 0.7071;
+      // Normalize diagonal
+      if (vx !== 0 && vy !== 0) {
+        vx *= 0.7071;
+        vy *= 0.7071;
+      }
     }
 
     const currentSpeed = this.speed * this.speedMultiplier * this.speedBuffMultiplier;

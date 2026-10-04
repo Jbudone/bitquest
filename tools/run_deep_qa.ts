@@ -882,6 +882,99 @@ async function runDeepQA() {
       if (res.notesPlayed !== 5) throw new Error('Failed to play 5-note song sequence');
     });
 
+    console.log('\n--- 17. MOBILE TOUCH CONTROLS & RESPONSIVE VIEWPORT ---');
+
+    await runTest('Touch Controls DOM Layer, Modes & Viewport Visibility', async () => {
+      const res = await evaluateInBrowser(`
+        (() => {
+          const touch = window.BitQuestTouch;
+          if (!touch) return { ok: false, reason: 'BitQuestTouch not attached to window' };
+
+          // Verify elements in DOM
+          const layer = document.getElementById('touch-controls-layer');
+          const base = document.getElementById('touch-joystick-base');
+          const thumb = document.getElementById('touch-joystick-thumb');
+          const cluster = document.getElementById('touch-action-cluster');
+          const btnAttack = document.getElementById('touch-btn-attack');
+          const btnInteract = document.getElementById('touch-btn-interact');
+          const btnRoll = document.getElementById('touch-btn-roll');
+          const btnAb1 = document.getElementById('touch-btn-ability-1');
+          const btnAb2 = document.getElementById('touch-btn-ability-2');
+
+          // Test mode toggle
+          touch.setMode('on');
+          const visibleWhenOn = touch.getIsVisible() && layer.style.display !== 'none';
+
+          touch.setMode('off');
+          const hiddenWhenOff = !touch.getIsVisible() && layer.style.display === 'none';
+
+          // Restore mode
+          touch.setMode('auto');
+
+          return {
+            ok: true,
+            hasLayer: !!layer,
+            hasBase: !!base,
+            hasThumb: !!thumb,
+            hasCluster: !!cluster,
+            hasButtons: !!(btnAttack && btnInteract && btnRoll && btnAb1 && btnAb2),
+            visibleWhenOn,
+            hiddenWhenOff
+          };
+        })()
+      `);
+      if (!res.ok) throw new Error(res.reason);
+      if (!res.hasLayer || !res.hasBase || !res.hasThumb || !res.hasCluster || !res.hasButtons) {
+        throw new Error('Touch controls DOM elements missing');
+      }
+      if (!res.visibleWhenOn) throw new Error('Touch controls not visible when mode="on"');
+      if (!res.hiddenWhenOff) throw new Error('Touch controls not hidden when mode="off"');
+    });
+
+    await runTest('Virtual Joystick Simulation & Zero-Allocation Player Movement', async () => {
+      const res = await evaluateInBrowser(`
+        (async () => {
+          const touch = window.BitQuestTouch;
+          const scene = window.BitQuestGame?.scene?.getScene('WorldScene');
+          if (!touch || !scene || !scene.localPlayer) return { ok: false, reason: 'Scene/Player not ready' };
+
+          touch.setMode('on');
+
+          // Record player initial pos
+          const startX = scene.localPlayer.x;
+          const startY = scene.localPlayer.y;
+
+          // Drag virtual joystick right (vx = 1.0, vy = 0)
+          touch.simulateJoystick(1.0, 0.0);
+          await new Promise(r => setTimeout(r, 200));
+
+          const movedRight = scene.localPlayer.x > startX;
+          const stateActive = touch.state.active && touch.state.vx === 1.0;
+
+          // Release joystick
+          touch.simulateJoystick(0, 0);
+          await new Promise(r => setTimeout(r, 100));
+          const released = !touch.state.active && touch.state.vx === 0 && touch.state.vy === 0;
+
+          // Trigger touch buttons
+          touch.simulateButton('attack');
+          touch.simulateButton('roll');
+          touch.simulateButton('ability1');
+
+          return {
+            ok: true,
+            movedRight,
+            stateActive,
+            released
+          };
+        })()
+      `);
+      if (!res.ok) throw new Error(res.reason);
+      if (!res.stateActive) throw new Error('Virtual joystick state failed to activate');
+      if (!res.movedRight) throw new Error('Player did not move in response to virtual joystick');
+      if (!res.released) throw new Error('Virtual joystick did not release cleanly');
+    });
+
     ws.close();
   } catch (err: any) {
     console.error('Fatal test error:', err);

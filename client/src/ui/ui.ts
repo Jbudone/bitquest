@@ -10,6 +10,7 @@ import { EquipmentSheetManager } from './EquipmentSheet';
 import { FishLogbookManager } from './FishLogbook';
 import { ShopModal } from './ShopModal';
 import { OcarinaModal } from './OcarinaModal';
+import { TouchControls } from './TouchControls';
 import { saveManager } from '../storage/SaveManager';
 import type { EmoteType, CharacterClassId, WeatherType } from '../../../shared/src/types';
 import { ClassManager } from '../../../shared/src/classes';
@@ -25,6 +26,7 @@ export class UIManager {
   public fishLogbook: FishLogbookManager;
   public shopModal: ShopModal;
   public ocarina: OcarinaModal;
+  public touchControls: TouchControls;
   private selectedPalette = 0;
   public selectedClass: CharacterClassId = 'warrior';
   private currentTypewriterTimer: any = null;
@@ -46,6 +48,12 @@ export class UIManager {
     this.fishLogbook = new FishLogbookManager();
     this.shopModal = new ShopModal();
     this.ocarina = new OcarinaModal();
+    this.touchControls = new TouchControls(() => (window as any).BitQuestGame?.scene?.getScene('WorldScene'));
+    (window as any).BitQuestTouch = this.touchControls;
+
+    window.addEventListener('resize', () => {
+      this.touchControls.evaluateVisibility();
+    });
 
     document.getElementById('gear-toggle-btn')?.addEventListener('click', () => {
       this.equipmentSheet.toggle();

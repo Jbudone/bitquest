@@ -29,6 +29,7 @@ export class Player extends Phaser.GameObjects.Container {
   public foodBonusMaxHp = 0;
   public foodAttackMultiplier = 1;
   public foodDefenseReduction = 0;
+  public potionSpeedMultiplier = 1;
   public isBoating = false;
   public mountedEntityId: string | null = null;
   public mountSprite: Phaser.GameObjects.Sprite;
@@ -341,7 +342,7 @@ export class Player extends Phaser.GameObjects.Container {
     }
 
     const boatSpeedBoost = this.isBoating ? 1.6 : 1.0;
-    const currentSpeed = this.speed * this.speedMultiplier * this.speedBuffMultiplier * (this.foodSpeedMultiplier || 1) * boatSpeedBoost;
+    const currentSpeed = this.speed * this.speedMultiplier * this.speedBuffMultiplier * (this.foodSpeedMultiplier || 1) * (this.potionSpeedMultiplier || 1) * boatSpeedBoost;
     body.setVelocity(vx * currentSpeed, vy * currentSpeed);
 
     // Update Facing Direction & Animation

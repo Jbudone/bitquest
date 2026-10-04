@@ -55,6 +55,7 @@
     "test:minigames": "bun run tools/test_minigames.ts",
     "test:foliage_dynamics": "bun run tools/test_foliage_dynamics.ts",
     "test:husbandry": "bun run tools/test_husbandry.ts",
+    "test:alchemy": "bun run tools/test_alchemy_system.ts",
     "test:bg": "bun run tools/run_background_tests.ts",
     "test:qa": "bun run tools/run_deep_qa.ts",
     "ingest:assets": "bun run tools/ingest_assets.ts",

@@ -949,6 +949,71 @@
     "stackable": true,
     "maxStack": 20,
     "stats": { "healAmount": 4 }
+  },
+  {
+    "id": "potion_swiftfoot",
+    "name": "Swiftfoot Draught",
+    "category": "consumable",
+    "tier": 1,
+    "description": "Golden potion that makes feet as light as a breeze. Grants +35% move speed for 45s.",
+    "iconColor": "#fbbf24",
+    "soundKey": "pickup",
+    "value": 35,
+    "stackable": true,
+    "maxStack": 10,
+    "stats": { "speedBoost": 1.35, "durationMs": 45000 }
+  },
+  {
+    "id": "potion_ironbark",
+    "name": "Ironbark Tonic",
+    "category": "consumable",
+    "tier": 1,
+    "description": "Stout herbal draught that hardens skin like ancient oak bark. Grants +2 Defense for 60s.",
+    "iconColor": "#78350f",
+    "soundKey": "pickup",
+    "value": 40,
+    "stackable": true,
+    "maxStack": 10,
+    "stats": { "defenseBonus": 2, "durationMs": 60000 }
+  },
+  {
+    "id": "potion_astral_mana",
+    "name": "Astral Mana Philter",
+    "category": "consumable",
+    "tier": 2,
+    "description": "Gleaming sapphire potion of moon essence. Instantly restores 35 MP and doubles mana regen for 30s.",
+    "iconColor": "#38bdf8",
+    "soundKey": "pickup",
+    "value": 60,
+    "stackable": true,
+    "maxStack": 10,
+    "stats": { "manaAmount": 35, "durationMs": 30000 }
+  },
+  {
+    "id": "potion_sunfire_draught",
+    "name": "Sunfire Battle Draught",
+    "category": "consumable",
+    "tier": 2,
+    "description": "Warm effervescent tonic brewed from sunny crops. Grants +40% melee attack power for 30s.",
+    "iconColor": "#ef4444",
+    "soundKey": "pickup",
+    "value": 75,
+    "stackable": true,
+    "maxStack": 10,
+    "stats": { "damageBonus": 3, "durationMs": 30000 }
+  },
+  {
+    "id": "potion_elixir_of_vitality",
+    "name": "Elixir of Celestial Vitality",
+    "category": "consumable",
+    "tier": 3,
+    "description": "Legendary iridescent elixir. Fully restores HP and MP, and cloaks the drinker in a divine shield for 5s.",
+    "iconColor": "#e879f9",
+    "soundKey": "fanfare",
+    "value": 180,
+    "stackable": true,
+    "maxStack": 5,
+    "stats": { "healAmount": 20, "manaAmount": 50, "durationMs": 5000 }
   }
 ]
 

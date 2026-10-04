@@ -41,6 +41,12 @@ import {
   type SanctuaryAnimalDef,
   type SanctuaryAnimalState
 } from '../../../shared/src/husbandry';
+import {
+  ActivePotionManager,
+  ALCHEMY_RECIPES,
+  type PotionBuffTotals,
+  type AlchemyRecipe
+} from '../../../shared/src/alchemy';
 
 export class WorldScene extends Phaser.Scene {
   public localPlayer: Player | null = null;
@@ -99,6 +105,17 @@ export class WorldScene extends Phaser.Scene {
     sprite: Phaser.GameObjects.Sprite;
   }> = new Map();
   private pastureFenceGraphics?: Phaser.GameObjects.Graphics;
+
+  // Herbal Alchemy & Potion Brewing (Expansion Milestone 8)
+  public potionManager = new ActivePotionManager();
+  public potionBuffTotals: PotionBuffTotals = {
+    speedMultiplier: 1.0,
+    defenseBonus: 0,
+    attackPowerMultiplier: 1.0,
+    manaRegenMultiplier: 1.0,
+    isInvulnerable: false
+  };
+  private alchemyCauldronProp?: Phaser.GameObjects.Sprite;
 
   // Cozy Bobber Fishing (Task 7.5 / Issue #23)
   public isLocalFishing = false;
@@ -735,6 +752,36 @@ export class WorldScene extends Phaser.Scene {
 
     // 16. Cozy Animal Husbandry & Pet Sanctuary (Expansion Milestone 7)
     this.setupAnimalSanctuary();
+
+    // 17. Herbal Alchemy Cauldron Station (Expansion Milestone 8)
+    this.setupAlchemyStation();
+  }
+
+  private setupAlchemyStation() {
+    this.alchemyCauldronProp = this.add.sprite(520, 840, 'prop_alchemy_cauldron');
+    this.alchemyCauldronProp.setDepth(20 + 840);
+  }
+
+  public consumePotionItem(itemId: string): boolean {
+    const recipe = ALCHEMY_RECIPES.find(r => r.resultItemId === itemId);
+    if (!recipe) return false;
+
+    const idx = this.playerInventory.indexOf(itemId);
+    if (idx === -1) return false;
+
+    this.playerInventory.splice(idx, 1);
+    this.potionManager.consumePotion(recipe, Date.now() / 1000);
+
+    if (recipe.buff.instantHp && this.localPlayer) {
+      this.localPlayer.health = Math.min(this.localPlayer.maxHealth, this.localPlayer.health + recipe.buff.instantHp);
+    }
+    if (recipe.buff.instantMp && this.localPlayer) {
+      this.localPlayer.mana = Math.min(this.localPlayer.maxMana, this.localPlayer.mana + recipe.buff.instantMp);
+    }
+
+    sounds.playLevelUp?.();
+    this.showFloatingText(this.localPlayer?.x || 0, (this.localPlayer?.y || 0) - 24, `⚡ Drank ${recipe.name}!`, recipe.color);
+    return true;
   }
 
   private setupCookingStations() {
@@ -3422,6 +3469,14 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
+    // 2g. Herbal Alchemy Cauldron Station (Milestone 8)
+    const distCauldron = Math.hypot(px - 520, py - 840);
+    if (distCauldron <= 56) {
+      (window as any).BitQuestUI?.alchemyModal?.open();
+      sounds.playPickup?.();
+      return;
+    }
+
     // 3. Unified Prioritized Interaction Pipeline
     const interaction = BehaviorRegistry.getPrioritizedInteraction(px, py, this.worldEntities.values(), 56, this.localPlayer as any);
     if (!interaction) return;
@@ -4263,6 +4318,13 @@ export class WorldScene extends Phaser.Scene {
       this.updateMinigames(delta);
       this.updateFoliageDynamics(time, delta);
       this.updateAnimalSanctuary(delta);
+
+      // Update Herbal Alchemy Potion Buffs (Milestone 8)
+      this.potionBuffTotals = this.potionManager.update(Date.now() / 1000);
+      this.localPlayer.potionSpeedMultiplier = this.potionBuffTotals.speedMultiplier;
+      if (this.potionBuffTotals.isInvulnerable) {
+        this.localPlayer.isInvulnerable = true;
+      }
 
       // Update moving stone platform position and riding kinematics
       const platformSprite = this.entityObjects.get(DUNGEON_CONSTANTS.F1_PLATFORM.id) as Phaser.GameObjects.Sprite | undefined;

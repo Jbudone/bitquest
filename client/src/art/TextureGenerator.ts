@@ -20,6 +20,7 @@ export class TextureGenerator {
     this.createMinigameTextures(scene);
     this.createFloraTextures(scene);
     this.createHusbandryTextures(scene);
+    this.createAlchemyTextures(scene);
   }
 
   private static createCanvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -5918,6 +5919,242 @@ export class TextureGenerator {
       ctx.fillRect(9, 8, 1, 10);
 
       scene.textures.addCanvas('material_fresh_milk', canvas);
+    }
+  }
+
+  private static createAlchemyTextures(scene: Phaser.Scene) {
+    // 1. Apothecary Brewing Cauldron (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Floor shadow
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
+      ctx.beginPath();
+      ctx.ellipse(16, 28, 13, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Tripod iron legs
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(8, 22, 3, 7);
+      ctx.fillRect(15, 24, 3, 5);
+      ctx.fillRect(22, 22, 3, 7);
+
+      // Cauldron Outer Belly (Cast Iron / Dark Brass)
+      ctx.fillStyle = '#334155';
+      ctx.beginPath();
+      ctx.ellipse(16, 17, 12, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Cauldron Highlights
+      ctx.fillStyle = '#475569';
+      ctx.beginPath();
+      ctx.ellipse(16, 18, 10, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Twin Side Ring Handles
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(4, 15, 3, 0, Math.PI * 2);
+      ctx.arc(28, 15, 3, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Cauldron Rim Lip
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.ellipse(16, 11, 12, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Bubbling Emerald Alchemical Brew
+      ctx.fillStyle = '#10b981';
+      ctx.beginPath();
+      ctx.ellipse(16, 11, 10, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Boiling Liquid Foam & Rising Magical Bubbles
+      ctx.fillStyle = '#6ee7b7';
+      ctx.fillRect(12, 10, 3, 2);
+      ctx.fillRect(18, 11, 2, 2);
+      ctx.fillStyle = '#a7f3d0';
+      ctx.fillRect(10, 6, 2, 2);
+      ctx.fillRect(20, 5, 2, 2);
+      ctx.fillRect(15, 3, 2, 2);
+
+      scene.textures.addCanvas('prop_alchemy_cauldron', canvas);
+    }
+
+    // 2. Swiftfoot Draught (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Soft amber glow aura
+      const aura = ctx.createRadialGradient(12, 12, 2, 12, 12, 10);
+      aura.addColorStop(0, 'rgba(251, 191, 36, 0.4)');
+      aura.addColorStop(1, 'rgba(251, 191, 36, 0)');
+      ctx.fillStyle = aura;
+      ctx.beginPath();
+      ctx.arc(12, 12, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Golden Stopper Cap
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(10, 4, 4, 3);
+
+      // Glass Bottle Body
+      ctx.fillStyle = '#fef08a';
+      ctx.beginPath();
+      ctx.ellipse(12, 14, 6, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Golden Potion Liquid
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.ellipse(12, 15, 5, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Wing Motif Sparkle
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(9, 12, 2, 3);
+      ctx.fillRect(13, 12, 2, 3);
+      ctx.fillRect(11, 11, 2, 1);
+
+      scene.textures.addCanvas('potion_swiftfoot', canvas);
+    }
+
+    // 3. Ironbark Tonic (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Acorn Wooden Stopper
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(10, 3, 4, 3);
+
+      // Earthen Flask Body
+      ctx.fillStyle = '#78350f';
+      ctx.beginPath();
+      ctx.ellipse(12, 14, 6, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Oak Bark Wrap Band
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(7, 12, 10, 4);
+
+      // Amber Tonic Specular
+      ctx.fillStyle = '#fde68a';
+      ctx.fillRect(9, 10, 2, 3);
+      ctx.fillRect(10, 9, 1, 1);
+
+      scene.textures.addCanvas('potion_ironbark', canvas);
+    }
+
+    // 4. Astral Mana Philter (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Ethereal cyan aura
+      const aura = ctx.createRadialGradient(12, 12, 2, 12, 12, 10);
+      aura.addColorStop(0, 'rgba(56, 189, 248, 0.45)');
+      aura.addColorStop(1, 'rgba(56, 189, 248, 0)');
+      ctx.fillStyle = aura;
+      ctx.beginPath();
+      ctx.arc(12, 12, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Silver Stopper Cap
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(10, 4, 4, 3);
+
+      // Sapphire Glass Bottle
+      ctx.fillStyle = '#0284c7';
+      ctx.beginPath();
+      ctx.ellipse(12, 14, 6, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Glowing Mana Fluid
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.ellipse(12, 15, 5, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Star Sparkle
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(11, 12, 2, 2);
+      ctx.fillRect(10, 15, 1, 1);
+
+      scene.textures.addCanvas('potion_astral_mana', canvas);
+    }
+
+    // 5. Sunfire Battle Draught (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Fiery aura
+      const aura = ctx.createRadialGradient(12, 12, 2, 12, 12, 10);
+      aura.addColorStop(0, 'rgba(239, 68, 68, 0.45)');
+      aura.addColorStop(1, 'rgba(239, 68, 68, 0)');
+      ctx.fillStyle = aura;
+      ctx.beginPath();
+      ctx.arc(12, 12, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Ruby Stopper
+      ctx.fillStyle = '#991b1b';
+      ctx.fillRect(10, 4, 4, 3);
+
+      // Crimson Bottle Body
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath();
+      ctx.ellipse(12, 14, 6, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Blazing Core
+      ctx.fillStyle = '#f97316';
+      ctx.beginPath();
+      ctx.ellipse(12, 15, 4, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Flame Specular
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(11, 13, 2, 2);
+
+      scene.textures.addCanvas('potion_sunfire_draught', canvas);
+    }
+
+    // 6. Elixir of Celestial Vitality (24x24)
+    {
+      const [canvas, ctx] = this.createCanvas(24, 24);
+      // Celestial violet aura
+      const aura = ctx.createRadialGradient(12, 12, 2, 12, 12, 11);
+      aura.addColorStop(0, 'rgba(232, 121, 249, 0.5)');
+      aura.addColorStop(1, 'rgba(232, 121, 249, 0)');
+      ctx.fillStyle = aura;
+      ctx.beginPath();
+      ctx.arc(12, 12, 11, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Prismatic Diamond Bottle Cap
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(10, 3, 4, 3);
+
+      // Diamond Prism Body (Octagonal / Star Cut)
+      ctx.fillStyle = '#c084fc';
+      ctx.beginPath();
+      ctx.moveTo(12, 7);
+      ctx.lineTo(18, 12);
+      ctx.lineTo(16, 20);
+      ctx.lineTo(8, 20);
+      ctx.lineTo(6, 12);
+      ctx.closePath();
+      ctx.fill();
+
+      // Iridescent Inner Liquid
+      ctx.fillStyle = '#f472b6';
+      ctx.beginPath();
+      ctx.ellipse(12, 15, 4, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Divine Sparkles
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(11, 11, 2, 2);
+      ctx.fillRect(14, 14, 1, 1);
+      ctx.fillRect(9, 16, 1, 1);
+
+      scene.textures.addCanvas('potion_elixir_of_vitality', canvas);
     }
   }
 }

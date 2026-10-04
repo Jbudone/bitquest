@@ -858,6 +858,32 @@
     "stackable": true,
     "maxStack": 5,
     "stats": { "healAmount": 20, "buff": "attack_power", "buffDuration": 240 }
+  },
+  {
+    "id": "relic_arch_lich_phylactery",
+    "name": "Phylactery of the Void Queen",
+    "category": "relic",
+    "tier": 4,
+    "description": "Humming with astral necrotic energy. Grants +25% shadow mitigation and life-drain on critical strikes.",
+    "iconColor": "#9333ea",
+    "soundKey": "fanfare",
+    "value": 500,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": { "damageBonus": 3, "defenseBonus": 2, "maxHealthBonus": 2 }
+  },
+  {
+    "id": "vanity_crown_shadow",
+    "name": "Diadem of Arch-Lich Vespera",
+    "category": "vanity",
+    "tier": 4,
+    "description": "Forged from midnight obsidian and weeping astral crystals. Emits ethereal violet wisps.",
+    "iconColor": "#c084fc",
+    "soundKey": "fanfare",
+    "value": 450,
+    "stackable": false,
+    "maxStack": 1,
+    "stats": {}
   }
 ]
 

@@ -26,7 +26,7 @@ import { BehaviorRegistry } from '../../shared/src/behaviors/registry';
 import { SPELL_DEFINITIONS, StatusEffectManager } from '../../shared/src/magic';
 import { EquipmentManager } from '../../shared/src/equipment';
 import { ClassManager } from '../../shared/src/classes';
-import { DUNGEON_CONSTANTS, MALAKOR_SPECS, DungeonManager, CATACOMBS_FLOORS, type DungeonFloorId } from '../../shared/src/dungeon';
+import { DUNGEON_CONSTANTS, MALAKOR_SPECS, VESPERA_SPECS, DungeonManager, CATACOMBS_FLOORS, type DungeonFloorId } from '../../shared/src/dungeon';
 import { FishingEngine, FISH_SPECIES, type FishSpecies, type PlayerFishLog } from '../../shared/src/fishing';
 import { WeatherEngine, CAMPFIRES, type WeatherType, type WeatherState, type DayPhase, type CampfireDefinition } from '../../shared/src/weather';
 import { ShopEngine, MERCHANTS, SHOP_ITEMS, type ShopItem, type MerchantDefinition, type CurrencyType } from '../../shared/src/shop';
@@ -687,6 +687,133 @@ export class WorldManager {
       name: 'Radiant Sanctuary Portal',
       x: DUNGEON_CONSTANTS.F2_EXIT_PORTAL.x,
       y: DUNGEON_CONSTANTS.F2_EXIT_PORTAL.y,
+      interactable: false,
+      state: { active: false, targetFloor: 'overworld' }
+    });
+
+    // 13d. Floor 2 descent to Floor 3
+    this.entities.set(DUNGEON_CONSTANTS.F2_STAIRS_DOWN.id, {
+      id: DUNGEON_CONSTANTS.F2_STAIRS_DOWN.id,
+      type: 'trigger',
+      subtype: 'stairs_down',
+      name: 'Necropolis Descent Stairs',
+      x: DUNGEON_CONSTANTS.F2_STAIRS_DOWN.x,
+      y: DUNGEON_CONSTANTS.F2_STAIRS_DOWN.y,
+      interactable: true,
+      state: { targetFloor: 'f3' }
+    });
+
+    // 13e. Floor 3: The Abyssal Necropolis
+    this.entities.set(DUNGEON_CONSTANTS.F3_STAIRS_UP.id, {
+      id: DUNGEON_CONSTANTS.F3_STAIRS_UP.id,
+      type: 'trigger',
+      subtype: 'stairs_up',
+      name: 'Sanctuary Ascent Stairs',
+      x: DUNGEON_CONSTANTS.F3_STAIRS_UP.x,
+      y: DUNGEON_CONSTANTS.F3_STAIRS_UP.y,
+      interactable: true,
+      state: { targetFloor: 'f2' }
+    });
+
+    // Floor 3 Moving Platforms
+    this.entities.set(DUNGEON_CONSTANTS.F3_PLATFORM_A.id, {
+      id: DUNGEON_CONSTANTS.F3_PLATFORM_A.id,
+      type: 'platform',
+      subtype: 'moving_platform',
+      name: 'Void Platform Alpha',
+      x: DUNGEON_CONSTANTS.F3_PLATFORM_A.minX,
+      y: DUNGEON_CONSTANTS.F3_PLATFORM_A.y,
+      interactable: false,
+      state: {}
+    });
+
+    this.entities.set(DUNGEON_CONSTANTS.F3_PLATFORM_B.id, {
+      id: DUNGEON_CONSTANTS.F3_PLATFORM_B.id,
+      type: 'platform',
+      subtype: 'moving_platform',
+      name: 'Void Platform Beta',
+      x: DUNGEON_CONSTANTS.F3_PLATFORM_B.maxX,
+      y: DUNGEON_CONSTANTS.F3_PLATFORM_B.y,
+      interactable: false,
+      state: {}
+    });
+
+    // Floor 3 Necrotic Soul Pylons
+    DUNGEON_CONSTANTS.F3_PYLONS.forEach(p => {
+      this.entities.set(p.id, {
+        id: p.id,
+        type: 'pylon',
+        subtype: 'void_pylon',
+        name: 'Necrotic Soul Pylon',
+        x: p.x,
+        y: p.y,
+        interactable: true,
+        state: { hp: VESPERA_SPECS.phase2.pylonHp, maxHp: VESPERA_SPECS.phase2.pylonHp, active: true, destroyed: false }
+      });
+    });
+
+    // Floor 3 Crypt Wraiths
+    const wraithPositions = [
+      { id: 'wraith_1', x: 920, y: 6050 },
+      { id: 'wraith_2', x: 1128, y: 6050 },
+      { id: 'wraith_3', x: 880, y: 6420 },
+      { id: 'wraith_4', x: 1168, y: 6420 }
+    ];
+    wraithPositions.forEach(w => {
+      this.entities.set(w.id, {
+        id: w.id,
+        type: 'enemy',
+        subtype: 'crypt_wraith',
+        name: 'Crypt Wraith',
+        x: w.x,
+        y: w.y,
+        interactable: true,
+        state: { hp: 10, maxHp: 10, destroyed: false, homeX: w.x, homeY: w.y }
+      });
+    });
+
+    // Floor 3 Boss: Arch-Lich Vespera
+    this.entities.set(VESPERA_SPECS.id, {
+      id: VESPERA_SPECS.id,
+      type: 'boss',
+      subtype: 'boss_vespera',
+      name: VESPERA_SPECS.name,
+      x: DUNGEON_CONSTANTS.F3_BOSS_SPAWN.x,
+      y: DUNGEON_CONSTANTS.F3_BOSS_SPAWN.y,
+      interactable: true,
+      state: {
+        hp: VESPERA_SPECS.maxHp,
+        maxHp: VESPERA_SPECS.maxHp,
+        phase: 1,
+        shieldActive: false,
+        stunned: false,
+        stunTimer: 0,
+        homeX: DUNGEON_CONSTANTS.F3_BOSS_SPAWN.x,
+        homeY: DUNGEON_CONSTANTS.F3_BOSS_SPAWN.y,
+        destroyed: false
+      }
+    });
+
+    // Floor 3 Royal Vault Chest
+    this.entities.set(DUNGEON_CONSTANTS.F3_ROYAL_VAULT.id, {
+      id: DUNGEON_CONSTANTS.F3_ROYAL_VAULT.id,
+      type: 'chest',
+      subtype: 'relic_chest',
+      name: "Arch-Lich's Royal Sarcophagus",
+      x: DUNGEON_CONSTANTS.F3_ROYAL_VAULT.x,
+      y: DUNGEON_CONSTANTS.F3_ROYAL_VAULT.y,
+      interactable: false,
+      state: { opened: false, locked: true, active: false }
+    });
+
+    // Floor 3 Exit Portal
+    this.entities.set(DUNGEON_CONSTANTS.F3_EXIT_PORTAL.id, {
+      id: DUNGEON_CONSTANTS.F3_EXIT_PORTAL.id,
+      type: 'trigger',
+      subtype: 'portal',
+      name: 'Ascending Void Portal',
+      x: DUNGEON_CONSTANTS.F3_EXIT_PORTAL.x,
+      y: DUNGEON_CONSTANTS.F3_EXIT_PORTAL.y,
       interactable: false,
       state: { active: false, targetFloor: 'overworld' }
     });
@@ -2504,10 +2631,88 @@ export class WorldManager {
         this.onItemSpawned?.(relicDrop);
         return;
       }
+      if (entity.id === DUNGEON_CONSTANTS.F2_STAIRS_DOWN.id) {
+        const player = this.players.get(playerId);
+        if (player) {
+          player.x = DUNGEON_CONSTANTS.F3_SPAWN.x;
+          player.y = DUNGEON_CONSTANTS.F3_SPAWN.y;
+        }
+        this.onDungeonTransition?.(playerId, 'f3', DUNGEON_CONSTANTS.F3_SPAWN.x, DUNGEON_CONSTANTS.F3_SPAWN.y, CATACOMBS_FLOORS.f3.name, CATACOMBS_FLOORS.f3.subtitle);
+        return;
+      }
+      if (entity.id === DUNGEON_CONSTANTS.F3_STAIRS_UP.id) {
+        const player = this.players.get(playerId);
+        if (player) {
+          player.x = 1024;
+          player.y = 5020;
+        }
+        this.onDungeonTransition?.(playerId, 'f2', 1024, 5020, CATACOMBS_FLOORS.f2.name, CATACOMBS_FLOORS.f2.subtitle);
+        return;
+      }
+      if (entity.id === DUNGEON_CONSTANTS.F3_EXIT_PORTAL.id && entity.state.active) {
+        const player = this.players.get(playerId);
+        if (player) {
+          player.x = DUNGEON_CONSTANTS.OVERWORLD_EXIT_WARP.x;
+          player.y = DUNGEON_CONSTANTS.OVERWORLD_EXIT_WARP.y;
+        }
+        this.onDungeonTransition?.(playerId, 'overworld', DUNGEON_CONSTANTS.OVERWORLD_EXIT_WARP.x, DUNGEON_CONSTANTS.OVERWORLD_EXIT_WARP.y, 'Ruins Sanctuary', 'Surface World');
+        return;
+      }
+      if (entity.id === DUNGEON_CONSTANTS.F3_ROYAL_VAULT.id && !entity.state.locked && !entity.state.opened) {
+        entity.state.opened = true;
+        this.onEntityStateChanged?.(entity);
+        const relicDrop: ItemDropData = {
+          id: `item_relic_arch_lich_${Date.now()}`,
+          itemType: 'relic_arch_lich_phylactery',
+          x: entity.x - 16,
+          y: entity.y + 16,
+          value: 500
+        };
+        const crownDrop: ItemDropData = {
+          id: `item_vanity_crown_${Date.now()}`,
+          itemType: 'vanity_crown_shadow',
+          x: entity.x + 16,
+          y: entity.y + 16,
+          value: 450
+        };
+        this.items.set(relicDrop.id, relicDrop);
+        this.items.set(crownDrop.id, crownDrop);
+        this.onItemSpawned?.(relicDrop);
+        this.onItemSpawned?.(crownDrop);
+        return;
+      }
     }
 
     if (action === 'hit_enemy') {
       if (entity.state.destroyed) return;
+
+      if (entity.type === 'pylon') {
+        entity.state.hp = Math.max(0, (entity.state.hp || VESPERA_SPECS.phase2.pylonHp) - (damage || 1));
+        if (entity.state.hp <= 0) {
+          entity.state.destroyed = true;
+          entity.state.active = false;
+          const allPylonsDown = DUNGEON_CONSTANTS.F3_PYLONS.every(p => this.entities.get(p.id)?.state.destroyed);
+          if (allPylonsDown) {
+            const vespera = this.entities.get(VESPERA_SPECS.id);
+            if (vespera && !vespera.state.destroyed) {
+              vespera.state.shieldActive = false;
+              vespera.state.stunned = true;
+              vespera.state.stunTimer = VESPERA_SPECS.phase2.stunDurationMs;
+              this.onBossEvent?.({
+                type: 'boss_event',
+                action: 'stunned',
+                bossId: VESPERA_SPECS.id,
+                x: vespera.x,
+                y: vespera.y
+              });
+              this.onEntityStateChanged?.(vespera);
+            }
+          }
+        }
+        this.onEntityStateChanged?.(entity);
+        return;
+      }
+
       const healthPool = BehaviorRegistry.getHealthPool(entity);
       if (healthPool) {
         let dmg = damage || 1;
@@ -2515,6 +2720,39 @@ export class WorldManager {
         // Malakor Phase 2 Darkness Shroud 75% Damage Mitigation
         if (entity.id === MALAKOR_SPECS.id && entity.state.shroudActive) {
           dmg = Math.max(1, Math.round(dmg * (1 - MALAKOR_SPECS.phase2.darknessShroudMitigationPct)));
+        }
+
+        // Arch-Lich Vespera Phase 2 Soul Shield & Stun Vulnerability
+        if (entity.id === VESPERA_SPECS.id) {
+          if (entity.state.shieldActive) {
+            dmg = 0;
+          } else if (entity.state.stunned) {
+            dmg = Math.round(dmg * (1 + VESPERA_SPECS.phase2.vulnerableDamageBonusPct));
+          }
+
+          // Trigger Phase 2 at 50% HP (18 HP)
+          if (!entity.state.phase2Triggered && (entity.state.hp - dmg) <= VESPERA_SPECS.phase2.thresholdHp) {
+            entity.state.phase = 2;
+            entity.state.phase2Triggered = true;
+            entity.state.shieldActive = true;
+            DUNGEON_CONSTANTS.F3_PYLONS.forEach(p => {
+              const pylon = this.entities.get(p.id);
+              if (pylon) {
+                pylon.state.hp = VESPERA_SPECS.phase2.pylonHp;
+                pylon.state.active = true;
+                pylon.state.destroyed = false;
+                this.onEntityStateChanged?.(pylon);
+              }
+            });
+            this.onBossEvent?.({
+              type: 'boss_event',
+              action: 'phase_change',
+              phase: 2,
+              bossId: VESPERA_SPECS.id,
+              x: entity.x,
+              y: entity.y
+            });
+          }
         }
 
         const res = healthPool.onHurt(entity, dmg);
@@ -2529,10 +2767,11 @@ export class WorldManager {
 
           if (entity.type === 'boss') {
             const isMalakor = entity.id === MALAKOR_SPECS.id;
+            const isVespera = entity.id === VESPERA_SPECS.id;
             this.onBossEvent?.({
               type: 'boss_event',
               action: 'defeated',
-              bossId: isMalakor ? MALAKOR_SPECS.id : undefined,
+              bossId: isMalakor ? MALAKOR_SPECS.id : (isVespera ? VESPERA_SPECS.id : undefined),
               x: entity.x,
               y: entity.y
             });
@@ -2547,6 +2786,21 @@ export class WorldManager {
                 this.onEntityStateChanged?.(chest);
               }
               const portal = this.entities.get(DUNGEON_CONSTANTS.F2_EXIT_PORTAL.id);
+              if (portal) {
+                portal.interactable = true;
+                portal.state.active = true;
+                this.onEntityStateChanged?.(portal);
+              }
+            } else if (isVespera) {
+              // Unlock Floor 3 Royal Vault & Activate Exit Portal
+              const vault = this.entities.get(DUNGEON_CONSTANTS.F3_ROYAL_VAULT.id);
+              if (vault) {
+                vault.interactable = true;
+                vault.state.locked = false;
+                vault.state.active = true;
+                this.onEntityStateChanged?.(vault);
+              }
+              const portal = this.entities.get(DUNGEON_CONSTANTS.F3_EXIT_PORTAL.id);
               if (portal) {
                 portal.interactable = true;
                 portal.state.active = true;

@@ -814,6 +814,34 @@ export class WorldScene extends Phaser.Scene {
         this.add.image(tx * TILE + 16, ty * TILE + 16, 'tile_catacombs_floor');
       }
     }
+
+    // Floor 3: The Abyssal Necropolis (y: 5750..7100, tileY: 180..222)
+    for (let ty = 180; ty <= 222; ty++) {
+      for (let tx = 20; tx <= 44; tx++) {
+        this.add.image(tx * TILE + 16, ty * TILE + 16, 'tile_catacombs_wall');
+      }
+    }
+
+    // Floor 3 Entrance Walkway & Chamber (tileY: 183..192, tileX: 26..38)
+    for (let ty = 183; ty <= 192; ty++) {
+      for (let tx = 26; tx <= 38; tx++) {
+        this.add.image(tx * TILE + 16, ty * TILE + 16, 'tile_catacombs_void');
+      }
+    }
+
+    // Floor 3 Void Chasm (tileY: 193..198, tileX: 23..41)
+    for (let ty = 193; ty <= 198; ty++) {
+      for (let tx = 23; tx <= 41; tx++) {
+        this.add.image(tx * TILE + 16, ty * TILE + 16, 'tile_catacombs_abyss');
+      }
+    }
+
+    // Floor 3 Arch-Lich Throne Room & Royal Vault (tileY: 199..220, tileX: 24..40)
+    for (let ty = 199; ty <= 220; ty++) {
+      for (let tx = 24; tx <= 40; tx++) {
+        this.add.image(tx * TILE + 16, ty * TILE + 16, 'tile_catacombs_void');
+      }
+    }
   }
 
   private createCottage(tileX: number, tileY: number, w: number, h: number, label: string, theme: 'courier' | 'bakery') {
@@ -1495,7 +1523,7 @@ export class WorldScene extends Phaser.Scene {
       this.entityShadows.set(ent.id, shadow);
       obj = sprite;
     } else if (ent.type === 'enemy') {
-      const tex = ent.subtype === 'skeleton' ? 'entity_minion_skeleton' : (ent.subtype === 'sproutling' ? 'enemy_sproutling' : 'enemy_grumble');
+      const tex = ent.subtype === 'crypt_wraith' ? 'enemy_crypt_wraith' : (ent.subtype === 'skeleton' ? 'entity_minion_skeleton' : (ent.subtype === 'sproutling' ? 'enemy_sproutling' : 'enemy_grumble'));
       const sprite = this.add.sprite(ent.x, ent.y, tex);
       const isDead = !!ent.state.destroyed;
       sprite.setVisible(!isDead);
@@ -1507,7 +1535,7 @@ export class WorldScene extends Phaser.Scene {
       }
       obj = sprite;
     } else if (ent.type === 'boss') {
-      const tex = ent.subtype === 'boss_malakor' ? 'boss_malakor' : 'boss_baron';
+      const tex = ent.subtype === 'boss_vespera' ? 'boss_vespera' : (ent.subtype === 'boss_malakor' ? 'boss_malakor' : 'boss_baron');
       const sprite = this.add.sprite(ent.x, ent.y, tex);
       const isDead = !!ent.state.destroyed;
       sprite.setVisible(!isDead);
@@ -1517,6 +1545,11 @@ export class WorldScene extends Phaser.Scene {
       if (!isDead && ent.state.hp !== undefined && ent.state.maxHp !== undefined) {
         this.updateEnemyHealthBar(ent.id, ent.x, ent.y, ent.state.hp, ent.state.maxHp, true);
       }
+      obj = sprite;
+    } else if (ent.type === 'pylon') {
+      const tex = ent.state.destroyed ? 'prop_void_pylon_destroyed' : 'prop_void_pylon_active';
+      const sprite = this.add.sprite(ent.x, ent.y, tex);
+      sprite.setDepth(20 + ent.y);
       obj = sprite;
     } else if (ent.type === 'minion') {
       const sprite = this.add.sprite(ent.x, ent.y, 'entity_minion_skeleton');
@@ -1679,6 +1712,11 @@ export class WorldScene extends Phaser.Scene {
       }
     } else if (ent.type === 'campfire') {
       const targetTex = ent.state.lit !== false ? `prop_campfire_lit_${this.campfireAnimFrame}` : 'prop_campfire_unlit';
+      if (obj.texture?.key !== targetTex) {
+        obj.setTexture(targetTex);
+      }
+    } else if (ent.type === 'pylon') {
+      const targetTex = ent.state.destroyed ? 'prop_void_pylon_destroyed' : 'prop_void_pylon_active';
       if (obj.texture?.key !== targetTex) {
         obj.setTexture(targetTex);
       }
@@ -3656,6 +3694,31 @@ export class WorldScene extends Phaser.Scene {
         }
       }
 
+      // Update Floor 3 Dual Interlocking Platforms & Kinematics
+      const platA = DUNGEON_CONSTANTS.F3_PLATFORM_A;
+      const platB = DUNGEON_CONSTANTS.F3_PLATFORM_B;
+      const posA = DungeonManager.getPlatformPosition(Date.now(), undefined, platA.minX, platA.maxX, platA.speed, platA.y);
+      const posB = DungeonManager.getPlatformPosition(Date.now() + 1800, undefined, platB.minX, platB.maxX, platB.speed, platB.y);
+
+      const spritePlatA = this.entityObjects.get(platA.id) as Phaser.GameObjects.Sprite | undefined;
+      if (spritePlatA) {
+        spritePlatA.x = posA.x;
+        spritePlatA.y = posA.y;
+      }
+      const spritePlatB = this.entityObjects.get(platB.id) as Phaser.GameObjects.Sprite | undefined;
+      if (spritePlatB) {
+        spritePlatB.x = posB.x;
+        spritePlatB.y = posB.y;
+      }
+
+      if (DungeonManager.isInsideVoidChasm(this.localPlayer.x, this.localPlayer.y)) {
+        if (DungeonManager.isOnMovingPlatform(this.localPlayer.x, this.localPlayer.y, posA.x, posA.y)) {
+          this.localPlayer.x += (posA.vx * delta) / 1000;
+        } else if (DungeonManager.isOnMovingPlatform(this.localPlayer.x, this.localPlayer.y, posB.x, posB.y)) {
+          this.localPlayer.x += (posB.vx * delta) / 1000;
+        }
+      }
+
       // Dynamic Camera Clamping & Subterranean Bounds
       const currentFloor = DungeonManager.getFloorFromY(this.localPlayer.y);
       if (currentFloor !== this.activeFloor) {
@@ -3664,6 +3727,8 @@ export class WorldScene extends Phaser.Scene {
           this.cameras.main.setBounds(0, 2150, 2048, 1600);
         } else if (currentFloor === 'f2') {
           this.cameras.main.setBounds(0, 3950, 2048, 1600);
+        } else if (currentFloor === 'f3') {
+          this.cameras.main.setBounds(0, 5750, 2048, 1600);
         } else {
           this.cameras.main.setBounds(0, 0, 2048, 1792);
         }

@@ -4017,6 +4017,190 @@ export class TextureGenerator {
     }
 
     // ==========================================
+    // Floor 3: Abyssal Necropolis Textures (Milestone 4)
+    // ==========================================
+
+    // 15b. Void Stone Floor Tile (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      ctx.fillStyle = '#090714'; // Midnight obsidian
+      ctx.fillRect(0, 0, 32, 32);
+
+      // Faint purple rune hairline fissures
+      ctx.fillStyle = '#1e1136';
+      ctx.fillRect(0, 0, 32, 1);
+      ctx.fillRect(0, 0, 1, 32);
+      ctx.fillRect(15, 0, 1, 32);
+      ctx.fillRect(0, 15, 32, 1);
+
+      // Glimmering astral starlight specks
+      ctx.fillStyle = '#a855f7';
+      ctx.fillRect(5, 7, 2, 2);
+      ctx.fillRect(21, 23, 2, 2);
+      ctx.fillStyle = '#c084fc';
+      ctx.fillRect(10, 20, 1, 1);
+      ctx.fillRect(26, 6, 1, 1);
+
+      scene.textures.addCanvas('tile_catacombs_void', canvas);
+    }
+
+    // 15c. Necrotic Soul Pylon (Active) (32x48)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 48);
+      // Dark stone base
+      ctx.fillStyle = '#1e1b2e';
+      ctx.fillRect(6, 40, 20, 8);
+      ctx.fillStyle = '#2e284a';
+      ctx.fillRect(8, 38, 16, 4);
+
+      // Tapered obsidian spire
+      ctx.fillStyle = '#181124';
+      ctx.beginPath();
+      ctx.moveTo(16, 4);
+      ctx.lineTo(24, 38);
+      ctx.lineTo(8, 38);
+      ctx.closePath();
+      ctx.fill();
+
+      // Glowing necrotic violet rune core
+      ctx.fillStyle = '#c084fc';
+      ctx.beginPath();
+      ctx.ellipse(16, 22, 4, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f0abfc';
+      ctx.beginPath();
+      ctx.ellipse(16, 22, 2, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Electric arc crackles
+      ctx.strokeStyle = '#e879f9';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(16, 15);
+      ctx.lineTo(13, 22);
+      ctx.lineTo(19, 26);
+      ctx.lineTo(16, 32);
+      ctx.stroke();
+
+      scene.textures.addCanvas('prop_void_pylon_active', canvas);
+    }
+
+    // 15d. Necrotic Soul Pylon (Destroyed) (32x48)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 48);
+      // Crumbled stone base
+      ctx.fillStyle = '#1e1b2e';
+      ctx.fillRect(6, 40, 20, 8);
+      // Shattered jagged stump
+      ctx.fillStyle = '#181124';
+      ctx.beginPath();
+      ctx.moveTo(8, 40);
+      ctx.lineTo(11, 26);
+      ctx.lineTo(16, 32);
+      ctx.lineTo(21, 24);
+      ctx.lineTo(24, 40);
+      ctx.closePath();
+      ctx.fill();
+      // Gray dead stone highlights
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(10, 36, 4, 3);
+      ctx.fillRect(18, 34, 3, 4);
+
+      scene.textures.addCanvas('prop_void_pylon_destroyed', canvas);
+    }
+
+    // 15e. Crypt Wraith (Floating Phantom) (32x32)
+    {
+      const [canvas, ctx] = this.createCanvas(32, 32);
+      // Spectral midnight tattered cloak
+      ctx.fillStyle = '#1e1b4b';
+      ctx.beginPath();
+      ctx.moveTo(16, 4);
+      ctx.lineTo(26, 26);
+      ctx.lineTo(20, 22);
+      ctx.lineTo(16, 28);
+      ctx.lineTo(12, 22);
+      ctx.lineTo(6, 26);
+      ctx.closePath();
+      ctx.fill();
+
+      // Shadow hood interior
+      ctx.fillStyle = '#030712';
+      ctx.beginPath();
+      ctx.ellipse(16, 11, 5, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Cold piercing cyan eyes
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(13, 10, 2, 2);
+      ctx.fillRect(17, 10, 2, 2);
+
+      // Frost aura wisps
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.35)';
+      ctx.fillRect(8, 14, 2, 8);
+      ctx.fillRect(22, 14, 2, 8);
+
+      scene.textures.addCanvas('enemy_crypt_wraith', canvas);
+    }
+
+    // 15f. Boss: Arch-Lich Vespera (48x56)
+    {
+      const [canvas, ctx] = this.createCanvas(48, 56);
+      // Flowing regal dark velvet robe with train
+      ctx.fillStyle = '#1e1035';
+      ctx.beginPath();
+      ctx.moveTo(24, 12);
+      ctx.lineTo(40, 52);
+      ctx.lineTo(8, 52);
+      ctx.closePath();
+      ctx.fill();
+
+      // Golden ornate embroidery trims
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(24, 16);
+      ctx.lineTo(24, 52);
+      ctx.stroke();
+
+      // Deep violet cowl & astral collar
+      ctx.fillStyle = '#581c87';
+      ctx.beginPath();
+      ctx.arc(24, 16, 12, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Void face & glowing red lich eyes
+      ctx.fillStyle = '#020617';
+      ctx.beginPath();
+      ctx.arc(24, 16, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(21, 14, 2, 2);
+      ctx.fillRect(25, 14, 2, 2);
+
+      // Obsidian Spired Crown of the Void
+      ctx.fillStyle = '#1e1b4b';
+      ctx.fillRect(16, 6, 16, 3);
+      ctx.fillRect(16, 2, 3, 5);
+      ctx.fillRect(22, 0, 4, 7);
+      ctx.fillRect(29, 2, 3, 5);
+      ctx.fillStyle = '#c084fc';
+      ctx.fillRect(23, 2, 2, 2); // Crown jewel
+
+      // Glowing purple void orb hovered between skeletal hands
+      ctx.fillStyle = '#a855f7';
+      ctx.beginPath();
+      ctx.arc(24, 32, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#e879f9';
+      ctx.beginPath();
+      ctx.arc(24, 32, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      scene.textures.addCanvas('boss_vespera', canvas);
+    }
+
+    // ==========================================
     // Cozy Bobber Fishing Textures (Issue #23)
     // ==========================================
 

@@ -1,0 +1,156 @@
+{
+  "ancient_gate_opening": {
+    "id": "ancient_gate_opening",
+    "title": "The Ancient Gate Awakens",
+    "description": "The stone gate unseals with mystical resonance and dust clouds as the hero discovers the catacombs entrance.",
+    "durationMs": 5000,
+    "cameraTrack": [
+      { "timeMs": 0, "x": 1024, "y": 928, "zoom": 1.0, "shakeIntensity": 0, "ease": "quadInOut" },
+      { "timeMs": 1200, "x": 1024, "y": 512, "zoom": 1.25, "shakeIntensity": 0.008, "ease": "quadInOut" },
+      { "timeMs": 3500, "x": 1024, "y": 512, "zoom": 1.25, "shakeIntensity": 0, "ease": "quadInOut" },
+      { "timeMs": 4800, "x": 1024, "y": 928, "zoom": 1.0, "shakeIntensity": 0, "ease": "quadInOut" }
+    ],
+    "actors": [
+      {
+        "actorId": "hero",
+        "name": "Adventurer",
+        "spriteKey": "adventurer",
+        "keyframes": [
+          { "timeMs": 0, "x": 1024, "y": 928, "anim": "idle", "facing": "up", "emote": "none", "alpha": 1 },
+          { "timeMs": 600, "x": 1024, "y": 880, "anim": "walk", "facing": "up", "emote": "exclamation", "alpha": 1 },
+          { "timeMs": 1400, "x": 1024, "y": 840, "anim": "idle", "facing": "up", "emote": "none", "alpha": 1 },
+          { "timeMs": 3500, "x": 1024, "y": 840, "anim": "cheer", "facing": "up", "emote": "heart", "alpha": 1 }
+        ]
+      },
+      {
+        "actorId": "gate_sentinel",
+        "name": "Gate Guardian",
+        "spriteKey": "npc_guard",
+        "keyframes": [
+          { "timeMs": 0, "x": 980, "y": 530, "anim": "idle", "facing": "down", "emote": "none", "alpha": 1 },
+          { "timeMs": 2000, "x": 980, "y": 530, "anim": "cheer", "facing": "down", "emote": "exclamation", "alpha": 1 }
+        ]
+      }
+    ],
+    "dialogueTrack": [
+      {
+        "timeMs": 1500,
+        "durationMs": 1800,
+        "speaker": "Ancient Runes",
+        "text": "The Sun Stone resonates! The catacombs seal unlocks...",
+        "portrait": "gate"
+      }
+    ],
+    "audioTrack": [
+      { "timeMs": 1200, "soundType": "sfx", "soundKey": "stone_rumble", "volume": 0.8 },
+      { "timeMs": 2000, "soundType": "jingle", "soundKey": "secret_jingle", "volume": 1.0 }
+    ],
+    "screenTrack": [
+      { "timeMs": 0, "effect": "letterbox_in", "durationMs": 500, "color": "#000000" },
+      { "timeMs": 2000, "effect": "flash", "durationMs": 300, "color": "#facc15" },
+      { "timeMs": 4400, "effect": "letterbox_out", "durationMs": 600, "color": "#000000" }
+    ]
+  },
+  "boss_vespera_intro": {
+    "id": "boss_vespera_intro",
+    "title": "Arch-Lich Vespera Descends",
+    "description": "The abyssal chamber trembles as Arch-Lich Vespera manifests atop the necrotic soul dais.",
+    "durationMs": 6000,
+    "cameraTrack": [
+      { "timeMs": 0, "x": 1024, "y": 800, "zoom": 0.9, "shakeIntensity": 0, "ease": "quadInOut" },
+      { "timeMs": 1500, "x": 1024, "y": 420, "zoom": 1.3, "shakeIntensity": 0.012, "ease": "quadInOut" },
+      { "timeMs": 4500, "x": 1024, "y": 420, "zoom": 1.3, "shakeIntensity": 0.004, "ease": "quadInOut" },
+      { "timeMs": 5800, "x": 1024, "y": 680, "zoom": 1.0, "shakeIntensity": 0, "ease": "quadInOut" }
+    ],
+    "actors": [
+      {
+        "actorId": "vespera",
+        "name": "Arch-Lich Vespera",
+        "spriteKey": "boss_vespera",
+        "keyframes": [
+          { "timeMs": 0, "x": 1024, "y": 200, "anim": "idle", "facing": "down", "emote": "none", "alpha": 0 },
+          { "timeMs": 1500, "x": 1024, "y": 420, "anim": "idle", "facing": "down", "emote": "angry", "alpha": 1 },
+          { "timeMs": 3200, "x": 1024, "y": 420, "anim": "attack", "facing": "down", "emote": "none", "alpha": 1 },
+          { "timeMs": 4600, "x": 1024, "y": 420, "anim": "idle", "facing": "down", "emote": "none", "alpha": 1 }
+        ]
+      },
+      {
+        "actorId": "hero",
+        "name": "Adventurer",
+        "spriteKey": "adventurer",
+        "keyframes": [
+          { "timeMs": 0, "x": 1024, "y": 700, "anim": "idle", "facing": "up", "emote": "sweat", "alpha": 1 },
+          { "timeMs": 3000, "x": 1024, "y": 680, "anim": "idle", "facing": "up", "emote": "exclamation", "alpha": 1 }
+        ]
+      }
+    ],
+    "dialogueTrack": [
+      {
+        "timeMs": 2000,
+        "durationMs": 2400,
+        "speaker": "Arch-Lich Vespera",
+        "text": "Foolish mortals... your soul flame flickers before the abyssal pyre!",
+        "portrait": "vespera"
+      }
+    ],
+    "audioTrack": [
+      { "timeMs": 500, "soundType": "ambient", "soundKey": "necrotic_drone", "volume": 0.9 },
+      { "timeMs": 3200, "soundType": "sfx", "soundKey": "shadow_roar", "volume": 1.0 }
+    ],
+    "screenTrack": [
+      { "timeMs": 0, "effect": "fade_in", "durationMs": 800, "color": "#000000" },
+      { "timeMs": 1500, "effect": "flash", "durationMs": 400, "color": "#9333ea" },
+      { "timeMs": 5200, "effect": "letterbox_out", "durationMs": 600, "color": "#000000" }
+    ]
+  },
+  "barnaby_express_delivery": {
+    "id": "barnaby_express_delivery",
+    "title": "Barnaby's Express Delivery",
+    "description": "Barnaby the Pelican Courier swoops in with urgent mail from Grandma Bramble.",
+    "durationMs": 4500,
+    "cameraTrack": [
+      { "timeMs": 0, "x": 900, "y": 600, "zoom": 1.0, "shakeIntensity": 0, "ease": "quadInOut" },
+      { "timeMs": 1500, "x": 960, "y": 550, "zoom": 1.15, "shakeIntensity": 0, "ease": "quadInOut" },
+      { "timeMs": 4200, "x": 920, "y": 580, "zoom": 1.0, "shakeIntensity": 0, "ease": "quadInOut" }
+    ],
+    "actors": [
+      {
+        "actorId": "barnaby",
+        "name": "Barnaby Courier",
+        "spriteKey": "pelican",
+        "keyframes": [
+          { "timeMs": 0, "x": 1200, "y": 200, "anim": "walk", "facing": "left", "emote": "none", "alpha": 1 },
+          { "timeMs": 1500, "x": 980, "y": 540, "anim": "idle", "facing": "left", "emote": "music", "alpha": 1 },
+          { "timeMs": 3500, "x": 980, "y": 540, "anim": "cheer", "facing": "left", "emote": "heart", "alpha": 1 }
+        ]
+      },
+      {
+        "actorId": "hero",
+        "name": "Adventurer",
+        "spriteKey": "adventurer",
+        "keyframes": [
+          { "timeMs": 0, "x": 900, "y": 560, "anim": "idle", "facing": "right", "emote": "question", "alpha": 1 },
+          { "timeMs": 1800, "x": 920, "y": 560, "anim": "walk", "facing": "right", "emote": "none", "alpha": 1 },
+          { "timeMs": 2400, "x": 920, "y": 560, "anim": "idle", "facing": "right", "emote": "heart", "alpha": 1 }
+        ]
+      }
+    ],
+    "dialogueTrack": [
+      {
+        "timeMs": 1800,
+        "durationMs": 1800,
+        "speaker": "Barnaby the Pelican",
+        "text": "Squawk! Express delivery from Grandma Bramble! Fresh blueberry tarts!",
+        "portrait": "pelican"
+      }
+    ],
+    "audioTrack": [
+      { "timeMs": 1200, "soundType": "sfx", "soundKey": "wing_flutter", "volume": 0.8 },
+      { "timeMs": 1800, "soundType": "sfx", "soundKey": "pelican_squawk", "volume": 0.9 }
+    ],
+    "screenTrack": [
+      { "timeMs": 0, "effect": "letterbox_in", "durationMs": 400, "color": "#000000" },
+      { "timeMs": 4000, "effect": "letterbox_out", "durationMs": 500, "color": "#000000" }
+    ]
+  }
+}

@@ -576,4 +576,75 @@ export const WorldStatePresetSchema = z.object({
 });
 export type WorldStatePreset = z.infer<typeof WorldStatePresetSchema>;
 
+// ==========================================
+// 13. Cinematic Sequencer & Cutscene Schemas (Milestone 9.2)
+// ==========================================
+export const CameraKeyframeSchema = z.object({
+  timeMs: z.number().nonnegative(),
+  x: z.number(),
+  y: z.number(),
+  zoom: z.number().positive().default(1.0),
+  shakeIntensity: z.number().nonnegative().default(0),
+  ease: z.enum(['linear', 'quadInOut', 'quadIn', 'quadOut']).default('quadInOut')
+});
+export type CameraKeyframe = z.infer<typeof CameraKeyframeSchema>;
+
+export const ActorKeyframeSchema = z.object({
+  timeMs: z.number().nonnegative(),
+  x: z.number(),
+  y: z.number(),
+  anim: z.enum(['idle', 'walk', 'attack', 'cheer', 'hurt', 'sleep']).default('idle'),
+  facing: z.enum(['down', 'up', 'left', 'right']).default('down'),
+  emote: z.enum(['none', 'exclamation', 'question', 'heart', 'sweat', 'music', 'angry']).default('none'),
+  alpha: z.number().min(0).max(1).default(1)
+});
+export type ActorKeyframe = z.infer<typeof ActorKeyframeSchema>;
+
+export const ActorTrackSchema = z.object({
+  actorId: z.string(),
+  name: z.string(),
+  spriteKey: z.string().default('adventurer'),
+  keyframes: z.array(ActorKeyframeSchema).default([])
+});
+export type ActorTrack = z.infer<typeof ActorTrackSchema>;
+
+export const DialogueKeyframeSchema = z.object({
+  timeMs: z.number().nonnegative(),
+  durationMs: z.number().positive().default(2000),
+  speaker: z.string(),
+  text: z.string(),
+  portrait: z.string().optional()
+});
+export type DialogueKeyframe = z.infer<typeof DialogueKeyframeSchema>;
+
+export const AudioKeyframeSchema = z.object({
+  timeMs: z.number().nonnegative(),
+  soundType: z.enum(['sfx', 'jingle', 'music', 'ambient']).default('sfx'),
+  soundKey: z.string(),
+  volume: z.number().min(0).max(1).default(1)
+});
+export type AudioKeyframe = z.infer<typeof AudioKeyframeSchema>;
+
+export const ScreenEffectKeyframeSchema = z.object({
+  timeMs: z.number().nonnegative(),
+  effect: z.enum(['fade_in', 'fade_out', 'flash', 'letterbox_in', 'letterbox_out', 'shake']).default('fade_in'),
+  durationMs: z.number().positive().default(600),
+  color: z.string().default('#000000')
+});
+export type ScreenEffectKeyframe = z.infer<typeof ScreenEffectKeyframeSchema>;
+
+export const CutsceneSequenceSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string().default(''),
+  durationMs: z.number().positive().default(6000),
+  cameraTrack: z.array(CameraKeyframeSchema).default([]),
+  actors: z.array(ActorTrackSchema).default([]),
+  dialogueTrack: z.array(DialogueKeyframeSchema).default([]),
+  audioTrack: z.array(AudioKeyframeSchema).default([]),
+  screenTrack: z.array(ScreenEffectKeyframeSchema).default([])
+});
+export type CutsceneSequence = z.infer<typeof CutsceneSequenceSchema>;
+
+
 

@@ -19,7 +19,8 @@ export default defineConfig({
         save_state: 'save-state.html',
         render_map: 'render_map.html',
         level_editor: 'level-editor.html',
-        quest_graph: 'quest-graph.html'
+        quest_graph: 'quest-graph.html',
+        cutscene_sequencer: 'cutscene-sequencer.html'
       }
     }
   }

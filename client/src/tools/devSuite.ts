@@ -5,6 +5,7 @@ import { VFXStudio } from './vfxStudio';
 import { SaveStateInspector } from './saveStateInspector';
 import { LevelEditorStudio } from './levelEditorStudio';
 import { QuestGraphStudio } from './questGraphStudio';
+import { CutsceneStudio } from './cutsceneStudio';
 
 interface Command {
   name: string;
@@ -2154,6 +2155,13 @@ window.addEventListener('DOMContentLoaded', () => {
     (window as any).QuestGraphStudio = questGraphStudio;
   }
 
+  // Initialize Cinematic Sequencer & Cutscene Choreographer (Milestone 9.2)
+  let cutsceneStudio: CutsceneStudio | null = null;
+  if (document.getElementById('cutscene-studio-container')) {
+    cutsceneStudio = new CutsceneStudio('cutscene-studio-container');
+    (window as any).CutsceneStudio = cutsceneStudio;
+  }
+
   // Tabs
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -2188,6 +2196,9 @@ window.addEventListener('DOMContentLoaded', () => {
         } else if (target === 'tab-save-state') {
           copilotContext.innerText = 'Context: Save-State & Time Machine';
           saveStateInspector?.render();
+        } else if (target === 'tab-cutscene') {
+          copilotContext.innerText = 'Context: Cinematic Sequencer';
+          cutsceneStudio?.onTabActivated();
         }
       }
     });
